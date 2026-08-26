@@ -1,8 +1,30 @@
-# React + TypeScript + Vite
+# OpenHome
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+OpenHome is a React and TypeScript desktop application built with Vite and Tauri.
 
-Currently, two official plugins are available:
+## Development
+
+```bash
+pnpm install
+pnpm tauri:dev
+```
+
+`tauri:dev` starts Vite and launches the native desktop window.
+
+## Windows Build
+
+Build the Windows installer on a Windows machine with Rust installed with the `stable-x86_64-pc-windows-msvc` toolchain, Microsoft C++ Build Tools (including the Windows SDK), and the Microsoft Edge WebView2 Runtime.
+
+```bash
+pnpm install
+pnpm tauri:build
+```
+
+Tauri writes Windows installer artifacts under `src-tauri/target/release/bundle/`.
+
+## Frontend Tooling
+
+The frontend uses React, TypeScript, Vite, and Oxlint. Two official Vite React plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)

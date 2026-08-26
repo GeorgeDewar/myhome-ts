@@ -1,4 +1,5 @@
 export type Document = {
+    "$schema": string;
     buildings: Building[];
 }
 
@@ -10,8 +11,8 @@ export type Building = {
 export type Floor = {
     number: number;
     name: string;
-    ceilingHeight: number;
-    totalHeight: number;
+    ceilingHeight?: number;
+    totalHeight?: number;
     walls: Wall[];
     rooms: Room[];
 }
@@ -20,7 +21,7 @@ export type Wall = {
     id: string;
     start: Position;
     end: Position;
-    thickness: number;
+    thickness?: number;
 }
 
 export type WallRef = {

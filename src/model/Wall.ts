@@ -1,6 +1,8 @@
 import { Position } from "./Position";
 import type { Wall as JsonWall } from "./json/Document";
 
+const DEFAULT_THICKNESS = 100
+
 export class Wall {
   constructor(
     public from: Position,
@@ -12,7 +14,7 @@ export class Wall {
     return new Wall(
       Position.fromJson(json.start),
       Position.fromJson(json.end),
-      json.thickness
+      json.thickness ?? DEFAULT_THICKNESS
     );
   }
 }
