@@ -16,7 +16,7 @@ function App() {
 
     const plan = McKeefry;
     const house = plan.buildings[0];
-    const floor = house.floors[1];
+    const floor = house.floors[0];
     const wallRenderer = new WallRenderer(ctx);
     for (const docWall of floor.walls) {
       const wall = Wall.fromJson(docWall);
