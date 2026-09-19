@@ -1,4 +1,4 @@
-import { type Position as JsonPosition } from "./json/Document";
+import { type JsonPosition } from "./json/Document";
 
 export class Position{
     constructor(public x: number, public y: number) {}

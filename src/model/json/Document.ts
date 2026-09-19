@@ -1,36 +1,36 @@
-export type Document = {
+export type JsonPlan = {
     "$schema": string;
-    buildings: Building[];
+    buildings: JsonBuilding[];
 }
 
-export type Building = {
+export type JsonBuilding = {
     name: string;
-    floors: Floor[];
+    levels: JsonLevel[];
 }
 
-export type Floor = {
+export type JsonLevel = {
     number: number;
     name: string;
     ceilingHeight?: number;
     totalHeight?: number;
-    walls: Wall[];
-    rooms: Room[];
+    walls?: JsonWall[];
+    rooms?: JsonRoom[];
 }
 
-export type Wall = {
+export type JsonWall = {
     id: string;
-    start: Position;
-    end: Position;
+    start: JsonPosition;
+    end: JsonPosition;
     thickness?: number;
 }
 
-export type WallRef = {
-    ref: Wall["id"];
+export type JsonWallRef = {
+    ref: JsonWall["id"];
 }
 
-export type Room = {
+export type JsonRoom = {
     name: string;
-    walls: WallRef[];
+    walls: JsonWallRef[];
 }
 
-export type Position = [number, number];
+export type JsonPosition = [number, number];

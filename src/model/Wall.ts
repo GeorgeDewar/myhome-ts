@@ -1,5 +1,5 @@
 import { Position } from "./Position";
-import type { Wall as JsonWall } from "./json/Document";
+import type { JsonWall } from "./json/Document";
 
 const DEFAULT_THICKNESS = 100
 

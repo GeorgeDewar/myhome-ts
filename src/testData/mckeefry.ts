@@ -1,11 +1,11 @@
-import { type Document } from "../model/json/Document";
+import { type JsonPlan } from "../model/json/Document";
 
-export const McKeefry: Document = {
+export const McKeefry: JsonPlan = {
   $schema: "./json_schema.json",
   buildings: [
     {
       name: "Home",
-      floors: [
+      levels: [
         {
           number: 0,
           name: "Downstairs",
