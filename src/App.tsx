@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import './App.css';
-import { WallRenderer } from './graphics2d/WallRenderer';
-import { Wall } from './model/Wall';
+import { PlanView3D } from './graphics3d/PlanView3D';
 import { McKeefry } from './testData/mckeefry';
 
 function App() {
@@ -17,17 +16,18 @@ function App() {
     const plan = McKeefry;
     const house = plan.buildings[0];
     const floor = house.floors[0];
-    const wallRenderer = new WallRenderer(ctx);
-    for (const docWall of floor.walls) {
-      const wall = Wall.fromJson(docWall);
-      wallRenderer.renderWall(wall);
-    }
+    // const wallRenderer = new WallRenderer(ctx);
+    // for (const docWall of floor.walls) {
+    //   const wall = Wall.fromJson(docWall);
+    //   wallRenderer.renderWall(wall);
+    // }
   }, []);
 
   return (
     <main>
       <h1>Hello World</h1>
-      <canvas ref={canvasRef} width="1000px" height="800px"></canvas>
+      <PlanView3D />
+      {/* <canvas ref={canvasRef} width="1000px" height="800px"></canvas> */}
     </main>
   )
 }

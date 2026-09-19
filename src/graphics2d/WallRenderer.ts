@@ -4,7 +4,7 @@ export class WallRenderer {
     constructor(private ctx: CanvasRenderingContext2D) {}
 
     private offset = [-200, 200]; // px
-    private scale = 0.02; // px per mm
+    private scale = 0.020; // px per mm
 
     renderWall (wall: Wall) {
         console.log(`Rendering wall from (${wall.from.x}, ${wall.from.y}) to (${wall.to.x}, ${wall.to.y}) with thickness ${wall.thickness}`);
