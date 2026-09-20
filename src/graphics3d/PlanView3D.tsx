@@ -32,6 +32,8 @@ export const PlanView3D = () => {
             const geometry = new THREE.ExtrudeGeometry(shape, { depth: 2.4 });
             const material = new THREE.MeshPhongMaterial({ color: "#8AC" });
             const mesh = new THREE.Mesh(geometry, material);
+            mesh.rotation.x = Math.PI / 2;
+            mesh.position.y = 2.4;
             scene.add(mesh);
         }
     }
@@ -43,7 +45,8 @@ export const PlanView3D = () => {
     const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
     scene.add(light);
 
-    camera.position.z = 35;
+    camera.position.y = 15;
+    camera.position.z = 45;
 
     const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current! });
     renderer.setSize(window.innerWidth, window.innerHeight);
