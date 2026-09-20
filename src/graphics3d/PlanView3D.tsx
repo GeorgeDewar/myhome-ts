@@ -20,19 +20,36 @@ export const PlanView3D = () => {
     const cube = new THREE.Mesh(geometry, material);
     scene.add(cube);
 
+
+    if (plan) {
+        const walls = plan.getWallsOnLevel(0); // Example: get walls on level 0
+        for (const wall of walls) {
+            const shape = new THREE.Shape();
+            shape.moveTo(wall.from.x.metres, wall.to.y.metres);
+            for (const point of wall.basicPolygon2D()) {
+                shape.lineTo(point.x.metres, point.y.metres);
+            }
+            const geometry = new THREE.ExtrudeGeometry(shape, { depth: 2.4 });
+            const material = new THREE.MeshPhongMaterial({ color: "#8AC" });
+            const mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+        }
+    }
+
+
     const skyColor = 0xb1e1ff; // light blue
     const groundColor = 0xb97a20; // brownish orange
     const intensity = 1;
     const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
     scene.add(light);
 
-    camera.position.z = 5;
+    camera.position.z = 35;
 
     const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current! });
     renderer.setSize(window.innerWidth, window.innerHeight);
     // document.body.appendChild( renderer.domElement );
 
-    function animate(time) {
+    function animate(time: number) {
       cube.rotation.x = time / 2000;
       cube.rotation.y = time / 1000;
       renderer.render(scene, camera);

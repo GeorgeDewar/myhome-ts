@@ -1,4 +1,4 @@
 import { createContext } from "react";
-import type { JsonPlan } from "../model/json/Document";
+import type { Plan } from "../model/Plan";
 
-export const PlanContext = createContext<JsonPlan | null>(null);
+export const PlanContext = createContext<Plan | null>(null);

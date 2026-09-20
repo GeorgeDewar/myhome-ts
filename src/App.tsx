@@ -7,6 +7,8 @@ import { Plan } from './model/Plan';
 import testPlan from './testData/McKeefry.json';
   
 function App() {
+  const jsonPlan = testPlan as JsonPlan;
+  const plan = Plan.fromJson(jsonPlan);
   // const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -16,11 +18,6 @@ function App() {
     //   return;
     // }
 
-        console.log('Hello');
-    const jsonPlan = testPlan as JsonPlan;
-    const plan = Plan.fromJson(jsonPlan);
-    const house = plan.buildings[0];
-    const level = house.levels[0];
     console.log(plan);
     // const wallRenderer = new WallRenderer(ctx);
     // for (const docWall of level.walls) {
@@ -32,7 +29,7 @@ function App() {
   return (
     <main>
       <h1>Hello World</h1>
-      <PlanContext value={testPlan as JsonPlan}>
+      <PlanContext value={plan}>
         <PlanView3D />
       </PlanContext>
     
