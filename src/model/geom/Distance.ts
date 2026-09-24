@@ -1,23 +1,27 @@
 export class Distance {
-    constructor(public metres: number) { }
+  constructor(public metres: number) {}
 
-    static fromJson(json: number) {
-        return new Distance(json / 1000.0);
-    }
+  static fromJson(json: number) {
+    return new Distance(json / 1000.0);
+  }
 
-    plus(other: Distance) {
-        return new Distance(this.metres + other.metres);
-    }
+  toJson() {
+    return Number((this.metres * 1000).toFixed(9));
+  }
 
-    minus(other: Distance) {
-        return new Distance(this.metres - other.metres);
-    }
+  plus(other: Distance) {
+    return new Distance(this.metres + other.metres);
+  }
 
-    divideBy(divisor: number) {
-        return new Distance(this.metres / divisor);
-    }
+  minus(other: Distance) {
+    return new Distance(this.metres - other.metres);
+  }
 
-    times(factor: number) {
-        return new Distance(this.metres * factor);
-    }
+  divideBy(divisor: number) {
+    return new Distance(this.metres / divisor);
+  }
+
+  times(factor: number) {
+    return new Distance(this.metres * factor);
+  }
 }

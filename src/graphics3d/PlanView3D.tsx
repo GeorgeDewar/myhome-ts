@@ -11,7 +11,7 @@ export const PlanView3D = () => {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#ffffff");
     const camera = new THREE.PerspectiveCamera(
-      75,
+      60,
       window.innerWidth / window.innerHeight,
       0.1,
       1000,
