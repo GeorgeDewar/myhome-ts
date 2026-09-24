@@ -1,0 +1,97 @@
+.plan-tree {
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #ffffff;
+  border-right: 1px solid #d9e2ec;
+}
+
+.panel-heading {
+  padding: 14px 16px 10px;
+  color: #486581;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 0;
+  color: #334e68;
+  background: transparent;
+  font: inherit;
+  font-size: 0.84rem;
+  text-align: left;
+}
+
+.tree-row > span:not(.tree-count) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-building {
+  padding-bottom: 8px;
+}
+
+.tree-group .tree-group {
+  margin-left: 16px;
+}
+
+.tree-group > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.tree-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.tree-group > summary::before {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23627d98' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E") center / 15px no-repeat;
+  content: "";
+}
+
+.tree-group[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.tree-parent {
+  font-weight: 600;
+}
+
+.tree-level > summary:hover {
+  background: #f0f4f8;
+}
+
+.tree-level > summary.is-active {
+  color: #102a43;
+  background: #d9eafd;
+  font-weight: 600;
+}
+
+.tree-opening > .tree-item,
+.tree-category > .tree-room {
+  margin-left: 16px;
+}
+
+.tree-item,
+.tree-room {
+  color: #627d98;
+}
+
+.tree-count {
+  margin-left: auto;
+  color: #829ab1;
+  font-size: 0.72rem;
+}
