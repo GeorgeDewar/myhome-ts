@@ -13,6 +13,10 @@ export class StandardDoor {
     public thickness?: Distance,
   ) {}
 
+  get leafThickness() {
+    return this.thickness ?? new Distance(0.035);
+  }
+
   static fromJson(json: Extract<JsonOpeningItem, { type: "StandardDoor" }>) {
     return new StandardDoor(
       json.hingeSide,

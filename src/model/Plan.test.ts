@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import testPlan from "../testData/McKeefry.json";
+import { StandardDoor } from "./Opening";
 import { Plan } from "./Plan";
 import type { JsonPlan } from "./json/Document";
 import { formatPlanJson } from "./json/formatPlanJson";
@@ -39,6 +40,10 @@ describe("Plan", () => {
 
     expect(wall.width.metres).toBe(0.1);
     expect(wall.toJson()).toEqual({ id: "wall-1", start: [0, 0], end: [1000, 0] });
+  });
+
+  it("uses a 35mm leaf thickness for doors without an explicit thickness", () => {
+    expect(new StandardDoor("left", "in").leafThickness.metres).toBe(0.035);
   });
 
   it("formats a save payload with the project Prettier options", async () => {

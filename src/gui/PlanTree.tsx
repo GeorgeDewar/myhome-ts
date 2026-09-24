@@ -50,8 +50,8 @@ export const PlanTree = ({ plan, activeLevel }: PlanTreeProps) => (
                   <span>Rooms</span>
                   <span className="tree-count">{level.rooms.length}</span>
                 </summary>
-                {level.rooms.map((room) => (
-                  <div className="tree-row tree-room" key={room.name}>
+                {level.rooms.map((room, index) => (
+                  <div className="tree-row tree-room" key={`${room.name}-${index}`}>
                     <span>{room.name}</span>
                   </div>
                 ))}

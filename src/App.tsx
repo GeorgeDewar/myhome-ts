@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Layers } from "lucide-react";
 import { useState } from "react";
 import "./App.css";
 import { PlanContext } from "./context/PlanContext";
+import { PlanView2D } from "./graphics2d/PlanView2D";
 import { PlanView3D } from "./graphics3d/PlanView3D";
 import { PlanTree } from "./gui/PlanTree";
 import type { JsonPlan } from "./model/json/Document";
@@ -97,13 +98,7 @@ function App() {
                 ))}
               </Tabs.List>
               <Tabs.Content className="view-panel" value="plan-2d">
-                <div className="empty-view">
-                  <div className="empty-view-grid" />
-                  <div className="empty-view-content">
-                    <span>2D Plan</span>
-                    <small>Canvas editor coming next</small>
-                  </div>
-                </div>
+                <PlanView2D level={activeLevel} />
               </Tabs.Content>
               <Tabs.Content className="view-panel" value="plan-3d">
                 <PlanView3D level={activeLevel} />
