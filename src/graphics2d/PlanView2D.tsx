@@ -9,6 +9,8 @@ import "./PlanView2D.css";
 type Point = { x: number; y: number };
 type Viewport = { offsetX: number; offsetY: number; scale: number };
 
+export type PlanView2DStatus = { cursor: Point; offset: Point; scale: number };
+
 const GRID_SIZE_METRES = 1;
 const GRID_COLOR = "#d9e2ec";
 
@@ -28,10 +30,7 @@ const openingPoints = (wall: Wall, opening: Opening) => {
     x: from.x + direction.x * (opening.distanceAlongWall.metres - halfWidth),
     y: from.y + direction.y * (opening.distanceAlongWall.metres - halfWidth),
   };
-  const end = {
-    x: start.x + direction.x * opening.width.metres,
-    y: start.y + direction.y * opening.width.metres,
-  };
+  const end = { x: start.x + direction.x * opening.width.metres, y: start.y + direction.y * opening.width.metres };
   return { direction, end, normal, start };
 };
 
@@ -42,7 +41,9 @@ const drawPolygon = (context: CanvasRenderingContext2D, points: Point[]) => {
   context.closePath();
 };
 
-const toPolygon = (points: Point[]): Polygon => [[...points.map((point) => [point.x, point.y] as [number, number]), [points[0].x, points[0].y]]];
+const toPolygon = (points: Point[]): Polygon => [
+  [...points.map((point) => [point.x, point.y] as [number, number]), [points[0].x, points[0].y]],
+];
 
 const drawMultiPolygon = (context: CanvasRenderingContext2D, geometry: MultiPolygon) => {
   context.beginPath();
@@ -123,20 +124,29 @@ const drawWindow = (context: CanvasRenderingContext2D, wall: Wall, opening: Open
   });
 };
 
-const drawDoor = (context: CanvasRenderingContext2D, wall: Wall, opening: Opening, door: StandardDoor, scale: number) => {
+const drawDoor = (
+  context: CanvasRenderingContext2D,
+  wall: Wall,
+  opening: Opening,
+  door: StandardDoor,
+  scale: number,
+) => {
   const { direction, end, normal, start } = openingPoints(wall, opening);
   const isLeftHinged = door.hingeSide === "left";
   const hingeEdge = isLeftHinged ? start : end;
   const outward = door.swingDirection === "out";
-  const hingeOffset = (outward ? -1 : 1) * wall.width.metres / 2;
+  const hingeOffset = ((outward ? -1 : 1) * wall.width.metres) / 2;
   const hinge = { x: hingeEdge.x + normal.x * hingeOffset, y: hingeEdge.y + normal.y * hingeOffset };
   const closedDirection = isLeftHinged ? direction : { x: -direction.x, y: -direction.y };
-  const sweep = (isLeftHinged === outward ? -1 : 1) * Math.PI / 2;
+  const sweep = ((isLeftHinged === outward ? -1 : 1) * Math.PI) / 2;
   const rotatedDirection = {
     x: closedDirection.x * Math.cos(sweep) - closedDirection.y * Math.sin(sweep),
     y: closedDirection.x * Math.sin(sweep) + closedDirection.y * Math.cos(sweep),
   };
-  const leafEnd = { x: hinge.x + rotatedDirection.x * opening.width.metres, y: hinge.y + rotatedDirection.y * opening.width.metres };
+  const leafEnd = {
+    x: hinge.x + rotatedDirection.x * opening.width.metres,
+    y: hinge.y + rotatedDirection.y * opening.width.metres,
+  };
   const leafNormal = { x: -rotatedDirection.y, y: rotatedDirection.x };
   const leafSide = { x: -leafNormal.x * door.leafThickness.metres, y: -leafNormal.y * door.leafThickness.metres };
   const startAngle = Math.atan2(closedDirection.y, closedDirection.x);
@@ -187,19 +197,26 @@ const drawRooms = (context: CanvasRenderingContext2D, rooms: Room[], scale: numb
   context.textAlign = "center";
   context.textBaseline = "middle";
   for (const room of rooms) {
-    const corners = room.walls.map((wall, index) => intersection(wall, room.walls[(index + 1) % room.walls.length])).filter(
-      (corner): corner is Point => corner !== undefined,
-    );
+    const corners = room.walls
+      .map((wall, index) => intersection(wall, room.walls[(index + 1) % room.walls.length]))
+      .filter((corner): corner is Point => corner !== undefined);
     if (corners.length === 0) continue;
     const center = corners.reduce((sum, corner) => ({ x: sum.x + corner.x, y: sum.y + corner.y }), { x: 0, y: 0 });
     context.fillText(room.name, center.x / corners.length, center.y / corners.length);
   }
 };
 
-export const PlanView2D = ({ level }: { level: number }) => {
+export const PlanView2D = ({
+  level,
+  onStatusChange,
+}: {
+  level: number;
+  onStatusChange: (status: PlanView2DStatus) => void;
+}) => {
   const plan = useContext(PlanContext);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewportRef = useRef<Viewport>({ offsetX: 0, offsetY: 0, scale: 20 });
+  const hasFittedRef = useRef(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -209,21 +226,35 @@ export const PlanView2D = ({ level }: { level: number }) => {
     const walls = plan.getWallsOnLevel(level);
     const rooms = plan.getRoomsOnLevel(level);
     const viewport = viewportRef.current;
-    let didFit = false;
     let dragOrigin: Point | undefined;
+    let cursor = { x: 0, y: 0 };
+
+    const reportStatus = () => {
+      onStatusChange({
+        cursor,
+        offset: { x: -viewport.offsetX / viewport.scale, y: -viewport.offsetY / viewport.scale },
+        scale: viewport.scale,
+      });
+    };
 
     const fitToPlan = () => {
-      if (didFit || walls.length === 0 || !canvas.clientWidth || !canvas.clientHeight) return;
+      if (hasFittedRef.current || walls.length === 0 || !canvas.clientWidth || !canvas.clientHeight) return;
       const points = walls.flatMap((wall) => [toPoint(wall.from), toPoint(wall.to)]);
       const minX = Math.min(...points.map((point) => point.x));
       const maxX = Math.max(...points.map((point) => point.x));
       const minY = Math.min(...points.map((point) => point.y));
       const maxY = Math.max(...points.map((point) => point.y));
       const padding = 80;
-      viewport.scale = Math.max(12, Math.min((canvas.clientWidth - padding * 2) / (maxX - minX), (canvas.clientHeight - padding * 2) / (maxY - minY)));
+      viewport.scale = Math.max(
+        12,
+        Math.min(
+          (canvas.clientWidth - padding * 2) / (maxX - minX),
+          (canvas.clientHeight - padding * 2) / (maxY - minY),
+        ),
+      );
       viewport.offsetX = (canvas.clientWidth - (minX + maxX) * viewport.scale) / 2;
       viewport.offsetY = (canvas.clientHeight - (minY + maxY) * viewport.scale) / 2;
-      didFit = true;
+      hasFittedRef.current = true;
     };
 
     const render = () => {
@@ -232,7 +263,14 @@ export const PlanView2D = ({ level }: { level: number }) => {
       canvas.height = Math.round(canvas.clientHeight * pixelRatio);
       context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
       context.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-      context.setTransform(viewport.scale * pixelRatio, 0, 0, viewport.scale * pixelRatio, viewport.offsetX * pixelRatio, viewport.offsetY * pixelRatio);
+      context.setTransform(
+        viewport.scale * pixelRatio,
+        0,
+        0,
+        viewport.scale * pixelRatio,
+        viewport.offsetX * pixelRatio,
+        viewport.offsetY * pixelRatio,
+      );
       drawGrid(context, canvas, viewport);
       drawWalls(context, walls, viewport.scale);
       drawOpenings(context, walls, viewport.scale);
@@ -248,24 +286,39 @@ export const PlanView2D = ({ level }: { level: number }) => {
       canvas.setPointerCapture(event.pointerId);
     };
     const pointerMove = (event: PointerEvent) => {
-      if (!dragOrigin) return;
+      const bounds = canvas.getBoundingClientRect();
+      cursor = {
+        x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
+        y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
+      };
+      if (!dragOrigin) {
+        reportStatus();
+        return;
+      }
       viewport.offsetX += event.clientX - dragOrigin.x;
       viewport.offsetY += event.clientY - dragOrigin.y;
       dragOrigin = { x: event.clientX, y: event.clientY };
       render();
+      reportStatus();
     };
-    const pointerUp = () => { dragOrigin = undefined; };
+    const pointerUp = () => {
+      dragOrigin = undefined;
+    };
     const wheel = (event: WheelEvent) => {
       event.preventDefault();
       const bounds = canvas.getBoundingClientRect();
       const point = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
       const zoomFactor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
       const nextScale = Math.min(200, Math.max(12, viewport.scale * zoomFactor));
-      const worldPoint = { x: (point.x - viewport.offsetX) / viewport.scale, y: (point.y - viewport.offsetY) / viewport.scale };
+      const worldPoint = {
+        x: (point.x - viewport.offsetX) / viewport.scale,
+        y: (point.y - viewport.offsetY) / viewport.scale,
+      };
       viewport.scale = nextScale;
       viewport.offsetX = point.x - worldPoint.x * viewport.scale;
       viewport.offsetY = point.y - worldPoint.y * viewport.scale;
       render();
+      reportStatus();
     };
 
     resizeObserver.observe(canvas);
@@ -275,6 +328,7 @@ export const PlanView2D = ({ level }: { level: number }) => {
     canvas.addEventListener("wheel", wheel, { passive: false });
     fitToPlan();
     render();
+    reportStatus();
     return () => {
       resizeObserver.disconnect();
       canvas.removeEventListener("pointerdown", pointerDown);

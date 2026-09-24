@@ -4,8 +4,8 @@ import { ChevronDown, ChevronUp, Layers } from "lucide-react";
 import { useState } from "react";
 import "./App.css";
 import { PlanContext } from "./context/PlanContext";
-import { PlanView2D } from "./graphics2d/PlanView2D";
-import { PlanView3D } from "./graphics3d/PlanView3D";
+import { PlanView2D, type PlanView2DStatus } from "./graphics2d/PlanView2D";
+import { PlanView3D, type PlanView3DStatus } from "./graphics3d/PlanView3D";
 import { PlanTree } from "./gui/PlanTree";
 import type { JsonPlan } from "./model/json/Document";
 import { Plan } from "./model/Plan";
@@ -24,6 +24,15 @@ function App() {
   const levels = plan.buildings.flatMap((building) => building.levels);
   const [activeLevel, setActiveLevel] = useState(levels[0]?.number ?? 0);
   const [activeViewId, setActiveViewId] = useState(initialViews[0].id);
+  const [twoDStatus, setTwoDStatus] = useState<PlanView2DStatus>({
+    cursor: { x: 0, y: 0 },
+    offset: { x: 0, y: 0 },
+    scale: 20,
+  });
+  const [threeDStatus, setThreeDStatus] = useState<PlanView3DStatus>({
+    position: { x: 0, y: 15, z: 45 },
+    rotation: { x: 0, y: 0, z: 0 },
+  });
   const activeLevelIndex = levels.findIndex((level) => level.number === activeLevel);
   const currentLevel = levels[activeLevelIndex];
   const activeView = initialViews.find((view) => view.id === activeViewId) ?? initialViews[0];
@@ -98,18 +107,33 @@ function App() {
                 ))}
               </Tabs.List>
               <Tabs.Content className="view-panel" value="plan-2d">
-                <PlanView2D level={activeLevel} />
+                <PlanView2D level={activeLevel} onStatusChange={setTwoDStatus} />
               </Tabs.Content>
               <Tabs.Content className="view-panel" value="plan-3d">
-                <PlanView3D level={activeLevel} />
+                <PlanView3D level={activeLevel} onStatusChange={setThreeDStatus} />
               </Tabs.Content>
             </Tabs.Root>
           </section>
 
           <footer className="status-bar">
             <span>{currentLevel ? `Level ${currentLevel.number}: ${currentLevel.name}` : "No level selected"}</span>
-            <span>{currentLevel?.walls.length ?? 0} walls</span>
-            <span>{currentLevel?.rooms.length ?? 0} rooms</span>
+            {activeView.kind === "2d" ? (
+              <>
+                <span>
+                  Cursor: ({Math.round(twoDStatus.cursor.x * 1000)}mm, {Math.round(twoDStatus.cursor.y * 1000)}mm)
+                </span>
+                <span>Scale: {twoDStatus.scale.toFixed(2)}</span>
+                <span>
+                  Offset: ({Math.round(twoDStatus.offset.x * 1000)}mm, {Math.round(twoDStatus.offset.y * 1000)}mm)
+                </span>
+              </>
+            ) : (
+              <span>
+                Camera Pos: ({threeDStatus.position.x.toFixed(2)}, {threeDStatus.position.y.toFixed(2)},{" "}
+                {threeDStatus.position.z.toFixed(2)}), Angle: ({Math.round(threeDStatus.rotation.x)},{" "}
+                {Math.round(threeDStatus.rotation.y)}, {Math.round(threeDStatus.rotation.z)})
+              </span>
+            )}
             <span className="status-spacer" />
             <span>{activeView.kind.toUpperCase()} view</span>
           </footer>

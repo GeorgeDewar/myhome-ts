@@ -3,7 +3,18 @@ import * as THREE from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import { PlanContext } from "../context/PlanContext";
 
-export const PlanView3D = ({ level }: { level: number }) => {
+export type PlanView3DStatus = {
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number };
+};
+
+export const PlanView3D = ({
+  level,
+  onStatusChange,
+}: {
+  level: number;
+  onStatusChange: (status: PlanView3DStatus) => void;
+}) => {
   const plan = useContext(PlanContext);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -20,6 +31,16 @@ export const PlanView3D = ({ level }: { level: number }) => {
     const controls = new PointerLockControls(camera, canvasRef.current!);
     const pressedKeys = new Set<string>();
     const movementSpeed = 6;
+    const reportStatus = () => {
+      onStatusChange({
+        position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+        rotation: {
+          x: THREE.MathUtils.radToDeg(camera.rotation.x),
+          y: THREE.MathUtils.radToDeg(camera.rotation.y),
+          z: THREE.MathUtils.radToDeg(camera.rotation.z),
+        },
+      });
+    };
 
     // Click the 3D view to lock the pointer and start looking around.
     const lockControls = () => controls.lock();
@@ -34,10 +55,14 @@ export const PlanView3D = ({ level }: { level: number }) => {
       pressedKeys.delete(event.code);
     };
     const clearPressedKeys = () => pressedKeys.clear();
+    const reportMouseLook = () => {
+      if (controls.isLocked) reportStatus();
+    };
 
     canvasRef.current?.addEventListener("click", lockControls);
     document.addEventListener("keydown", updatePressedKeys);
     document.addEventListener("keyup", clearPressedKey);
+    document.addEventListener("mousemove", reportMouseLook);
     window.addEventListener("blur", clearPressedKeys);
 
     if (plan) {
@@ -68,6 +93,7 @@ export const PlanView3D = ({ level }: { level: number }) => {
 
     camera.position.y = 15;
     camera.position.z = 45;
+    reportStatus();
 
     scene.add(controls.object);
 
@@ -89,16 +115,32 @@ export const PlanView3D = ({ level }: { level: number }) => {
       previousTime = time;
 
       if (controls.isLocked) {
-        if (pressedKeys.has("KeyW")) controls.moveForward(distance);
-        if (pressedKeys.has("KeyS")) controls.moveForward(-distance);
-        if (pressedKeys.has("KeyA")) controls.moveRight(-distance);
-        if (pressedKeys.has("KeyD")) controls.moveRight(distance);
+        let moved = false;
+        if (pressedKeys.has("KeyW")) {
+          controls.moveForward(distance);
+          moved = true;
+        }
+        if (pressedKeys.has("KeyS")) {
+          controls.moveForward(-distance);
+          moved = true;
+        }
+        if (pressedKeys.has("KeyA")) {
+          controls.moveRight(-distance);
+          moved = true;
+        }
+        if (pressedKeys.has("KeyD")) {
+          controls.moveRight(distance);
+          moved = true;
+        }
         if (pressedKeys.has("ShiftLeft") || pressedKeys.has("ShiftRight")) {
           camera.position.y += distance;
+          moved = true;
         }
         if (pressedKeys.has("ControlLeft") || pressedKeys.has("ControlRight")) {
           camera.position.y -= distance;
+          moved = true;
         }
+        if (moved) reportStatus();
       }
 
       cube.rotation.x = time / 2000;
@@ -112,6 +154,7 @@ export const PlanView3D = ({ level }: { level: number }) => {
       canvasRef.current?.removeEventListener("click", lockControls);
       document.removeEventListener("keydown", updatePressedKeys);
       document.removeEventListener("keyup", clearPressedKey);
+      document.removeEventListener("mousemove", reportMouseLook);
       window.removeEventListener("blur", clearPressedKeys);
       resizeObserver.disconnect();
       controls.dispose();
