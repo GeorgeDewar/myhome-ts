@@ -9,6 +9,7 @@ export const PlanView3D = () => {
 
   useEffect(() => {
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color("#ffffff");
     const camera = new THREE.PerspectiveCamera(
       75,
       window.innerWidth / window.innerHeight,
@@ -69,6 +70,9 @@ export const PlanView3D = () => {
         scene.add(mesh);
       }
     }
+
+    const grid = new THREE.GridHelper(100, 100, "#d9e2ec", "#d9e2ec");
+    scene.add(grid);
 
     const skyColor = 0xb1e1ff; // light blue
     const groundColor = 0xb97a20; // brownish orange
