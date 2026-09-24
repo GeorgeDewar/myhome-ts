@@ -1,4 +1,5 @@
 import { difference, union, type MultiPolygon, type Polygon } from "polygon-clipping";
+import polylabel from "polylabel";
 import { useContext, useEffect, useRef } from "react";
 import { PlanContext } from "../context/PlanContext";
 import type { Opening, StandardDoor } from "../model/Opening";
@@ -191,18 +192,43 @@ const intersection = (first: Wall, second: Wall): Point | undefined => {
   };
 };
 
-const drawRooms = (context: CanvasRenderingContext2D, rooms: Room[], scale: number) => {
+const drawRooms = (context: CanvasRenderingContext2D, rooms: Room[]) => {
   context.fillStyle = "#243b53";
-  context.font = `${0.28 / scale}px "IBM Plex Sans", sans-serif`;
   context.textAlign = "center";
   context.textBaseline = "middle";
   for (const room of rooms) {
     const corners = room.walls
       .map((wall, index) => intersection(wall, room.walls[(index + 1) % room.walls.length]))
       .filter((corner): corner is Point => corner !== undefined);
-    if (corners.length === 0) continue;
-    const center = corners.reduce((sum, corner) => ({ x: sum.x + corner.x, y: sum.y + corner.y }), { x: 0, y: 0 });
-    context.fillText(room.name, center.x / corners.length, center.y / corners.length);
+    if (corners.length < 3) continue;
+
+    const ring = [
+      ...corners.map((corner) => [corner.x, corner.y] as [number, number]),
+      [corners[0].x, corners[0].y] as [number, number],
+    ];
+    const [labelX, labelY] = polylabel([ring], 0.01);
+    const minX = Math.min(...corners.map((corner) => corner.x));
+    const maxX = Math.max(...corners.map((corner) => corner.x));
+    const minY = Math.min(...corners.map((corner) => corner.y));
+    const maxY = Math.max(...corners.map((corner) => corner.y));
+    let fontSize = 0.3;
+
+    while (fontSize > 0.1) {
+      context.font = `${fontSize}px "IBM Plex Sans", sans-serif`;
+      const halfWidth = context.measureText(room.name).width / 2;
+      const halfHeight = fontSize / 2;
+      if (
+        labelX - halfWidth >= minX &&
+        labelX + halfWidth <= maxX &&
+        labelY - halfHeight >= minY &&
+        labelY + halfHeight <= maxY
+      )
+        break;
+      fontSize *= 0.8;
+    }
+
+    context.font = `${fontSize}px "IBM Plex Sans", sans-serif`;
+    context.fillText(room.name, labelX, labelY);
   }
 };
 
@@ -274,7 +300,7 @@ export const PlanView2D = ({
       drawGrid(context, canvas, viewport);
       drawWalls(context, walls, viewport.scale);
       drawOpenings(context, walls, viewport.scale);
-      drawRooms(context, rooms, viewport.scale);
+      drawRooms(context, rooms);
     };
 
     const resizeObserver = new ResizeObserver(() => {
