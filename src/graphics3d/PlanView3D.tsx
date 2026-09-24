@@ -3,43 +3,29 @@ import * as THREE from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import { PlanContext } from "../context/PlanContext";
 
-export const PlanView3D = () => {
+export const PlanView3D = ({ level }: { level: number }) => {
   const plan = useContext(PlanContext);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#ffffff");
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000,
-    );
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 
     const geometry = new THREE.BoxGeometry(1, 1, 1);
     const material = new THREE.MeshPhongMaterial({ color: "#8AC" });
     const cube = new THREE.Mesh(geometry, material);
     scene.add(cube);
 
-    const controls = new PointerLockControls(camera, document.body);
+    const controls = new PointerLockControls(camera, canvasRef.current!);
     const pressedKeys = new Set<string>();
     const movementSpeed = 6;
 
-    // Click anywhere on the page to lock the mouse and start looking around
+    // Click the 3D view to lock the pointer and start looking around.
     const lockControls = () => controls.lock();
     const updatePressedKeys = (event: KeyboardEvent) => {
       if (
-        [
-          "KeyW",
-          "KeyA",
-          "KeyS",
-          "KeyD",
-          "ShiftLeft",
-          "ShiftRight",
-          "ControlLeft",
-          "ControlRight",
-        ].includes(event.code)
+        ["KeyW", "KeyA", "KeyS", "KeyD", "ShiftLeft", "ShiftRight", "ControlLeft", "ControlRight"].includes(event.code)
       ) {
         pressedKeys.add(event.code);
       }
@@ -49,13 +35,13 @@ export const PlanView3D = () => {
     };
     const clearPressedKeys = () => pressedKeys.clear();
 
-    document.addEventListener("click", lockControls);
+    canvasRef.current?.addEventListener("click", lockControls);
     document.addEventListener("keydown", updatePressedKeys);
     document.addEventListener("keyup", clearPressedKey);
     window.addEventListener("blur", clearPressedKeys);
 
     if (plan) {
-      const walls = plan.getWallsOnLevel(0); // Example: get walls on level 0
+      const walls = plan.getWallsOnLevel(level);
       for (const wall of walls) {
         const shape = new THREE.Shape();
         shape.moveTo(wall.from.x.metres, wall.from.y.metres);
@@ -86,8 +72,16 @@ export const PlanView3D = () => {
     scene.add(controls.object);
 
     const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current! });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    // document.body.appendChild( renderer.domElement );
+    const resizeRenderer = () => {
+      const { clientHeight, clientWidth } = renderer.domElement;
+      if (!clientWidth || !clientHeight) return;
+      camera.aspect = clientWidth / clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(clientWidth, clientHeight, false);
+    };
+    const resizeObserver = new ResizeObserver(resizeRenderer);
+    resizeObserver.observe(renderer.domElement);
+    resizeRenderer();
 
     let previousTime = 0;
     function animate(time: number) {
@@ -115,18 +109,15 @@ export const PlanView3D = () => {
 
     return () => {
       // Critical cleanup to avoid context collisions
-      document.removeEventListener("click", lockControls);
+      canvasRef.current?.removeEventListener("click", lockControls);
       document.removeEventListener("keydown", updatePressedKeys);
       document.removeEventListener("keyup", clearPressedKey);
       window.removeEventListener("blur", clearPressedKeys);
+      resizeObserver.disconnect();
       controls.dispose();
       renderer.dispose();
     };
-  }, []);
+  }, [level, plan]);
 
-  return (
-    <div>
-      <canvas ref={canvasRef} width="1000px" height="800px"></canvas>
-    </div>
-  );
+  return <canvas className="plan-view-3d" ref={canvasRef} />;
 };

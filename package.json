@@ -16,7 +16,10 @@
     "tauri:build": "tauri build"
   },
   "dependencies": {
+    "@radix-ui/react-tabs": "^1.1.21",
+    "@radix-ui/react-tooltip": "^1.2.16",
     "@types/three": "^0.186.0",
+    "lucide-react": "^1.48.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "three": "^0.186.0"
