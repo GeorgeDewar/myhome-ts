@@ -17,6 +17,7 @@ export class Wall {
     public from: Point2D,
     public to: Point2D,
     public explicitWidth?: Distance,
+    public virtual?: boolean,
   ) {
     this.openings = [];
   }
@@ -31,6 +32,7 @@ export class Wall {
       Point2D.fromJson(json.start),
       Point2D.fromJson(json.end),
       json.width === undefined ? undefined : Distance.fromJson(json.width),
+      json.virtual,
     );
     wall.openings = (json.openings ?? []).map(Opening.fromJson);
     wall.openings.forEach((opening) => (opening.wall = wall));

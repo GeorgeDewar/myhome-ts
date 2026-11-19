@@ -6,6 +6,11 @@
   cursor: grab;
 }
 
+.plan-view-2d:focus {
+  outline: 2px solid #2680c2;
+  outline-offset: -2px;
+}
+
 .plan-view-2d:active {
   cursor: grabbing;
 }

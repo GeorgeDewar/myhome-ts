@@ -2,6 +2,12 @@ import { difference, union, type MultiPolygon, type Polygon } from "polygon-clip
 import polylabel from "polylabel";
 import { useContext, useEffect, useRef } from "react";
 import { PlanContext } from "../context/PlanContext";
+import {
+  isSelectionTarget,
+  selectionTargetForOpeningItem,
+  type SelectionState,
+  type SelectionTarget,
+} from "../gui/selection";
 import type { Opening, StandardDoor } from "../model/Opening";
 import type { Room } from "../model/Room";
 import type { Wall } from "../model/Wall";
@@ -33,6 +39,17 @@ const openingPoints = (wall: Wall, opening: Opening) => {
   };
   const end = { x: start.x + direction.x * opening.width.metres, y: start.y + direction.y * opening.width.metres };
   return { direction, end, normal, start };
+};
+
+const openingPolygon = (wall: Wall, opening: Opening) => {
+  const { end, normal, start } = openingPoints(wall, opening);
+  const halfWallWidth = wall.width.metres / 2;
+  return [
+    { x: start.x + normal.x * halfWallWidth, y: start.y + normal.y * halfWallWidth },
+    { x: end.x + normal.x * halfWallWidth, y: end.y + normal.y * halfWallWidth },
+    { x: end.x - normal.x * halfWallWidth, y: end.y - normal.y * halfWallWidth },
+    { x: start.x - normal.x * halfWallWidth, y: start.y - normal.y * halfWallWidth },
+  ];
 };
 
 const drawPolygon = (context: CanvasRenderingContext2D, points: Point[]) => {
@@ -192,6 +209,75 @@ const intersection = (first: Wall, second: Wall): Point | undefined => {
   };
 };
 
+const isInsidePolygon = (point: Point, polygon: Point[]) => {
+  let isInside = false;
+  for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index++) {
+    const current = polygon[index];
+    const prior = polygon[previous];
+    if (
+      current.y > point.y !== prior.y > point.y &&
+      point.x < ((prior.x - current.x) * (point.y - current.y)) / (prior.y - current.y) + current.x
+    ) {
+      isInside = !isInside;
+    }
+  }
+  return isInside;
+};
+
+const roomPolygon = (room: Room) =>
+  room.walls
+    .map((wall, index) => intersection(wall, room.walls[(index + 1) % room.walls.length]))
+    .filter((corner): corner is Point => corner !== undefined);
+
+const targetsAtPoint = (point: Point, walls: Wall[], rooms: Room[]): SelectionTarget[] => {
+  const targets: SelectionTarget[] = [];
+  rooms.forEach((room) => {
+    const corners = roomPolygon(room);
+    if (corners.length >= 3 && isInsidePolygon(point, corners)) targets.push({ kind: "room", item: room });
+  });
+  walls.forEach((wall) => {
+    if (!isInsidePolygon(point, wall.basicPolygon2D().map(toPoint))) return;
+    targets.push({ kind: "wall", item: wall });
+    wall.openings.forEach((opening) => {
+      if (!isInsidePolygon(point, openingPolygon(wall, opening))) return;
+      targets.push({ kind: "opening", item: opening });
+      opening.contents.forEach((content) => targets.push(selectionTargetForOpeningItem(content, opening)));
+    });
+  });
+  return targets;
+};
+
+const drawSelection = (
+  context: CanvasRenderingContext2D,
+  targets: SelectionTarget[],
+  activeTarget: SelectionTarget | undefined,
+  scale: number,
+) => {
+  targets.forEach((target) => {
+    const isActive = activeTarget !== undefined && isSelectionTarget(activeTarget, target);
+    context.strokeStyle = isActive ? "#d64545" : "#2680c2";
+    context.lineWidth = (isActive ? 3 : 1.5) / scale;
+    if (target.kind === "room") {
+      const corners = roomPolygon(target.item);
+      if (corners.length >= 3) {
+        drawPolygon(context, corners);
+        context.stroke();
+      }
+      return;
+    }
+    if (target.kind === "wall") {
+      drawPolygon(context, target.item.basicPolygon2D().map(toPoint));
+      context.stroke();
+      return;
+    }
+    const wall = target.kind === "opening" ? target.item.wall : target.opening.wall;
+    const opening = target.kind === "opening" ? target.item : target.opening;
+    if (!wall) return;
+    drawPolygon(context, openingPolygon(wall, opening));
+    context.stroke();
+  });
+};
+
 const drawRooms = (context: CanvasRenderingContext2D, rooms: Room[]) => {
   context.fillStyle = "#243b53";
   context.textAlign = "center";
@@ -235,9 +321,17 @@ const drawRooms = (context: CanvasRenderingContext2D, rooms: Room[]) => {
 export const PlanView2D = ({
   level,
   onStatusChange,
+  selection,
+  onSelectionChange,
+  onEdit,
+  version,
 }: {
   level: number;
   onStatusChange: (status: PlanView2DStatus) => void;
+  selection: SelectionState;
+  onSelectionChange: (selection: SelectionState) => void;
+  onEdit: (target: SelectionTarget) => void;
+  version: number;
 }) => {
   const plan = useContext(PlanContext);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -249,7 +343,7 @@ export const PlanView2D = ({
     if (!canvas || !plan) return;
     const context = canvas.getContext("2d");
     if (!context) return;
-    const walls = plan.getWallsOnLevel(level);
+    const walls = plan.getWallsOnLevel(level).filter((wall) => !wall.virtual);
     const rooms = plan.getRoomsOnLevel(level);
     const viewport = viewportRef.current;
     let dragOrigin: Point | undefined;
@@ -301,6 +395,7 @@ export const PlanView2D = ({
       drawWalls(context, walls, viewport.scale);
       drawOpenings(context, walls, viewport.scale);
       drawRooms(context, rooms);
+      drawSelection(context, selection.targets, selection.targets[selection.activeIndex], viewport.scale);
     };
 
     const resizeObserver = new ResizeObserver(() => {
@@ -308,6 +403,7 @@ export const PlanView2D = ({
       render();
     });
     const pointerDown = (event: PointerEvent) => {
+      canvas.focus();
       dragOrigin = { x: event.clientX, y: event.clientY };
       canvas.setPointerCapture(event.pointerId);
     };
@@ -327,8 +423,31 @@ export const PlanView2D = ({
       render();
       reportStatus();
     };
-    const pointerUp = () => {
+    const pointerUp = (event: PointerEvent) => {
+      if (dragOrigin) {
+        const moved = Math.hypot(event.clientX - dragOrigin.x, event.clientY - dragOrigin.y) > 3;
+        if (!moved) {
+          const bounds = canvas.getBoundingClientRect();
+          const point = {
+            x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
+            y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
+          };
+          const targets = targetsAtPoint(point, walls, rooms);
+          onSelectionChange({ targets, activeIndex: targets.length - 1 });
+        }
+      }
       dragOrigin = undefined;
+    };
+    const doubleClick = (event: MouseEvent) => {
+      const bounds = canvas.getBoundingClientRect();
+      const point = {
+        x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
+        y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
+      };
+      const targets = targetsAtPoint(point, walls, rooms);
+      const activeTarget = targets.at(-1);
+      onSelectionChange({ targets, activeIndex: targets.length - 1 });
+      if (activeTarget) onEdit(activeTarget);
     };
     const wheel = (event: WheelEvent) => {
       event.preventDefault();
@@ -351,6 +470,7 @@ export const PlanView2D = ({
     canvas.addEventListener("pointerdown", pointerDown);
     canvas.addEventListener("pointermove", pointerMove);
     canvas.addEventListener("pointerup", pointerUp);
+    canvas.addEventListener("dblclick", doubleClick);
     canvas.addEventListener("wheel", wheel, { passive: false });
     fitToPlan();
     render();
@@ -360,9 +480,10 @@ export const PlanView2D = ({
       canvas.removeEventListener("pointerdown", pointerDown);
       canvas.removeEventListener("pointermove", pointerMove);
       canvas.removeEventListener("pointerup", pointerUp);
+      canvas.removeEventListener("dblclick", doubleClick);
       canvas.removeEventListener("wheel", wheel);
     };
-  }, [level, plan]);
+  }, [level, onEdit, onSelectionChange, plan, selection, version]);
 
-  return <canvas className="plan-view-2d" ref={canvasRef} />;
+  return <canvas className="plan-view-2d" ref={canvasRef} tabIndex={0} />;
 };

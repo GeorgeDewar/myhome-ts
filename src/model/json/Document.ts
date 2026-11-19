@@ -17,6 +17,7 @@ export type JsonWall = {
   end: JsonPosition;
   width?: number;
   openings?: JsonOpening[];
+  virtual?: boolean;
 };
 
 export type JsonOpening = {

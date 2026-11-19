@@ -1,12 +1,14 @@
 import * as Tabs from "@radix-ui/react-tabs";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { ChevronDown, ChevronUp, Layers } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import { PlanContext } from "./context/PlanContext";
 import { PlanView2D, type PlanView2DStatus } from "./graphics2d/PlanView2D";
 import { PlanView3D, type PlanView3DStatus } from "./graphics3d/PlanView3D";
 import { PlanTree } from "./gui/PlanTree";
+import { PropertyWindow } from "./gui/PropertyWindow";
+import type { SelectionState, SelectionTarget } from "./gui/selection";
 import type { JsonPlan } from "./model/json/Document";
 import { Plan } from "./model/Plan";
 import testPlan from "./testData/McKeefry.json";
@@ -24,6 +26,9 @@ function App() {
   const levels = plan.buildings.flatMap((building) => building.levels);
   const [activeLevel, setActiveLevel] = useState(levels[0]?.number ?? 0);
   const [activeViewId, setActiveViewId] = useState(initialViews[0].id);
+  const [selection, setSelection] = useState<SelectionState>({ targets: [], activeIndex: -1 });
+  const [editingTarget, setEditingTarget] = useState<SelectionTarget>();
+  const [planVersion, setPlanVersion] = useState(0);
   const [twoDStatus, setTwoDStatus] = useState<PlanView2DStatus>({
     cursor: { x: 0, y: 0 },
     offset: { x: 0, y: 0 },
@@ -36,11 +41,34 @@ function App() {
   const activeLevelIndex = levels.findIndex((level) => level.number === activeLevel);
   const currentLevel = levels[activeLevelIndex];
   const activeView = initialViews.find((view) => view.id === activeViewId) ?? initialViews[0];
+  const activeTarget = selection.targets[selection.activeIndex];
+
+  const selectTarget = (target: SelectionTarget) => setSelection({ targets: [target], activeIndex: 0 });
+  const refreshPlan = () => setPlanVersion((version) => version + 1);
 
   const selectAdjacentLevel = (direction: -1 | 1) => {
     const nextLevel = levels[activeLevelIndex + direction];
     if (nextLevel) setActiveLevel(nextLevel.number);
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) return;
+      if (event.key === "Alt" && !event.repeat && selection.targets.length > 1) {
+        event.preventDefault();
+        setSelection((currentSelection) => ({
+          targets: currentSelection.targets,
+          activeIndex: (currentSelection.activeIndex + 1) % currentSelection.targets.length,
+        }));
+      }
+      if (event.key === "Enter" && activeTarget) {
+        event.preventDefault();
+        setEditingTarget(activeTarget);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeTarget, selection.targets.length]);
 
   return (
     <Tooltip.Provider delayDuration={300}>
@@ -96,7 +124,15 @@ function App() {
           </header>
 
           <section className="workspace">
-            <PlanTree plan={plan} activeLevel={activeLevel} />
+            <PlanTree
+              plan={plan}
+              activeLevel={activeLevel}
+              selectedTargets={selection.targets}
+              activeTarget={activeTarget}
+              onLevelSelect={setActiveLevel}
+              onSelect={selectTarget}
+              onEdit={setEditingTarget}
+            />
 
             <Tabs.Root className="view-host" value={activeView.id} onValueChange={setActiveViewId}>
               <Tabs.List className="view-tabs" aria-label="Plan views">
@@ -107,7 +143,14 @@ function App() {
                 ))}
               </Tabs.List>
               <Tabs.Content className="view-panel" value="plan-2d">
-                <PlanView2D level={activeLevel} onStatusChange={setTwoDStatus} />
+                <PlanView2D
+                  level={activeLevel}
+                  onStatusChange={setTwoDStatus}
+                  selection={selection}
+                  onSelectionChange={setSelection}
+                  onEdit={setEditingTarget}
+                  version={planVersion}
+                />
               </Tabs.Content>
               <Tabs.Content className="view-panel" value="plan-3d">
                 <PlanView3D level={activeLevel} onStatusChange={setThreeDStatus} />
@@ -137,6 +180,9 @@ function App() {
             <span className="status-spacer" />
             <span>{activeView.kind.toUpperCase()} view</span>
           </footer>
+          {editingTarget && (
+            <PropertyWindow target={editingTarget} onChange={refreshPlan} onClose={() => setEditingTarget(undefined)} />
+          )}
         </main>
       </PlanContext>
     </Tooltip.Provider>
