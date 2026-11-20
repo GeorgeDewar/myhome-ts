@@ -35,6 +35,8 @@ Positional data will be stored in integer millimetres at rest, and in floating p
 
 Empty optional arrays are omitted when saving; required arrays are retained.
 
+The toolbar's Download JSON button exports the current plan as a JSON file.
+
 ### Schema
 
 The data schema is defined in schema.json. At a high level, the document is a site plan. It may contain buildings, which contain floors, and the floors contain walls and rooms. Outdoor features that are not part of buildings are top-level objects of the plan, e.g. fences.

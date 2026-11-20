@@ -1044,7 +1044,7 @@
             }
           ]
         },
-        { "number": 3, "name": "Floor 3", "walls": [], "rooms": [] }
+        { "number": 3, "name": "Floor 3" }
       ]
     }
   ]

@@ -1,6 +1,6 @@
 import * as Tabs from "@radix-ui/react-tabs";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { ChevronDown, ChevronUp, Layers } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, Layers } from "lucide-react";
 import { useEffect, useState } from "react";
 import "./App.css";
 import { PlanContext } from "./context/PlanContext";
@@ -10,6 +10,7 @@ import { PlanTree } from "./gui/PlanTree";
 import { PropertyWindow } from "./gui/PropertyWindow";
 import type { SelectionState, SelectionTarget } from "./gui/selection";
 import type { JsonPlan } from "./model/json/Document";
+import { downloadPlan } from "./model/json/downloadPlan";
 import { Plan } from "./model/Plan";
 import testPlan from "./testData/McKeefry.json";
 
@@ -46,6 +47,15 @@ function App() {
   const selectTarget = (target: SelectionTarget) => setSelection({ targets: [target], activeIndex: 0 });
   const refreshPlan = () => setPlanVersion((version) => version + 1);
 
+  const handleDownload = async () => {
+    try {
+      await downloadPlan(plan);
+    } catch (error) {
+      console.error("Failed to download the plan", error);
+      window.alert("Could not download the plan. Please try again.");
+    }
+  };
+
   const selectAdjacentLevel = (direction: -1 | 1) => {
     const nextLevel = levels[activeLevelIndex + direction];
     if (nextLevel) setActiveLevel(nextLevel.number);
@@ -79,6 +89,11 @@ function App() {
               <Layers aria-hidden="true" size={18} strokeWidth={2.4} />
               <span>OpenHome</span>
             </div>
+            <div className="toolbar-divider" />
+            <button className="download-button" type="button" onClick={handleDownload}>
+              <Download size={16} aria-hidden="true" />
+              Download JSON
+            </button>
             <div className="toolbar-divider" />
             <div className="level-control" aria-label="Active level">
               <Tooltip.Root>

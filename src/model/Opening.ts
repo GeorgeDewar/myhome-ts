@@ -95,8 +95,8 @@ export class Opening {
   toJson(): JsonOpening {
     return {
       id: this.id,
-      width: this.width.toJson(),
       distanceAlongWall: this.distanceAlongWall.toJson(),
+      width: this.width.toJson(),
       ...(this.height ? { height: this.height.toJson() } : {}),
       ...(this.distanceFromFloor ? { distanceFromFloor: this.distanceFromFloor.toJson() } : {}),
       ...(this.contents.length > 0 ? { contents: this.contents.map((content) => content.toJson()) } : {}),

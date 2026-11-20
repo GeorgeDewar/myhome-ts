@@ -57,6 +57,22 @@
   color: #bcccdc;
   cursor: default;
 }
+.download-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 0;
+  color: #486581;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.download-button:hover {
+  color: #102a43;
+  background: #eaf2f8;
+}
 .tooltip {
   padding: 5px 8px;
   border-radius: 4px;
