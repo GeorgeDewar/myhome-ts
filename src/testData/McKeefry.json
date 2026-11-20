@@ -1,5 +1,5 @@
 {
-  "$schema": "https://example.com/product.schema.json",
+  "$schema": "https://example.com/myhome.schema.json",
   "fences": [
     { "id": "fence0", "start": [9644, 0], "end": [32632, 0] },
     { "id": "fence1", "start": [25144, 8173], "end": [29069, 9601] },
@@ -10,69 +10,6 @@
     {
       "name": "Home Designer Plan",
       "levels": [
-        {
-          "number": 0,
-          "name": "Floor 0",
-          "walls": [
-            { "id": "wall0", "start": [25014, 15968], "end": [16875, 15968] },
-            { "id": "wall1", "start": [25014, 7456], "end": [25014, 15968] },
-            { "id": "wall2", "start": [10925, 16700], "end": [10925, 6610] },
-            { "id": "wall3", "start": [16875, 15968], "end": [16875, 16700] },
-            { "id": "wall4", "start": [25009, 16700], "end": [10925, 16700] },
-            { "id": "wall5", "start": [10925, 6610], "end": [21945, 6610] },
-            { "id": "wall6", "start": [18025, 7716], "end": [25014, 7716] },
-            { "id": "wall7", "start": [25024, 5117], "end": [25024, 7456] },
-            { "id": "wall8", "start": [25024, 7456], "end": [25014, 7456] },
-            { "id": "wall9", "start": [18025, 6610], "end": [18025, 7716] },
-            { "id": "wall10", "start": [25009, 15968], "end": [25009, 16700] },
-            { "id": "wall11", "start": [21945, 6610], "end": [21945, 5117] },
-            { "id": "wall12", "start": [21945, 5117], "end": [25024, 5117] }
-          ],
-          "rooms": [
-            {
-              "name": "",
-              "walls": [
-                { "ref": "wall3" },
-                { "ref": "wall4" },
-                { "ref": "wall2" },
-                { "ref": "wall5" },
-                { "ref": "wall9" },
-                { "ref": "wall6" },
-                { "ref": "wall1" },
-                { "ref": "wall0" }
-              ]
-            },
-            { "name": "", "walls": [{ "ref": "wall10" }, { "ref": "wall4" }, { "ref": "wall3" }, { "ref": "wall0" }] },
-            {
-              "name": "",
-              "walls": [
-                { "ref": "wall9" },
-                { "ref": "wall5" },
-                { "ref": "wall11" },
-                { "ref": "wall12" },
-                { "ref": "wall7" },
-                { "ref": "wall8" },
-                { "ref": "wall1" },
-                { "ref": "wall6" }
-              ]
-            },
-            {
-              "name": "",
-              "walls": [
-                { "ref": "wall1" },
-                { "ref": "wall8" },
-                { "ref": "wall7" },
-                { "ref": "wall12" },
-                { "ref": "wall11" },
-                { "ref": "wall5" },
-                { "ref": "wall2" },
-                { "ref": "wall4" },
-                { "ref": "wall10" },
-                { "ref": "wall0" }
-              ]
-            }
-          ]
-        },
         {
           "number": 1,
           "name": "Floor 1",

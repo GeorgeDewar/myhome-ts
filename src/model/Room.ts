@@ -14,10 +14,11 @@ export class Room {
   }
 
   static fromJson(json: JsonRoom): Room {
-    return new Room(json.name, json.walls ?? []);
+    if (json.walls === undefined) throw new Error(`Room '${json.name}' requires a walls array`);
+    return new Room(json.name, json.walls);
   }
 
   toJson(): JsonRoom {
-    return { name: this.name, ...(this.wallRefs.length > 0 ? { walls: this.wallRefs } : {}) };
+    return { name: this.name, walls: this.wallRefs };
   }
 }

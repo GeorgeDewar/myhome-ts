@@ -1,4 +1,12 @@
-export type JsonPlan = { $schema?: string; buildings: JsonBuilding[] };
+export type JsonPlan = { $schema?: string; fences?: JsonFence[]; buildings?: JsonBuilding[] };
+
+export type JsonFence = {
+  id: string;
+  start: JsonPosition;
+  end: JsonPosition;
+  width?: number;
+  height?: number;
+};
 
 export type JsonBuilding = { name: string; levels: JsonLevel[] };
 
@@ -29,7 +37,7 @@ export type JsonOpening = {
   contents?: JsonOpeningItem[];
 };
 
-export type JsonOpeningItem = JsonStandardDoor | JsonStandardWindow;
+export type JsonOpeningItem = JsonStandardDoor | JsonSlidingDoor | JsonStandardWindow;
 
 export type JsonStandardDoor = {
   type: "StandardDoor";
@@ -40,8 +48,10 @@ export type JsonStandardDoor = {
 
 export type JsonStandardWindow = { type: "StandardWindow" };
 
+export type JsonSlidingDoor = { type: "SlidingDoor" };
+
 export type JsonWallRef = { ref?: JsonWall["id"] };
 
-export type JsonRoom = { name: string; walls?: JsonWallRef[] };
+export type JsonRoom = { name: string; walls: JsonWallRef[] };
 
 export type JsonPosition = [number, number];

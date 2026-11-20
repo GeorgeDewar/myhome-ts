@@ -33,7 +33,7 @@ export class Level {
     level.rooms.forEach((room) => {
       room.level = level;
       room.walls = room.wallRefs.flatMap(({ ref }) => {
-        if (!ref) return [];
+        if (ref === undefined) return [];
         const id = ref;
         const wall = wallsById.get(id);
         if (!wall) throw new Error(`Room '${room.name}' references unknown wall '${id}'`);

@@ -14,7 +14,7 @@ export const PropertyWindow = ({ target, onChange, onClose }: PropertyWindowProp
     undefined,
   );
   const dragCleanupRef = useRef<() => void>(() => undefined);
-  const title = `${target.kind[0].toUpperCase()}${target.kind.slice(1)} Properties`;
+  const title = `${target.kind === "slidingDoor" ? "Sliding Door" : `${target.kind[0].toUpperCase()}${target.kind.slice(1)}`} Properties`;
 
   const startDrag = (event: MouseEvent<HTMLDivElement>) => {
     dragOriginRef.current = { pointerX: event.clientX, pointerY: event.clientY, windowX: position.x, windowY: position.y };
@@ -170,7 +170,7 @@ export const PropertyWindow = ({ target, onChange, onClose }: PropertyWindowProp
             </label>
           </>
         )}
-        {target.kind === "window" && (
+        {(target.kind === "window" || target.kind === "slidingDoor") && (
           <label>
             Opening
             <input value={target.opening.id} readOnly />

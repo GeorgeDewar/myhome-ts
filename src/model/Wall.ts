@@ -1,7 +1,6 @@
 import { Distance } from "./geom/Distance";
 import { Line2D } from "./geom/Line2D";
 import { Point2D } from "./geom/Point2D";
-import { Vector2D } from "./geom/Vector2D";
 import type { JsonWall } from "./json/Document";
 import type { Level } from "./Level";
 import { Opening } from "./Opening";
@@ -19,6 +18,7 @@ export class Wall {
     public explicitWidth?: Distance,
     public virtual?: boolean,
   ) {
+    if (from.equals(to)) throw new Error(`Wall '${id}' must have a non-zero centerline`);
     this.openings = [];
   }
 
@@ -27,6 +27,9 @@ export class Wall {
   }
 
   static fromJson(json: JsonWall) {
+    if (json.start === undefined || json.end === undefined) {
+      throw new Error(`Wall '${json.id}' requires start and end positions`);
+    }
     const wall = new Wall(
       json.id,
       Point2D.fromJson(json.start),
@@ -46,6 +49,7 @@ export class Wall {
       end: this.to.toJson(),
       ...(this.explicitWidth ? { width: this.explicitWidth.toJson() } : {}),
       ...(this.openings.length > 0 ? { openings: this.openings.map((opening) => opening.toJson()) } : {}),
+      ...(this.virtual === undefined ? {} : { virtual: this.virtual }),
     };
   }
 
@@ -54,22 +58,10 @@ export class Wall {
   }
 
   vector() {
-    return new Vector2D(this.to.x.minus(this.from.x), this.to.y.minus(this.from.y));
+    return this.centerLine().vector();
   }
 
   basicPolygon2D() {
-    const unitVector = this.vector().unit();
-    const unitNormal = unitVector.normal();
-    const halfWidthNormal = unitNormal.times(this.width.metres / 2);
-
-    const extendedStart = this.from.minus(unitVector.times(this.width.metres / 2));
-    const extendedEnd = this.to.plus(unitVector.times(this.width.metres / 2));
-
-    return [
-      extendedStart.plus(halfWidthNormal),
-      extendedEnd.plus(halfWidthNormal),
-      extendedEnd.minus(halfWidthNormal),
-      extendedStart.minus(halfWidthNormal),
-    ];
+    return this.centerLine().basicPolygon2D(this.width.metres);
   }
 }

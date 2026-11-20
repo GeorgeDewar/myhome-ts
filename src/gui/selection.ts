@@ -1,4 +1,4 @@
-import type { Opening, OpeningItem, StandardDoor, StandardWindow } from "../model/Opening";
+import type { Opening, OpeningItem, SlidingDoor, StandardDoor, StandardWindow } from "../model/Opening";
 import type { Room } from "../model/Room";
 import type { Wall } from "../model/Wall";
 
@@ -7,12 +7,21 @@ export type SelectionTarget =
   | { kind: "wall"; item: Wall }
   | { kind: "opening"; item: Opening }
   | { kind: "door"; item: StandardDoor; opening: Opening }
+  | { kind: "slidingDoor"; item: SlidingDoor; opening: Opening }
   | { kind: "window"; item: StandardWindow; opening: Opening };
 
 export type SelectionState = { targets: SelectionTarget[]; activeIndex: number };
 
-export const selectionTargetForOpeningItem = (item: OpeningItem, opening: Opening): SelectionTarget =>
-  item.type === "StandardDoor" ? { kind: "door", item, opening } : { kind: "window", item, opening };
+export const selectionTargetForOpeningItem = (item: OpeningItem, opening: Opening): SelectionTarget => {
+  switch (item.type) {
+    case "StandardDoor":
+      return { kind: "door", item, opening };
+    case "SlidingDoor":
+      return { kind: "slidingDoor", item, opening };
+    case "StandardWindow":
+      return { kind: "window", item, opening };
+  }
+};
 
 export const isSelectionTarget = (target: SelectionTarget, candidate: SelectionTarget) =>
   target.kind === candidate.kind && target.item === candidate.item;

@@ -7,6 +7,27 @@
   "unevaluatedProperties": false,
   "properties": {
     "$schema": { "type": "string" },
+    "fences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "start", "end"],
+        "unevaluatedProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "start": {
+            "$ref": "#/$defs/position",
+            "description": "Position of the start of the fence (left side when viewing face A) relative to the ground, in millimetres. The position is midway through the thickness of the fence."
+          },
+          "end": {
+            "$ref": "#/$defs/position",
+            "description": "Position of the end of the fence (right side when viewing face A) relative to the ground, in millimetres. The position is midway through the thickness of the fence."
+          },
+          "width": { "type": "number", "description": "Width of the fence in millimetres" },
+          "height": { "type": "number", "description": "Height of the fence in millimetres" }
+        }
+      }
+    },
     "buildings": {
       "type": "array",
       "items": {
@@ -105,6 +126,12 @@
                                     "type": "object",
                                     "required": ["type"],
                                     "unevaluatedProperties": false,
+                                    "properties": { "type": { "const": "SlidingDoor" } }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "required": ["type"],
+                                    "unevaluatedProperties": false,
                                     "properties": { "type": { "const": "StandardWindow" } }
                                   }
                                 ]
@@ -112,6 +139,10 @@
                             }
                           }
                         }
+                      },
+                      "virtual": {
+                        "type": "boolean",
+                        "description": "If true, it's not really a wall at all but is only used to define an area"
                       }
                     }
                   }

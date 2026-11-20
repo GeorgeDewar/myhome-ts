@@ -33,13 +33,17 @@ Inspiration:
 
 Positional data will be stored in integer millimetres at rest, and in floating point metres in-memory for calculations. The origin is toward the top-left, with x increasing to the right and y increasing downwards. This is different from cartesian cooridinates, but in line with many 2D rendering tools.
 
+Empty optional arrays are omitted when saving; required arrays are retained.
+
 ### Schema
 
-The data schema is defined in src/testData/schema.json. At a high level, the document is a site plan. It may contain buildings, which contain floors, and the floors contain walls and rooms. Outdoor features that are not part of buildings are top-level objects of the plan, e.g. fences.
+The data schema is defined in schema.json. At a high level, the document is a site plan. It may contain buildings, which contain floors, and the floors contain walls and rooms. Outdoor features that are not part of buildings are top-level objects of the plan, e.g. fences.
 
 ### Walls
 
 Walls are stored as a start and end position, and a thickness which includes the framing and cladding. The positions refer to the centreline of the wall.
+
+Walls and fences must have distinct start and end positions.
 
 #### Wall Sections
 
@@ -68,6 +72,8 @@ This will be a TypeScript project so that it can be run as a web application, de
 ### 2D view
 
 A floor can be viewed and edited as a 2D floor plan. Walls are drawn with solid yellow depicting the framing, and a thin black line depicting the cladding.
+
+Fences are drawn in brown with a thin outline, using their specified width or a default of 50mm.
 
 Openings are shown as a gap in the wall, and items within the openings are rendered, for example a window is shown as three lines.
 
@@ -109,3 +115,17 @@ Every object with an attribute to edit can be opening by double-clicking it, or 
 #### Opening editor
 
 The edit dialog for an opening is special. It shows a 2D and 3D representation of the opening and its contents, and provides tools to add, remove and position items in the opening.
+
+## Other desired attributes, in no particular order
+
+- Allow a hierachy of defaults for everything (e.g. wall width, door leaf width, colours, etc) so things can be changed in one place
+- Import and export from Sweet Home 3D
+- Store arbitrary information on things (user-defined metadata)
+- Store whether a measurement is confirmed or not, guide user through confirming and cross-checking
+- Lock confirmed measurements so that the unconfirmed ones move
+- Simulate the sun
+- Add trees - effect on shade
+- Estimate WiFi propagation
+- Do thermal calculations
+- Plugin ecosystem
+- Capture some details from a photo using AI!

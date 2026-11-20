@@ -76,7 +76,13 @@ export const PlanTree = ({
                               onClick={() => select(selectionTargetForOpeningItem(content, opening))}
                               onDoubleClick={() => edit(selectionTargetForOpeningItem(content, opening))}
                             >
-                              <span>{content.type === "StandardDoor" ? "Standard Door" : "Standard Window"}</span>
+                              <span>
+                                {content.type === "StandardDoor"
+                                  ? "Standard Door"
+                                  : content.type === "SlidingDoor"
+                                    ? "Sliding Door"
+                                    : "Standard Window"}
+                              </span>
                             </div>
                           ))}
                         </details>

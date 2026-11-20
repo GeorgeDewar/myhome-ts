@@ -68,6 +68,7 @@ export const PlanView3D = ({
     if (plan) {
       const walls = plan.getWallsOnLevel(level);
       for (const wall of walls) {
+        if (wall.virtual) continue;
         const shape = new THREE.Shape();
         shape.moveTo(wall.from.x.metres, wall.from.y.metres);
         for (const point of wall.basicPolygon2D()) {

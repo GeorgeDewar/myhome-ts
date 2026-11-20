@@ -2,7 +2,7 @@ import { Distance } from "./geom/Distance";
 import type { JsonOpening, JsonOpeningItem } from "./json/Document";
 import type { Wall } from "./Wall";
 
-export type OpeningItem = StandardDoor | StandardWindow;
+export type OpeningItem = StandardDoor | SlidingDoor | StandardWindow;
 
 export class StandardDoor {
   readonly type = "StandardDoor" as const;
@@ -47,6 +47,14 @@ export class StandardWindow {
   }
 }
 
+export class SlidingDoor {
+  readonly type = "SlidingDoor" as const;
+
+  toJson(): Extract<JsonOpeningItem, { type: "SlidingDoor" }> {
+    return { type: this.type };
+  }
+}
+
 export class Opening {
   public wall?: Wall;
   public contents: OpeningItem[];
@@ -69,9 +77,18 @@ export class Opening {
       json.height === undefined ? undefined : Distance.fromJson(json.height),
       json.distanceFromFloor === undefined ? undefined : Distance.fromJson(json.distanceFromFloor),
     );
-    opening.contents = (json.contents ?? []).map((content) =>
-      content.type === "StandardDoor" ? StandardDoor.fromJson(content) : StandardWindow.fromJson(),
-    );
+    opening.contents = (json.contents ?? []).map((content) => {
+      switch (content.type) {
+        case "StandardDoor":
+          return StandardDoor.fromJson(content);
+        case "SlidingDoor":
+          return new SlidingDoor();
+        case "StandardWindow":
+          return StandardWindow.fromJson();
+        default:
+          throw new Error(`Unknown opening item type: ${JSON.stringify(content)}`);
+      }
+    });
     return opening;
   }
 

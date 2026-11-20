@@ -1,4 +1,4 @@
-import { difference, union, type MultiPolygon, type Polygon } from "polygon-clipping";
+import { difference, union } from "polygon-clipping";
 import polylabel from "polylabel";
 import { useContext, useEffect, useRef } from "react";
 import { PlanContext } from "../context/PlanContext";
@@ -8,9 +8,11 @@ import {
   type SelectionState,
   type SelectionTarget,
 } from "../gui/selection";
+import type { Fence } from "../model/Fence";
 import type { Opening, StandardDoor } from "../model/Opening";
 import type { Room } from "../model/Room";
 import type { Wall } from "../model/Wall";
+import { drawMultiPolygon, toPoint, toPolygon } from "./renderPolygons";
 import "./PlanView2D.css";
 
 type Point = { x: number; y: number };
@@ -20,11 +22,6 @@ export type PlanView2DStatus = { cursor: Point; offset: Point; scale: number };
 
 const GRID_SIZE_METRES = 1;
 const GRID_COLOR = "#d9e2ec";
-
-const toPoint = (point: { x: { metres: number }; y: { metres: number } }): Point => ({
-  x: point.x.metres,
-  y: point.y.metres,
-});
 
 const openingPoints = (wall: Wall, opening: Opening) => {
   const from = toPoint(wall.from);
@@ -57,21 +54,6 @@ const drawPolygon = (context: CanvasRenderingContext2D, points: Point[]) => {
   context.moveTo(points[0].x, points[0].y);
   points.slice(1).forEach((point) => context.lineTo(point.x, point.y));
   context.closePath();
-};
-
-const toPolygon = (points: Point[]): Polygon => [
-  [...points.map((point) => [point.x, point.y] as [number, number]), [points[0].x, points[0].y]],
-];
-
-const drawMultiPolygon = (context: CanvasRenderingContext2D, geometry: MultiPolygon) => {
-  context.beginPath();
-  geometry.forEach((polygon) => {
-    polygon.forEach((ring) => {
-      context.moveTo(ring[0][0], ring[0][1]);
-      ring.slice(1).forEach(([x, y]) => context.lineTo(x, y));
-      context.closePath();
-    });
-  });
 };
 
 const drawGrid = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, viewport: Viewport) => {
@@ -125,6 +107,18 @@ const drawWalls = (context: CanvasRenderingContext2D, walls: Wall[], scale: numb
   context.strokeStyle = "#1f2933";
   context.lineWidth = 1 / scale;
   drawMultiPolygon(context, wallArea);
+  context.fill("evenodd");
+  context.stroke();
+};
+
+export const drawFences = (context: CanvasRenderingContext2D, fences: Fence[], scale: number) => {
+  const geometry = fences.map((fence) => toPolygon(fence.basicPolygon2D().map(toPoint)));
+  if (geometry.length === 0) return;
+  const fenceArea = union(geometry[0], ...geometry.slice(1));
+  context.fillStyle = "#8b5a2b";
+  context.strokeStyle = "#6b3f1c";
+  context.lineWidth = 1 / scale;
+  drawMultiPolygon(context, fenceArea);
   context.fill("evenodd");
   context.stroke();
 };
@@ -283,9 +277,7 @@ const drawRooms = (context: CanvasRenderingContext2D, rooms: Room[]) => {
   context.textAlign = "center";
   context.textBaseline = "middle";
   for (const room of rooms) {
-    const corners = room.walls
-      .map((wall, index) => intersection(wall, room.walls[(index + 1) % room.walls.length]))
-      .filter((corner): corner is Point => corner !== undefined);
+    const corners = roomPolygon(room);
     if (corners.length < 3) continue;
 
     const ring = [
@@ -344,6 +336,7 @@ export const PlanView2D = ({
     const context = canvas.getContext("2d");
     if (!context) return;
     const walls = plan.getWallsOnLevel(level).filter((wall) => !wall.virtual);
+    const fences = plan.fences;
     const rooms = plan.getRoomsOnLevel(level);
     const viewport = viewportRef.current;
     let dragOrigin: Point | undefined;
@@ -358,18 +351,20 @@ export const PlanView2D = ({
     };
 
     const fitToPlan = () => {
-      if (hasFittedRef.current || walls.length === 0 || !canvas.clientWidth || !canvas.clientHeight) return;
-      const points = walls.flatMap((wall) => [toPoint(wall.from), toPoint(wall.to)]);
+      if (hasFittedRef.current || !canvas.clientWidth || !canvas.clientHeight) return;
+      const points = [...walls, ...fences].flatMap((item) => item.basicPolygon2D().map(toPoint));
+      if (points.length === 0) return;
       const minX = Math.min(...points.map((point) => point.x));
       const maxX = Math.max(...points.map((point) => point.x));
       const minY = Math.min(...points.map((point) => point.y));
       const maxY = Math.max(...points.map((point) => point.y));
       const padding = 80;
       viewport.scale = Math.max(
-        12,
+        0.1,
         Math.min(
-          (canvas.clientWidth - padding * 2) / (maxX - minX),
-          (canvas.clientHeight - padding * 2) / (maxY - minY),
+          200,
+          Math.max(1, canvas.clientWidth - padding * 2) / (maxX - minX),
+          Math.max(1, canvas.clientHeight - padding * 2) / (maxY - minY),
         ),
       );
       viewport.offsetX = (canvas.clientWidth - (minX + maxX) * viewport.scale) / 2;
@@ -392,6 +387,7 @@ export const PlanView2D = ({
         viewport.offsetY * pixelRatio,
       );
       drawGrid(context, canvas, viewport);
+      drawFences(context, fences, viewport.scale);
       drawWalls(context, walls, viewport.scale);
       drawOpenings(context, walls, viewport.scale);
       drawRooms(context, rooms);
@@ -454,7 +450,7 @@ export const PlanView2D = ({
       const bounds = canvas.getBoundingClientRect();
       const point = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
       const zoomFactor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
-      const nextScale = Math.min(200, Math.max(12, viewport.scale * zoomFactor));
+      const nextScale = Math.min(200, Math.max(0.1, viewport.scale * zoomFactor));
       const worldPoint = {
         x: (point.x - viewport.offsetX) / viewport.scale,
         y: (point.y - viewport.offsetY) / viewport.scale,

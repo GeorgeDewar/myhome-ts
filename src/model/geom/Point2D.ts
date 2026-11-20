@@ -16,6 +16,10 @@ export class Point2D {
     return [this.x.toJson(), this.y.toJson()];
   }
 
+  equals(other: Point2D) {
+    return this.x.metres === other.x.metres && this.y.metres === other.y.metres;
+  }
+
   plus(vector: Vector2D) {
     return new Point2D(this.x.plus(vector.dX), this.y.plus(vector.dY));
   }
