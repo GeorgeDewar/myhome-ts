@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import testPlan from "../testData/McKeefry.json";
 import { Fence } from "./Fence";
-import { StandardDoor } from "./Opening";
+import { SlidingDoor, StandardDoor } from "./Opening";
 import { Plan } from "./Plan";
 import { Room } from "./Room";
 import { Wall } from "./Wall";
@@ -52,6 +52,39 @@ describe("Plan", () => {
 
   it("uses a 35mm leaf thickness for doors without an explicit thickness", () => {
     expect(new StandardDoor("left", "in").leafThickness.metres).toBe(0.035);
+    expect(new SlidingDoor().leafThickness.metres).toBe(0.035);
+  });
+
+  it("round-trips optional sliding-door thickness", () => {
+    const document = {
+      buildings: [{
+        name: "House",
+        levels: [{
+          number: 0,
+          name: "Ground",
+          walls: [{
+            id: "wall",
+            start: [0, 0],
+            end: [4000, 0],
+            openings: [{
+              id: "opening",
+              width: 2000,
+              distanceAlongWall: 2000,
+              contents: [{ type: "SlidingDoor" }, { type: "SlidingDoor", thickness: 60 }],
+            }],
+          }],
+        }],
+      }],
+    } satisfies JsonPlan;
+
+    const plan = Plan.fromJson(document);
+    const [defaultDoor, customDoor] = plan.buildings[0].levels[0].walls[0].openings[0].contents;
+    expect(defaultDoor).toBeInstanceOf(SlidingDoor);
+    expect(customDoor).toBeInstanceOf(SlidingDoor);
+    if (defaultDoor.type !== "SlidingDoor" || customDoor.type !== "SlidingDoor") throw new Error("Expected sliding doors");
+    expect(defaultDoor.leafThickness.metres).toBe(0.035);
+    expect(customDoor.leafThickness.metres).toBe(0.06);
+    expect(plan.toJson()).toEqual(document);
   });
 
   it("formats a save payload with the project Prettier options", async () => {

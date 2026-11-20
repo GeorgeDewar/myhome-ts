@@ -4,6 +4,8 @@ import type { Wall } from "./Wall";
 
 export type OpeningItem = StandardDoor | SlidingDoor | StandardWindow;
 
+const DEFAULT_DOOR_THICKNESS_METRES = 0.035;
+
 export class StandardDoor {
   readonly type = "StandardDoor" as const;
 
@@ -14,7 +16,7 @@ export class StandardDoor {
   ) {}
 
   get leafThickness() {
-    return this.thickness ?? new Distance(0.035);
+    return this.thickness ?? new Distance(DEFAULT_DOOR_THICKNESS_METRES);
   }
 
   static fromJson(json: Extract<JsonOpeningItem, { type: "StandardDoor" }>) {
@@ -50,8 +52,18 @@ export class StandardWindow {
 export class SlidingDoor {
   readonly type = "SlidingDoor" as const;
 
+  constructor(public thickness?: Distance) {}
+
+  get leafThickness() {
+    return this.thickness ?? new Distance(DEFAULT_DOOR_THICKNESS_METRES);
+  }
+
+  static fromJson(json: Extract<JsonOpeningItem, { type: "SlidingDoor" }>) {
+    return new SlidingDoor(json.thickness === undefined ? undefined : Distance.fromJson(json.thickness));
+  }
+
   toJson(): Extract<JsonOpeningItem, { type: "SlidingDoor" }> {
-    return { type: this.type };
+    return { type: this.type, ...(this.thickness ? { thickness: this.thickness.toJson() } : {}) };
   }
 }
 
@@ -82,7 +94,7 @@ export class Opening {
         case "StandardDoor":
           return StandardDoor.fromJson(content);
         case "SlidingDoor":
-          return new SlidingDoor();
+          return SlidingDoor.fromJson(content);
         case "StandardWindow":
           return StandardWindow.fromJson();
         default:

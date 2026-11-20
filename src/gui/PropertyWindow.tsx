@@ -156,24 +156,26 @@ export const PropertyWindow = ({ target, onChange, onClose }: PropertyWindowProp
                 <option value="out">Out</option>
               </select>
             </label>
-            <label>
-              Leaf thickness (mm)
-              <input
-                type="number"
-                value={distanceInMillimetres(target.item.leafThickness.metres)}
-                onChange={(event) =>
-                  setDistance((value) => {
-                    target.item.thickness = value;
-                  }, event.target.value)
-                }
-              />
-            </label>
           </>
         )}
         {(target.kind === "window" || target.kind === "slidingDoor") && (
           <label>
             Opening
             <input value={target.opening.id} readOnly />
+          </label>
+        )}
+        {(target.kind === "door" || target.kind === "slidingDoor") && (
+          <label>
+            Leaf thickness (mm)
+            <input
+              type="number"
+              value={distanceInMillimetres(target.item.leafThickness.metres)}
+              onChange={(event) =>
+                setDistance((value) => {
+                  target.item.thickness = value;
+                }, event.target.value)
+              }
+            />
           </label>
         )}
       </div>

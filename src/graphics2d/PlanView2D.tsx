@@ -9,10 +9,10 @@ import {
   type SelectionTarget,
 } from "../gui/selection";
 import type { Fence } from "../model/Fence";
-import type { Opening, StandardDoor } from "../model/Opening";
+import type { Opening, SlidingDoor, StandardDoor } from "../model/Opening";
 import type { Room } from "../model/Room";
 import type { Wall } from "../model/Wall";
-import { drawMultiPolygon, toPoint, toPolygon } from "./renderPolygons";
+import { drawMultiPolygon, slidingDoorLeaves, toPoint, toPolygon } from "./renderPolygons";
 import "./PlanView2D.css";
 
 type Point = { x: number; y: number };
@@ -177,11 +177,28 @@ const drawDoor = (
   context.stroke();
 };
 
+const drawSlidingDoor = (
+  context: CanvasRenderingContext2D,
+  wall: Wall,
+  opening: Opening,
+  door: SlidingDoor,
+  scale: number,
+) => {
+  const { start, end, normal } = openingPoints(wall, opening);
+  context.strokeStyle = "#1f2933";
+  context.lineWidth = 1 / scale;
+  for (const leaf of slidingDoorLeaves(start, end, normal, door.leafThickness.metres)) {
+    drawPolygon(context, leaf);
+    context.stroke();
+  }
+};
+
 const drawOpenings = (context: CanvasRenderingContext2D, walls: Wall[], scale: number) => {
   for (const wall of walls) {
     for (const opening of wall.openings) {
       opening.contents.forEach((content) => {
         if (content.type === "StandardDoor") drawDoor(context, wall, opening, content, scale);
+        if (content.type === "SlidingDoor") drawSlidingDoor(context, wall, opening, content, scale);
         if (content.type === "StandardWindow") drawWindow(context, wall, opening, scale);
       });
     }

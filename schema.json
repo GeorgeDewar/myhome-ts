@@ -126,7 +126,14 @@
                                     "type": "object",
                                     "required": ["type"],
                                     "unevaluatedProperties": false,
-                                    "properties": { "type": { "const": "SlidingDoor" } }
+                                    "properties": {
+                                      "type": { "const": "SlidingDoor" },
+                                      "thickness": {
+                                        "type": "number",
+                                        "description": "Thickness of the door leaf in millimetres",
+                                        "default": 35
+                                      }
+                                    }
                                   },
                                   {
                                     "type": "object",

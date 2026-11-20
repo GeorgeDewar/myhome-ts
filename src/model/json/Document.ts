@@ -48,7 +48,7 @@ export type JsonStandardDoor = {
 
 export type JsonStandardWindow = { type: "StandardWindow" };
 
-export type JsonSlidingDoor = { type: "SlidingDoor" };
+export type JsonSlidingDoor = { type: "SlidingDoor"; thickness?: number };
 
 export type JsonWallRef = { ref?: JsonWall["id"] };
 
