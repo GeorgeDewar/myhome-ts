@@ -9,6 +9,7 @@ import {
   type SelectionTarget,
 } from "../gui/selection";
 import type { Fence } from "../model/Fence";
+import type { JsonPosition } from "../model/json/Document";
 import type { Opening, SlidingDoor, StandardDoor } from "../model/Opening";
 import type { Room } from "../model/Room";
 import type { Wall } from "../model/Wall";
@@ -318,6 +319,8 @@ export const PlanView2D = ({
   onSelectionChange,
   onEdit,
   onContextMenu,
+  drawingWall,
+  onDrawWall,
   version,
 }: {
   level: number;
@@ -326,12 +329,19 @@ export const PlanView2D = ({
   onSelectionChange: (selection: SelectionState) => void;
   onEdit: (target: SelectionTarget) => void;
   onContextMenu: (target: SelectionTarget, x: number, y: number) => boolean;
+  drawingWall: boolean;
+  onDrawWall: (start: JsonPosition, end: JsonPosition) => boolean;
   version: number;
 }) => {
   const plan = useContext(PlanContext);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewportRef = useRef<Viewport>({ offsetX: 0, offsetY: 0, scale: 20 });
   const hasFittedRef = useRef(false);
+  const wallStartRef = useRef<JsonPosition>(undefined);
+
+  useEffect(() => {
+    if (!drawingWall) wallStartRef.current = undefined;
+  }, [drawingWall]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -395,6 +405,16 @@ export const PlanView2D = ({
       drawOpenings(context, walls, viewport.scale);
       drawRooms(context, rooms);
       drawSelection(context, selection.targets, selection.targets[selection.activeIndex], viewport.scale);
+      if (drawingWall && wallStartRef.current) {
+        context.beginPath();
+        context.moveTo(wallStartRef.current[0] / 1000, wallStartRef.current[1] / 1000);
+        context.lineTo(cursor.x, cursor.y);
+        context.strokeStyle = "#d64545";
+        context.lineWidth = 2 / viewport.scale;
+        context.setLineDash([6 / viewport.scale, 4 / viewport.scale]);
+        context.stroke();
+        context.setLineDash([]);
+      }
     };
 
     const resizeObserver = new ResizeObserver(() => {
@@ -413,6 +433,11 @@ export const PlanView2D = ({
         x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
         y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
       };
+      if (drawingWall) {
+        render();
+        reportStatus();
+        return;
+      }
       if (!dragOrigin) {
         reportStatus();
         return;
@@ -432,13 +457,24 @@ export const PlanView2D = ({
             x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
             y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
           };
+          if (drawingWall) {
+            cursor = point;
+            const position: JsonPosition = [Math.round(point.x * 1000), Math.round(point.y * 1000)];
+            if (!wallStartRef.current) wallStartRef.current = position;
+            else if (onDrawWall(wallStartRef.current, position)) wallStartRef.current = undefined;
+            render();
+            dragOrigin = undefined;
+            return;
+          }
           const targets = targetsAtPoint(point, walls, rooms, fences);
           onSelectionChange({ targets, activeIndex: targets.length - 1 });
         }
       }
       dragOrigin = undefined;
     };
+    const pointerCancel = () => { dragOrigin = undefined; };
     const doubleClick = (event: MouseEvent) => {
+      if (drawingWall) return;
       const bounds = canvas.getBoundingClientRect();
       const point = {
         x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
@@ -450,6 +486,7 @@ export const PlanView2D = ({
       if (activeTarget) onEdit(activeTarget);
     };
     const contextMenu = (event: MouseEvent) => {
+      if (drawingWall) return;
       const activeTarget = selection.targets[selection.activeIndex];
       if (!activeTarget) return;
       const bounds = canvas.getBoundingClientRect();
@@ -482,6 +519,7 @@ export const PlanView2D = ({
     canvas.addEventListener("pointerdown", pointerDown);
     canvas.addEventListener("pointermove", pointerMove);
     canvas.addEventListener("pointerup", pointerUp);
+    canvas.addEventListener("pointercancel", pointerCancel);
     canvas.addEventListener("dblclick", doubleClick);
     canvas.addEventListener("contextmenu", contextMenu);
     canvas.addEventListener("wheel", wheel, { passive: false });
@@ -493,11 +531,12 @@ export const PlanView2D = ({
       canvas.removeEventListener("pointerdown", pointerDown);
       canvas.removeEventListener("pointermove", pointerMove);
       canvas.removeEventListener("pointerup", pointerUp);
+      canvas.removeEventListener("pointercancel", pointerCancel);
       canvas.removeEventListener("dblclick", doubleClick);
       canvas.removeEventListener("contextmenu", contextMenu);
       canvas.removeEventListener("wheel", wheel);
     };
-  }, [level, onContextMenu, onEdit, onSelectionChange, plan, selection, version]);
+  }, [drawingWall, level, onContextMenu, onDrawWall, onEdit, onSelectionChange, plan, selection, version]);
 
-  return <canvas className="plan-view-2d" ref={canvasRef} tabIndex={0} />;
+  return <canvas className={`plan-view-2d${drawingWall ? " is-drawing" : ""}`} ref={canvasRef} tabIndex={0} />;
 };

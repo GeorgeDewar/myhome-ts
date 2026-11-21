@@ -10,7 +10,7 @@ import { PlanTree } from "./gui/PlanTree";
 import { CreateWindow, type CreateRequest } from "./gui/CreateWindow";
 import { PropertyWindow } from "./gui/PropertyWindow";
 import { isSelectionTarget, selectionTargetNames, type SelectionState, type SelectionTarget } from "./gui/selection";
-import type { JsonPlan } from "./model/json/Document";
+import type { JsonPlan, JsonPosition } from "./model/json/Document";
 import { downloadPlan } from "./model/json/downloadPlan";
 import { Plan } from "./model/Plan";
 import { PlanEditor } from "./model/PlanEditor";
@@ -32,6 +32,7 @@ function App() {
   const [selection, setSelection] = useState<SelectionState>({ targets: [], activeIndex: -1 });
   const [editingTarget, setEditingTarget] = useState<SelectionTarget>();
   const [creating, setCreating] = useState<CreateRequest>();
+  const [drawingWall, setDrawingWall] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ target: SelectionTarget; x: number; y: number }>();
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const contextReturnFocusRef = useRef<HTMLElement | null>(null);
@@ -52,6 +53,21 @@ function App() {
   const activeTarget = selection.targets[selection.activeIndex];
 
   const selectTarget = (target: SelectionTarget) => setSelection({ targets: [target], activeIndex: 0 });
+
+  const drawWall = useCallback((start: JsonPosition, end: JsonPosition) => {
+    if (!currentLevel) {
+      window.alert("Select a level first.");
+      return false;
+    }
+    const result = editPlan.addWall(currentLevel, start, end);
+    if (!result.ok) {
+      window.alert(result.error);
+      return false;
+    }
+    setSelection({ targets: [{ kind: "wall", item: result.item }], activeIndex: 0 });
+    setDrawingWall(false);
+    return true;
+  }, [currentLevel, editPlan, setSelection, setDrawingWall]);
 
   const openContextMenu = useCallback(
     (target: SelectionTarget, x: number, y: number) => {
@@ -97,9 +113,14 @@ function App() {
     }
   };
 
+  const selectLevel = (level: number) => {
+    setActiveLevel(level);
+    setDrawingWall(false);
+  };
+
   const selectAdjacentLevel = (direction: -1 | 1) => {
     const nextLevel = levels[activeLevelIndex + direction];
-    if (nextLevel) setActiveLevel(nextLevel.number);
+    if (nextLevel) selectLevel(nextLevel.number);
   };
 
   useLayoutEffect(() => {
@@ -121,6 +142,11 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (drawingWall && event.key === "Escape") {
+        event.preventDefault();
+        setDrawingWall(false);
+        return;
+      }
       if (
         event.target instanceof HTMLInputElement ||
         event.target instanceof HTMLSelectElement ||
@@ -130,6 +156,7 @@ function App() {
         event.target instanceof Element &&
         event.target.closest(".property-window, .object-context-menu, [contenteditable='true']")
       ) return;
+      if (drawingWall) return;
       if (event.key === "Alt" && !event.repeat && selection.targets.length > 1) {
         event.preventDefault();
         setSelection((currentSelection) => ({
@@ -156,7 +183,7 @@ function App() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeTarget, deleteTarget, selection.targets.length]);
+  }, [activeTarget, deleteTarget, drawingWall, selection.targets.length]);
 
   return (
     <Tooltip.Provider delayDuration={300}>
@@ -171,6 +198,18 @@ function App() {
             <button className="download-button" type="button" onClick={handleDownload}>
               <Download size={16} aria-hidden="true" />
               Download JSON
+            </button>
+            <button
+              className="download-button"
+              type="button"
+              disabled={!currentLevel}
+              aria-pressed={drawingWall}
+              onClick={() => {
+                setActiveViewId("plan-2d");
+                setDrawingWall((drawing) => !drawing);
+              }}
+            >
+              Draw wall
             </button>
             <select
                 aria-label="Add object"
@@ -257,13 +296,16 @@ function App() {
               activeLevel={activeLevel}
               selectedTargets={selection.targets}
               activeTarget={activeTarget}
-              onLevelSelect={setActiveLevel}
+              onLevelSelect={selectLevel}
               onSelect={selectTarget}
               onEdit={setEditingTarget}
               onContextMenu={openContextMenu}
             />
 
-            <Tabs.Root className="view-host" value={activeView.id} onValueChange={setActiveViewId}>
+            <Tabs.Root className="view-host" value={activeView.id} onValueChange={(id) => {
+              setActiveViewId(id);
+              if (id !== "plan-2d") setDrawingWall(false);
+            }}>
               <Tabs.List className="view-tabs" aria-label="Plan views">
                 {initialViews.map((view) => (
                   <Tabs.Trigger className="view-tab" key={view.id} value={view.id}>
@@ -279,6 +321,8 @@ function App() {
                   onSelectionChange={setSelection}
                   onEdit={setEditingTarget}
                   onContextMenu={openContextMenu}
+                  drawingWall={drawingWall}
+                  onDrawWall={drawWall}
                   version={planVersion}
                 />
               </Tabs.Content>
@@ -290,6 +334,7 @@ function App() {
 
           <footer className="status-bar">
             <span>{currentLevel ? `Level ${currentLevel.number}: ${currentLevel.name}` : "No level selected"}</span>
+            {drawingWall && <span>Click the wall endpoints. Press Escape to cancel.</span>}
             {activeView.kind === "2d" ? (
               <>
                 <span>
