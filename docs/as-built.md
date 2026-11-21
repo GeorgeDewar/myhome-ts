@@ -13,6 +13,12 @@ The Add menu creates walls and fences from millimetre endpoints, rooms from an o
 
 Positions use integer millimetres in JSON and floating-point metres in memory. This includes wall and fence endpoints and opening offsets; widths and other dimensions may be fractional. Position edits must be integers that round-trip accurately through the in-memory representation.
 
+### 3D view
+
+The 3D view shows all levels, room floors, fences, wall openings and their contents. Levels are ordered by number and stacked using each level's total height, or its ceiling height if total height is absent. Level 0 is at ground level; if there is no level 0, the lowest level is at ground level. Missing level heights use 2.4m for display. Missing fence heights use 1.8m, and missing opening heights use 2.1m. These defaults are not saved.
+
+Openings are clipped to their wall, and overlapping openings are combined when cutting the wall. The schema does not yet describe positions within an opening, so each item is shown across the opening rather than arranged independently. Virtual walls define rooms but have no 3D solid.
+
 ### Loading plans
 
 Plans are validated against `schema.json` as they load. Items with fractional positions are ignored with a warning. Invalid buildings, levels, walls, fences, openings, opening items and rooms are omitted, and the app lists warnings identifying their locations. Children of an invalid item are not checked. Walls are checked before rooms so that warnings about invalid walls appear before warnings about rooms that reference them.

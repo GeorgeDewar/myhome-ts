@@ -283,7 +283,7 @@ function App() {
                 />
               </Tabs.Content>
               <Tabs.Content className="view-panel" value="plan-3d">
-                <PlanView3D level={activeLevel} onStatusChange={setThreeDStatus} version={planVersion} />
+                <PlanView3D onStatusChange={setThreeDStatus} version={planVersion} />
               </Tabs.Content>
             </Tabs.Root>
           </section>
