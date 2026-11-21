@@ -1,5 +1,6 @@
+import type { MouseEvent } from "react";
 import type { Plan } from "../model/Plan";
-import { selectionTargetForOpeningItem, isSelectionTarget, type SelectionTarget } from "./selection";
+import { selectionTargetForOpeningItem, selectionTargetNames, isSelectionTarget, type SelectionTarget } from "./selection";
 import "./PlanTree.css";
 
 type PlanTreeProps = {
@@ -10,6 +11,7 @@ type PlanTreeProps = {
   onLevelSelect: (level: number) => void;
   onSelect: (target: SelectionTarget) => void;
   onEdit: (target: SelectionTarget) => void;
+  onContextMenu: (target: SelectionTarget, x: number, y: number) => boolean;
 };
 
 export const PlanTree = ({
@@ -20,6 +22,7 @@ export const PlanTree = ({
   onLevelSelect,
   onSelect,
   onEdit,
+  onContextMenu,
 }: PlanTreeProps) => {
   const rowClassName = (target?: SelectionTarget) =>
     `tree-row${target && selectedTargets.some((selectedTarget) => isSelectionTarget(selectedTarget, target)) ? " is-selected" : ""}${target && activeTarget && isSelectionTarget(activeTarget, target) ? " is-active" : ""}`;
@@ -27,6 +30,12 @@ export const PlanTree = ({
   const edit = (target: SelectionTarget) => {
     select(target);
     onEdit(target);
+  };
+  const contextMenu = (event: MouseEvent, target: SelectionTarget) => {
+    if (onContextMenu(target, event.clientX, event.clientY)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
   };
 
   return (
@@ -57,6 +66,7 @@ export const PlanTree = ({
                         className={rowClassName({ kind: "wall", item: wall })}
                         onClick={() => select({ kind: "wall", item: wall })}
                         onDoubleClick={() => edit({ kind: "wall", item: wall })}
+                        onContextMenu={(event) => contextMenu(event, { kind: "wall", item: wall })}
                       >
                         <span>{wall.id}</span>
                       </summary>
@@ -66,25 +76,24 @@ export const PlanTree = ({
                             className={rowClassName({ kind: "opening", item: opening })}
                             onClick={() => select({ kind: "opening", item: opening })}
                             onDoubleClick={() => edit({ kind: "opening", item: opening })}
+                            onContextMenu={(event) => contextMenu(event, { kind: "opening", item: opening })}
                           >
                             <span>{opening.id}</span>
                           </summary>
-                          {opening.contents.map((content, index) => (
-                            <div
-                              className={`${rowClassName(selectionTargetForOpeningItem(content, opening))} tree-item`}
-                              key={`${opening.id}-${index}`}
-                              onClick={() => select(selectionTargetForOpeningItem(content, opening))}
-                              onDoubleClick={() => edit(selectionTargetForOpeningItem(content, opening))}
-                            >
-                              <span>
-                                {content.type === "StandardDoor"
-                                  ? "Standard Door"
-                                  : content.type === "SlidingDoor"
-                                    ? "Sliding Door"
-                                    : "Standard Window"}
-                              </span>
-                            </div>
-                          ))}
+                          {opening.contents.map((content, index) => {
+                            const target = selectionTargetForOpeningItem(content, opening);
+                            return (
+                              <div
+                                className={`${rowClassName(target)} tree-item`}
+                                key={`${opening.id}-${index}`}
+                                onClick={() => select(target)}
+                                onDoubleClick={() => edit(target)}
+                                onContextMenu={(event) => contextMenu(event, target)}
+                              >
+                                <span>{selectionTargetNames[target.kind]}</span>
+                              </div>
+                            );
+                          })}
                         </details>
                       ))}
                     </details>
@@ -101,6 +110,7 @@ export const PlanTree = ({
                       key={`${room.name}-${index}`}
                       onClick={() => select({ kind: "room", item: room })}
                       onDoubleClick={() => edit({ kind: "room", item: room })}
+                      onContextMenu={(event) => contextMenu(event, { kind: "room", item: room })}
                     >
                       <span>{room.name}</span>
                     </div>

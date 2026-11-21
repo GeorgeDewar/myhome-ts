@@ -12,6 +12,119 @@ const createPlan = () =>
     ],
   });
 
+describe("PlanEditor deletion", () => {
+  const setup = () => {
+    const plan = Plan.fromJson({
+      buildings: [
+        {
+          name: "House",
+          levels: [
+            {
+              number: 0,
+              name: "Ground",
+              walls: [
+                {
+                  id: "wall",
+                  start: [0, 0],
+                  end: [3000, 0],
+                  openings: [
+                    {
+                      id: "opening",
+                      width: 900,
+                      distanceAlongWall: 500,
+                      contents: [
+                        { type: "StandardDoor", hingeSide: "left", swingDirection: "in" },
+                        { type: "StandardWindow" },
+                      ],
+                    },
+                  ],
+                },
+                { id: "other", start: [0, 1000], end: [3000, 1000] },
+              ],
+              rooms: [
+                { name: "Affected", walls: [{ ref: "wall" }, { ref: "other" }] },
+                { name: "Also affected", walls: [{ ref: "wall" }] },
+                { name: "Unaffected", walls: [{ ref: "other" }] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const level = plan.buildings[0].levels[0];
+    const [wall, other] = level.walls;
+    const [affected, alsoAffected, unaffected] = level.rooms;
+    const opening = wall.openings[0];
+    const [door, window] = opening.contents;
+    const notify = vi.fn();
+    return {
+      plan,
+      level,
+      wall,
+      other,
+      affected,
+      alsoAffected,
+      unaffected,
+      opening,
+      door,
+      window,
+      notify,
+      editor: new PlanEditor(plan, notify),
+    };
+  };
+
+  it("deletes a wall, its openings and all rooms referencing it", () => {
+    const { plan, level, wall, other, affected, alsoAffected, unaffected, opening, door, notify, editor } = setup();
+    expect(editor.deleteWall(wall)).toEqual({ ok: true });
+    expect(level.walls).toEqual([other]);
+    expect(level.rooms).toEqual([unaffected]);
+    expect(wall.level).toBeUndefined();
+    expect(affected.level).toBeUndefined();
+    expect(alsoAffected.level).toBeUndefined();
+    expect(editor.contains(opening)).toBe(false);
+    expect(editor.contains(door)).toBe(false);
+    expect(editor.contains(unaffected)).toBe(true);
+    expect(Plan.fromJson(plan.toJson()).loadWarnings).toEqual([]);
+    expect(editor.deleteWall(wall).ok).toBe(false);
+    expect(editor.deleteRoom(affected).ok).toBe(false);
+    expect(editor.deleteOpening(opening).ok).toBe(false);
+    expect(editor.deleteOpeningItem(door).ok).toBe(false);
+    expect(notify).toHaveBeenCalledOnce();
+  });
+
+  it("deletes an opening and its contents without affecting its wall", () => {
+    const { wall, opening, door, notify, editor } = setup();
+    expect(editor.deleteOpening(opening)).toEqual({ ok: true });
+    expect(wall.openings).toEqual([]);
+    expect(opening.wall).toBeUndefined();
+    expect(editor.contains(door)).toBe(false);
+    expect(editor.deleteOpeningItem(door).ok).toBe(false);
+    expect(notify).toHaveBeenCalledOnce();
+  });
+
+  it("deletes individual opening items and rooms, rejecting foreign or removed objects", () => {
+    const { plan, level, wall, affected, opening, door, window, notify, editor } = setup();
+    const foreign = setup();
+    const before = plan.toJson();
+    expect(editor.deleteWall(foreign.wall).ok).toBe(false);
+    expect(editor.deleteRoom(foreign.affected).ok).toBe(false);
+    expect(editor.deleteOpening(foreign.opening).ok).toBe(false);
+    expect(editor.deleteOpeningItem(foreign.door).ok).toBe(false);
+    expect(plan.toJson()).toEqual(before);
+    expect(notify).not.toHaveBeenCalled();
+
+    expect(editor.deleteOpeningItem(door)).toEqual({ ok: true });
+    expect(opening.contents).toEqual([window]);
+    expect(editor.deleteRoom(affected)).toEqual({ ok: true });
+    expect(level.walls).toContain(wall);
+    expect(level.rooms).not.toContain(affected);
+    expect(affected.level).toBeUndefined();
+    expect(editor.deleteOpeningItem(door).ok).toBe(false);
+    expect(editor.deleteRoom(affected).ok).toBe(false);
+    expect(notify).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("PlanEditor.updateWall", () => {
   it("updates width in millimetres and notifies once", () => {
     const plan = createPlan();
@@ -150,6 +263,21 @@ describe("PlanEditor.updateWall", () => {
       expect(editor.updateOpening(opening, { width: 1200, distanceAlongWall: 700 })).toEqual({ ok: true });
       expect(opening.toJson()).toMatchObject({ width: 1200, distanceAlongWall: 700 });
       expect(editor.updateOpening(opening, { width: 1200, distanceAlongWall: 700 })).toEqual({ ok: true });
+      expect(notify).toHaveBeenCalledOnce();
+    });
+
+    it("rejects fractional opening positions without applying other fields", () => {
+      const { opening, editor, notify } = setup();
+      expect(editor.updateOpening(opening, { width: 1200, distanceAlongWall: 500.5 })).toEqual({
+        ok: false,
+        field: "distanceAlongWall",
+        error: "Position must be an accurately representable integer number of millimetres.",
+      });
+      expect(opening.width.toJson()).toBe(1000);
+      expect(opening.distanceAlongWall.toJson()).toBe(500);
+      expect(notify).not.toHaveBeenCalled();
+      expect(editor.updateOpening(opening, { width: 1200.5, distanceAlongWall: -2 })).toEqual({ ok: true });
+      expect(opening.toJson()).toMatchObject({ width: 1200.5, distanceAlongWall: -2 });
       expect(notify).toHaveBeenCalledOnce();
     });
 

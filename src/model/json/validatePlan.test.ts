@@ -1,7 +1,130 @@
+import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
+import schema from "../../../schema.json";
 import { Plan } from "../Plan";
 
 describe("plan loading validation", () => {
+  it("ignores fractional fence and opening positions but retains fractional dimensions", () => {
+    const document = {
+      fences: [
+        { id: "invalid", start: [1.49, -1.5], end: [100, 0] },
+        { id: "valid", start: [1, -2], end: [101, -2], width: 50.25 },
+      ],
+      buildings: [
+        {
+          name: "House",
+          levels: [
+            {
+              number: 0,
+              name: "Ground",
+              walls: [
+                {
+                  id: "wall",
+                  start: [10, 21],
+                  end: [2000, 21],
+                  width: 100.25,
+                  openings: [
+                    { id: "along", width: 800, distanceAlongWall: 500.5, contents: [{ type: "Unexamined" }] },
+                    { id: "floor", width: 800, distanceAlongWall: 500, distanceFromFloor: -1.5 },
+                    { id: "valid", width: 800.5, distanceAlongWall: 501, distanceFromFloor: -2 },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const original = structuredClone(document);
+    const plan = Plan.fromJson(document);
+    const saved = plan.toJson();
+    const wall = plan.buildings[0].levels[0].walls[0];
+    expect(document).toEqual(original);
+    expect(saved.fences![0]).toMatchObject({ start: [1, -2], end: [101, -2], width: 50.25 });
+    expect(wall.from.x.metres).toBe(0.01);
+    expect(wall.to.y.metres).toBe(0.021);
+    expect(saved.buildings![0].levels[0].walls![0]).toMatchObject({
+      start: [10, 21],
+      end: [2000, 21],
+      width: 100.25,
+      openings: [{ width: 800.5, distanceAlongWall: 501, distanceFromFloor: -2 }],
+    });
+    expect(plan.loadWarnings).toHaveLength(3);
+    expect(plan.loadWarnings[0]).toContain("fences[0]: /start/0 must be integer");
+    expect(plan.loadWarnings[1]).toContain("openings[0]: /distanceAlongWall must be integer");
+    expect(plan.loadWarnings[2]).toContain("openings[1]: /distanceFromFloor must be integer");
+    expect(plan.loadWarnings.every((warning) => !warning.includes("Unexamined"))).toBe(true);
+    const validate = new Ajv2020({ strict: false }).compile(schema);
+    expect(validate(saved)).toBe(true);
+    const reloaded = Plan.fromJson(saved);
+    expect(reloaded.loadWarnings).toEqual([]);
+    expect(reloaded.toJson()).toEqual(saved);
+  });
+
+  it("ignores fractional wall and fence endpoints before dependent rooms", () => {
+    const plan = Plan.fromJson({
+      fences: [{ id: "fence", start: [0, 0], end: [0.49, 0] }],
+      buildings: [
+        {
+          name: "House",
+          levels: [
+            {
+              number: 0,
+              name: "Ground",
+              walls: [
+                { id: "end", start: [0, 0], end: [0.49, 0], openings: [{ id: "unexamined" }] },
+                { id: "start", start: [-0.5, 0], end: [1000, 0] },
+              ],
+              rooms: [
+                { name: "End", walls: [{ ref: "end" }] },
+                { name: "Start", walls: [{ ref: "start" }] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(plan.fences).toEqual([]);
+    expect(plan.getWallsOnLevel(0)).toEqual([]);
+    expect(plan.getRoomsOnLevel(0)).toEqual([]);
+    expect(plan.loadWarnings).toHaveLength(5);
+    expect(plan.loadWarnings[0]).toContain("fences[0]: /end/0 must be integer");
+    expect(plan.loadWarnings[1]).toContain("walls[0]: /end/0 must be integer");
+    expect(plan.loadWarnings[2]).toContain("walls[1]: /start/0 must be integer");
+    expect(plan.loadWarnings[3]).toContain("references unknown wall 'end'");
+    expect(plan.loadWarnings[4]).toContain("references unknown wall 'start'");
+    expect(plan.loadWarnings.every((warning) => !warning.includes("unexamined"))).toBe(true);
+  });
+
+  it("ignores positions that cannot round-trip accurately through metres", () => {
+    const plan = Plan.fromJson({
+      fences: [{ id: "f", start: [Number.MAX_SAFE_INTEGER, 0], end: [0, 0] }],
+      buildings: [
+        {
+          name: "House",
+          levels: [
+            {
+              number: 0,
+              name: "Ground",
+              walls: [
+                {
+                  id: "wall",
+                  start: [0, 0],
+                  end: [3000, 0],
+                  openings: [{ id: "opening", width: 800, distanceAlongWall: Number.MAX_SAFE_INTEGER }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(plan.fences).toEqual([]);
+    expect(plan.getWallsOnLevel(0)[0].openings).toEqual([]);
+    expect(plan.loadWarnings).toHaveLength(2);
+    expect(plan.loadWarnings.every((warning) => warning.includes("cannot be accurately represented"))).toBe(true);
+  });
+
   it("ignores a room whose wall reference is missing, while retaining valid rooms", () => {
     const plan = Plan.fromJson({
       buildings: [

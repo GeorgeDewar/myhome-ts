@@ -1,4 +1,4 @@
-import { Distance, isValidPositiveDistance } from "./geom/Distance";
+import { Distance, isValidPositiveDistance, isValidPositionInMillimetres } from "./geom/Distance";
 import type { Opening, OpeningItem, SlidingDoor, StandardDoor } from "./Opening";
 import type { Plan } from "./Plan";
 import type { Room } from "./Room";
@@ -38,6 +38,65 @@ export class PlanEditor {
     return this.levels.some((level) =>
       level.walls.some((wall) => wall.openings.some((opening) => opening.contents.includes(item))),
     );
+  }
+
+  contains(item: Room | Wall | Opening | OpeningItem) {
+    return this.levels.some(
+      (level) =>
+        level.rooms.some((room) => room === item) ||
+        level.walls.some(
+          (wall) =>
+            wall === item ||
+            wall.openings.some((opening) => opening === item || opening.contents.some((content) => content === item)),
+        ),
+    );
+  }
+
+  deleteWall(wall: Wall): EditResult {
+    const level = this.levels.find((candidate) => candidate.walls.includes(wall));
+    if (!level) return { ok: false, error: "This wall is no longer in the plan." };
+
+    level.walls = level.walls.filter((candidate) => candidate !== wall);
+    wall.level = undefined;
+    level.rooms = level.rooms.filter((room) => {
+      if (!room.walls.includes(wall)) return true;
+      room.level = undefined;
+      return false;
+    });
+    this.onChange();
+    return { ok: true };
+  }
+
+  deleteRoom(room: Room): EditResult {
+    const level = this.levels.find((candidate) => candidate.rooms.includes(room));
+    if (!level) return { ok: false, error: "This room is no longer in the plan." };
+
+    level.rooms = level.rooms.filter((candidate) => candidate !== room);
+    room.level = undefined;
+    this.onChange();
+    return { ok: true };
+  }
+
+  deleteOpening(opening: Opening): EditResult {
+    const wall = this.levels.flatMap((level) => level.walls).find((candidate) => candidate.openings.includes(opening));
+    if (!wall) return { ok: false, error: "This opening is no longer in the plan." };
+
+    wall.openings = wall.openings.filter((candidate) => candidate !== opening);
+    opening.wall = undefined;
+    this.onChange();
+    return { ok: true };
+  }
+
+  deleteOpeningItem(item: OpeningItem): EditResult {
+    const opening = this.levels
+      .flatMap((level) => level.walls)
+      .flatMap((wall) => wall.openings)
+      .find((candidate) => candidate.contents.includes(item));
+    if (!opening) return { ok: false, error: "This opening item is no longer in the plan." };
+
+    opening.contents = opening.contents.filter((candidate) => candidate !== item);
+    this.onChange();
+    return { ok: true };
   }
 
   updateWall(wall: Wall, update: WallUpdate): EditResult {
@@ -95,6 +154,13 @@ export class PlanEditor {
     }
     if (update.distanceAlongWall !== undefined && !Number.isFinite(update.distanceAlongWall)) {
       return { ok: false, field: "distanceAlongWall", error: "Enter a finite number of millimetres." };
+    }
+    if (update.distanceAlongWall !== undefined && !isValidPositionInMillimetres(update.distanceAlongWall)) {
+      return {
+        ok: false,
+        field: "distanceAlongWall",
+        error: "Position must be an accurately representable integer number of millimetres.",
+      };
     }
 
     let changed = false;

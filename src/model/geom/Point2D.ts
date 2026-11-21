@@ -13,7 +13,7 @@ export class Point2D {
   }
 
   toJson(): JsonPosition {
-    return [this.x.toJson(), this.y.toJson()];
+    return [this.x.toPositionJson(), this.y.toPositionJson()];
   }
 
   equals(other: Point2D) {

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import testPlan from "../testData/McKeefry.json";
 import { Fence } from "./Fence";
 import { SlidingDoor, StandardDoor } from "./Opening";
+import { Distance } from "./geom/Distance";
 import { Plan } from "./Plan";
 import { Room } from "./Room";
 import { Wall } from "./Wall";
@@ -216,6 +217,30 @@ describe("Plan", () => {
     expect(wallPlan.loadWarnings[0]).toContain("non-zero line");
     expect(fencePlan.fences).toEqual([]);
     expect(fencePlan.loadWarnings[0]).toContain("non-zero line");
+  });
+
+  it("does not silently round fractional positions introduced outside the editor", () => {
+    const plan = Plan.fromJson({
+      buildings: [{
+        name: "House",
+        levels: [{
+          number: 0,
+          name: "Ground",
+          walls: [{
+            id: "wall",
+            start: [0, 0],
+            end: [1000, 0],
+            openings: [{ id: "opening", width: 800, distanceAlongWall: 500 }],
+          }],
+        }],
+      }],
+    });
+    const wall = plan.buildings[0].levels[0].walls[0];
+    wall.from.x = Distance.fromJson(1e-10);
+    expect(() => plan.toJson()).toThrow("Position must be an accurately representable integer number of millimetres.");
+    wall.from.x = Distance.fromJson(0);
+    wall.openings[0].distanceAlongWall = Distance.fromJson(1e-10);
+    expect(() => plan.toJson()).toThrow("Position must be an accurately representable integer number of millimetres.");
   });
 
   it("uses 50mm for fence width unless specified and retains the original JSON", () => {

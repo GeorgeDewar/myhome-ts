@@ -333,6 +333,7 @@ export const PlanView2D = ({
   selection,
   onSelectionChange,
   onEdit,
+  onContextMenu,
   version,
 }: {
   level: number;
@@ -340,6 +341,7 @@ export const PlanView2D = ({
   selection: SelectionState;
   onSelectionChange: (selection: SelectionState) => void;
   onEdit: (target: SelectionTarget) => void;
+  onContextMenu: (target: SelectionTarget, x: number, y: number) => boolean;
   version: number;
 }) => {
   const plan = useContext(PlanContext);
@@ -416,6 +418,7 @@ export const PlanView2D = ({
       render();
     });
     const pointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return;
       canvas.focus();
       dragOrigin = { x: event.clientX, y: event.clientY };
       canvas.setPointerCapture(event.pointerId);
@@ -462,6 +465,18 @@ export const PlanView2D = ({
       onSelectionChange({ targets, activeIndex: targets.length - 1 });
       if (activeTarget) onEdit(activeTarget);
     };
+    const contextMenu = (event: MouseEvent) => {
+      const activeTarget = selection.targets[selection.activeIndex];
+      if (!activeTarget) return;
+      const bounds = canvas.getBoundingClientRect();
+      const point = {
+        x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
+        y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
+      };
+      if (targetsAtPoint(point, walls, rooms).some((target) => isSelectionTarget(activeTarget, target))) {
+        if (onContextMenu(activeTarget, event.clientX, event.clientY)) event.preventDefault();
+      }
+    };
     const wheel = (event: WheelEvent) => {
       event.preventDefault();
       const bounds = canvas.getBoundingClientRect();
@@ -484,6 +499,7 @@ export const PlanView2D = ({
     canvas.addEventListener("pointermove", pointerMove);
     canvas.addEventListener("pointerup", pointerUp);
     canvas.addEventListener("dblclick", doubleClick);
+    canvas.addEventListener("contextmenu", contextMenu);
     canvas.addEventListener("wheel", wheel, { passive: false });
     fitToPlan();
     render();
@@ -494,9 +510,10 @@ export const PlanView2D = ({
       canvas.removeEventListener("pointermove", pointerMove);
       canvas.removeEventListener("pointerup", pointerUp);
       canvas.removeEventListener("dblclick", doubleClick);
+      canvas.removeEventListener("contextmenu", contextMenu);
       canvas.removeEventListener("wheel", wheel);
     };
-  }, [level, onEdit, onSelectionChange, plan, selection, version]);
+  }, [level, onContextMenu, onEdit, onSelectionChange, plan, selection, version]);
 
   return <canvas className="plan-view-2d" ref={canvasRef} tabIndex={0} />;
 };

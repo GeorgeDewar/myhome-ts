@@ -149,6 +149,43 @@
 .view-panel[data-state="inactive"] {
   display: none;
 }
+.object-context-menu {
+  position: fixed;
+  z-index: 20;
+  width: 220px;
+  max-width: 100vw;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: 4px;
+  background: #ffffff;
+  border: 1px solid #bcccdc;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px #102a4333;
+}
+.object-context-menu-label {
+  padding: 6px 8px;
+  color: #486581;
+  border-bottom: 1px solid #d9e2ec;
+  font-size: 0.85rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.object-context-menu button {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  color: #243b53;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.object-context-menu button:hover,
+.object-context-menu button:focus {
+  background: #edf6ff;
+  outline: none;
+}
 .plan-view-3d {
   display: block;
   width: 100%;

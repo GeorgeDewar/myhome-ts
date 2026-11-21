@@ -1,7 +1,7 @@
 import Ajv2020 from "ajv/dist/2020.js";
 import type { ErrorObject, ValidateFunction } from "ajv";
 import schema from "../../../schema.json";
-import { isValidPositiveDistance } from "../geom/Distance";
+import { isValidPositiveDistance, isValidPositionInMillimetres } from "../geom/Distance";
 import { Point2D } from "../geom/Point2D";
 import type {
   JsonBuilding,
@@ -25,7 +25,6 @@ const levelSchema = buildingSchema.properties.levels.items;
 const wallSchema = levelSchema.properties.walls.items;
 const openingSchema = wallSchema.properties.openings.items;
 const ajv = new Ajv2020({ strict: false, strictNumbers: true });
-
 const shallowSchema = <T extends { properties: object }>(source: T, children: string[]) => {
   const properties: Record<string, unknown> = { ...source.properties };
   for (const child of children) properties[child] = { type: "array" };
@@ -70,20 +69,16 @@ const validDimensions = (values: Record<string, number | undefined>, path: strin
 };
 
 const validLine = (start: JsonFence["start"], end: JsonFence["end"], path: string, warnings: string[]) => {
+  if (![...start, ...end].every(isValidPositionInMillimetres)) {
+    warnings.push(`${path}: position cannot be accurately represented in integer millimetres; ignored.`);
+    return false;
+  }
   const from = Point2D.fromJson(start);
   const to = Point2D.fromJson(end);
   const dx = to.x.metres - from.x.metres;
   const dy = to.y.metres - from.y.metres;
   const length = Math.sqrt(dx * dx + dy * dy);
-  const savedStart = from.toJson();
-  const savedEnd = to.toJson();
-  if (
-    !Number.isFinite(length) ||
-    length === 0 ||
-    savedStart.some((coordinate) => !Number.isFinite(coordinate)) ||
-    savedEnd.some((coordinate) => !Number.isFinite(coordinate)) ||
-    (savedStart[0] === savedEnd[0] && savedStart[1] === savedEnd[1])
-  ) {
+  if (!Number.isFinite(length) || length === 0) {
     warnings.push(`${path}: start and end must define a finite, non-zero line; ignored.`);
     return false;
   }
@@ -110,7 +105,8 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
     if (!isValid(validateFence, value, path, warnings)) return;
     if (!validDimensions({ width: value.width, height: value.height }, path, warnings)) return;
     if (!validLine(value.start, value.end, path, warnings)) return;
-    if (!duplicate(fenceIds, value.id, "fence id", path, warnings)) fences.push(value);
+    if (duplicate(fenceIds, value.id, "fence id", path, warnings)) return;
+    fences.push(value);
   });
 
   const buildings: JsonBuilding[] = [];
@@ -148,8 +144,15 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
           if (!isValid(validateOpening, openingValue, openingPath, warnings)) return;
           if (!validDimensions({ width: openingValue.width, height: openingValue.height }, openingPath, warnings))
             return;
+          if (
+            !isValidPositionInMillimetres(openingValue.distanceAlongWall) ||
+            (openingValue.distanceFromFloor !== undefined &&
+              !isValidPositionInMillimetres(openingValue.distanceFromFloor))
+          ) {
+            warnings.push(`${openingPath}: position cannot be accurately represented in integer millimetres; ignored.`);
+            return;
+          }
           if (duplicate(openingIds, openingValue.id, "opening id", openingPath, warnings)) return;
-
           const contents: JsonOpeningItem[] = [];
           (openingValue.contents ?? []).forEach((item, itemIndex) => {
             const itemPath = `${openingPath}.contents[${itemIndex}]`;

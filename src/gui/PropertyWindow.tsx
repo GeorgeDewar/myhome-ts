@@ -2,7 +2,7 @@ import { GripVertical, X } from "lucide-react";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import type { PlanEditor } from "../model/PlanEditor";
 import { applyPropertyDraft, createPropertyDraft, type PropertyDraft, type PropertyErrors } from "./propertyDraft";
-import type { SelectionTarget } from "./selection";
+import { selectionTargetNames, type SelectionTarget } from "./selection";
 import "./PropertyWindow.css";
 
 type PropertyWindowProps = { target: SelectionTarget; editPlan: PlanEditor; onClose: () => void };
@@ -53,7 +53,7 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
     undefined,
   );
   const dragCleanupRef = useRef<() => void>(() => undefined);
-  const title = `${target.kind === "slidingDoor" ? "Sliding Door" : `${target.kind[0].toUpperCase()}${target.kind.slice(1)}`} Properties`;
+  const title = `${selectionTargetNames[target.kind]} Properties`;
 
   const startDrag = (event: MouseEvent<HTMLDivElement>) => {
     dragOriginRef.current = {

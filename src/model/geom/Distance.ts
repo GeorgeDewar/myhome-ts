@@ -9,6 +9,14 @@ export class Distance {
     return Number((this.metres * 1000).toFixed(9));
   }
 
+  toPositionJson() {
+    const value = Math.round(this.metres * 1000);
+    if (!isValidPositionInMillimetres(value) || Distance.fromJson(value).metres !== this.metres) {
+      throw new Error("Position must be an accurately representable integer number of millimetres.");
+    }
+    return value;
+  }
+
   plus(other: Distance) {
     return new Distance(this.metres + other.metres);
   }
@@ -28,3 +36,6 @@ export class Distance {
 
 export const isValidPositiveDistance = (millimetres: number) =>
   Number.isFinite(millimetres) && millimetres > 0 && Distance.fromJson(millimetres).toJson() > 0;
+
+export const isValidPositionInMillimetres = (millimetres: number) =>
+  Number.isSafeInteger(millimetres) && Distance.fromJson(millimetres).toJson() === millimetres;

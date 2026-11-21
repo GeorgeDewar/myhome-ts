@@ -12,6 +12,15 @@ export type SelectionTarget =
 
 export type SelectionState = { targets: SelectionTarget[]; activeIndex: number };
 
+export const selectionTargetNames: Record<SelectionTarget["kind"], string> = {
+  room: "Room",
+  wall: "Wall",
+  opening: "Opening",
+  door: "Standard Door",
+  slidingDoor: "Sliding Door",
+  window: "Standard Window",
+};
+
 export const selectionTargetForOpeningItem = (item: OpeningItem, opening: Opening): SelectionTarget => {
   switch (item.type) {
     case "StandardDoor":
