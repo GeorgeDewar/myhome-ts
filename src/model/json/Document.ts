@@ -50,7 +50,7 @@ export type JsonStandardWindow = { type: "StandardWindow" };
 
 export type JsonSlidingDoor = { type: "SlidingDoor"; thickness?: number };
 
-export type JsonWallRef = { ref?: JsonWall["id"] };
+export type JsonWallRef = { ref: JsonWall["id"] };
 
 export type JsonRoom = { name: string; walls: JsonWallRef[] };
 

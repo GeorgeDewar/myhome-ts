@@ -5,7 +5,7 @@ import type { Room } from "./Room";
 import type { Wall } from "./Wall";
 
 type WallUpdate = { width?: number };
-type RoomUpdate = { name?: string };
+type RoomUpdate = { name?: string; walls?: readonly Wall[] };
 type OpeningUpdate = { width?: number; distanceAlongWall?: number };
 type DoorUpdate = {
   hingeSide?: StandardDoor["hingeSide"];
@@ -62,14 +62,27 @@ export class PlanEditor {
   }
 
   updateRoom(room: Room, update: RoomUpdate): EditResult {
-    if (!this.levels.some((level) => level.rooms.includes(room))) {
+    const level = this.levels.find((candidate) => candidate.rooms.includes(room));
+    if (!level) {
       return { ok: false, error: "This room is no longer in the plan." };
     }
+    if (update.walls?.some((wall) => !level.walls.includes(wall))) {
+      return { ok: false, error: "Room walls must belong to the same level as the room." };
+    }
 
+    let changed = false;
     if (update.name !== undefined && update.name !== room.name) {
       room.name = update.name;
-      this.onChange();
+      changed = true;
     }
+    if (
+      update.walls !== undefined &&
+      (update.walls.length !== room.walls.length || update.walls.some((wall, index) => wall !== room.walls[index]))
+    ) {
+      room.walls = [...update.walls];
+      changed = true;
+    }
+    if (changed) this.onChange();
     return { ok: true };
   }
 

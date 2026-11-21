@@ -172,6 +172,7 @@
                         "type": "array",
                         "items": {
                           "type": "object",
+                          "required": ["ref"],
                           "unevaluatedProperties": false,
                           "properties": { "ref": { "type": "string" } }
                         }

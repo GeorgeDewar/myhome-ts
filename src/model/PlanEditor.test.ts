@@ -81,6 +81,56 @@ describe("PlanEditor.updateWall", () => {
       expect(notify).toHaveBeenCalledOnce();
     });
 
+    it("updates ordered room walls and rejects foreign or removed walls atomically", () => {
+      const plan = Plan.fromJson({
+        buildings: [
+          {
+            name: "House",
+            levels: [
+              {
+                number: 0,
+                name: "Ground",
+                walls: [
+                  { id: "a", start: [0, 0], end: [1000, 0] },
+                  { id: "b", start: [1000, 0], end: [1000, 1000] },
+                  { id: "removed", start: [0, 0], end: [0, 1000] },
+                ],
+                rooms: [{ name: "Room", walls: [{ ref: "a" }] }],
+              },
+              { number: 1, name: "Upper", walls: [{ id: "a", start: [0, 0], end: [1000, 0] }] },
+            ],
+          },
+        ],
+      });
+      const [level, otherLevel] = plan.buildings[0].levels;
+      const [a, b, removed] = level.walls;
+      const room = level.rooms[0];
+      const notify = vi.fn();
+      const editor = new PlanEditor(plan, notify);
+      const walls = [b, a];
+
+      expect(editor.updateRoom(room, { name: "Updated", walls })).toEqual({ ok: true });
+      walls.reverse();
+      expect(room.toJson()).toEqual({ name: "Updated", walls: [{ ref: "b" }, { ref: "a" }] });
+      expect(editor.updateRoom(room, { walls: [b, a] })).toEqual({ ok: true });
+      expect(notify).toHaveBeenCalledOnce();
+
+      level.walls.pop();
+      const foreign = setup().wall;
+      for (const invalid of [otherLevel.walls[0], removed, foreign]) {
+        expect(editor.updateRoom(room, { name: "Rejected", walls: [a, invalid] })).toEqual({
+          ok: false,
+          error: "Room walls must belong to the same level as the room.",
+        });
+      }
+      expect(room.toJson()).toEqual({ name: "Updated", walls: [{ ref: "b" }, { ref: "a" }] });
+      expect(notify).toHaveBeenCalledOnce();
+
+      expect(editor.updateRoom(room, { walls: [a, b] })).toEqual({ ok: true });
+      expect(room.toJson().walls).toEqual([{ ref: "a" }, { ref: "b" }]);
+      expect(notify).toHaveBeenCalledTimes(2);
+    });
+
     it("validates an opening patch before applying any field", () => {
       const { plan, opening, editor, notify } = setup();
       const before = plan.toJson();

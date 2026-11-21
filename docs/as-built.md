@@ -5,6 +5,8 @@ Use `PlanEditor` to update walls, rooms, openings, standard doors and sliding do
 
 Property windows hold changes locally until Apply or OK is pressed. Apply keeps the window open; OK closes it after a successful update. Closing the window without applying discards its draft. Invalid values are reported in the window and do not change the plan.
 
+Room walls are stored as ordered wall objects; JSON references are derived from those objects when saving. Each reference must contain a `ref` to a wall on the same level. `PlanEditor.updateRoom` can update the wall list and rejects walls outside the room's level.
+
 ### Loading plans
 
 Plans are validated against `schema.json` as they load. Invalid buildings, levels, walls, fences, openings, opening items and rooms are omitted, and the app lists warnings identifying their locations. Children of an invalid item are not checked. Walls are checked before rooms so that warnings about invalid walls appear before warnings about rooms that reference them.

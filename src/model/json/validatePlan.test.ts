@@ -2,6 +2,33 @@ import { describe, expect, it } from "vitest";
 import { Plan } from "../Plan";
 
 describe("plan loading validation", () => {
+  it("ignores a room whose wall reference is missing, while retaining valid rooms", () => {
+    const plan = Plan.fromJson({
+      buildings: [
+        {
+          name: "House",
+          levels: [
+            {
+              number: 0,
+              name: "Ground",
+              walls: [{ id: "wall", start: [0, 0], end: [1000, 0] }],
+              rooms: [
+                { name: "Invalid", walls: [{}] },
+                { name: "Valid", walls: [{ ref: "wall" }] },
+                { name: "Empty", walls: [] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const level = plan.buildings[0].levels[0];
+    expect(level.rooms.map((room) => room.name)).toEqual(["Valid", "Empty"]);
+    expect(level.rooms[0].walls).toEqual([level.walls[0]]);
+    expect(plan.loadWarnings).toHaveLength(1);
+    expect(plan.loadWarnings[0]).toContain("rooms[0]: missing required property 'ref'");
+  });
+
   it("ignores invalid items without inspecting their children and reports walls before dependent rooms", () => {
     const plan = Plan.fromJson({
       buildings: [

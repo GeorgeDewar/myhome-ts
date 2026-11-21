@@ -34,6 +34,30 @@ describe("Plan", () => {
     expect(level.rooms[0].walls[0].level).toBe(level);
   });
 
+  it("serializes room wall references from the ordered wall objects", () => {
+    const plan = Plan.fromJson({
+      buildings: [{
+        name: "House",
+        levels: [{
+          number: 0,
+          name: "Ground",
+          walls: [
+            { id: "a", start: [0, 0], end: [1000, 0] },
+            { id: "b", start: [1000, 0], end: [1000, 1000] },
+          ],
+          rooms: [{ name: "Room", walls: [{ ref: "b" }, { ref: "a" }] }],
+        }],
+      }],
+    });
+    const level = plan.buildings[0].levels[0];
+    expect(level.rooms[0].walls).toEqual([level.walls[1], level.walls[0]]);
+    level.walls[1].id = "renamed";
+    expect(level.rooms[0].toJson()).toEqual({ name: "Room", walls: [{ ref: "renamed" }, { ref: "a" }] });
+    const reloaded = Plan.fromJson(plan.toJson());
+    expect(reloaded.loadWarnings).toEqual([]);
+    expect(reloaded.buildings[0].levels[0].rooms[0].walls.map((wall) => wall.id)).toEqual(["renamed", "a"]);
+  });
+
   it("uses the default wall width when the optional width is omitted", () => {
     const document = {
       buildings: [
@@ -162,10 +186,10 @@ describe("Plan", () => {
     expect(() => Wall.fromJson({ id: "missing-end", start: [0, 0] } as JsonWall)).toThrow(
       "Wall 'missing-end' requires start and end positions",
     );
-    expect(() => Room.fromJson({ name: "missing-walls" } as JsonRoom)).toThrow(
+    expect(() => Room.fromJson({ name: "missing-walls" } as JsonRoom, new Map())).toThrow(
       "Room 'missing-walls' requires a walls array",
     );
-    expect(Room.fromJson({ name: "empty", walls: [] }).toJson()).toEqual({ name: "empty", walls: [] });
+    expect(Room.fromJson({ name: "empty", walls: [] }, new Map()).toJson()).toEqual({ name: "empty", walls: [] });
   });
 
   it("rejects fences without both endpoints", () => {

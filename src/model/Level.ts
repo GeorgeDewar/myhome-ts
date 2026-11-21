@@ -27,18 +27,11 @@ export class Level {
       json.totalHeight === undefined ? undefined : Distance.fromJson(json.totalHeight),
     );
     level.walls = (json.walls ?? []).map(Wall.fromJson);
-    level.rooms = (json.rooms ?? []).map(Room.fromJson);
     level.walls.forEach((wall) => (wall.level = level));
     const wallsById = new Map(level.walls.map((wall) => [wall.id, wall]));
+    level.rooms = (json.rooms ?? []).map((room) => Room.fromJson(room, wallsById));
     level.rooms.forEach((room) => {
       room.level = level;
-      room.walls = room.wallRefs.flatMap(({ ref }) => {
-        if (ref === undefined) return [];
-        const id = ref;
-        const wall = wallsById.get(id);
-        if (!wall) throw new Error(`Room '${room.name}' references unknown wall '${id}'`);
-        return [wall];
-      });
     });
     return level;
   }
