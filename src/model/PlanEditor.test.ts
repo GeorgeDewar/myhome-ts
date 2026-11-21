@@ -28,6 +28,148 @@ describe("PlanEditor.updateWall", () => {
     expect(notify).toHaveBeenCalledOnce();
   });
 
+  describe("PlanEditor property updates", () => {
+    const setup = () => {
+      const plan = Plan.fromJson({
+        buildings: [
+          {
+            name: "House",
+            levels: [
+              {
+                number: 0,
+                name: "Ground",
+                rooms: [{ name: "Room", walls: [] }],
+                walls: [
+                  {
+                    id: "wall",
+                    start: [0, 0],
+                    end: [3000, 0],
+                    openings: [
+                      {
+                        id: "opening",
+                        width: 1000,
+                        distanceAlongWall: 500,
+                        contents: [
+                          { type: "StandardDoor", hingeSide: "left", swingDirection: "in" },
+                          { type: "SlidingDoor" },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      const level = plan.buildings[0].levels[0];
+      const room = level.rooms[0];
+      const wall = level.walls[0];
+      const opening = wall.openings[0];
+      const [door, slidingDoor] = opening.contents;
+      if (door.type !== "StandardDoor" || slidingDoor.type !== "SlidingDoor") throw new Error("Unexpected door type");
+      const notify = vi.fn();
+      return { plan, level, room, wall, opening, door, slidingDoor, notify, editor: new PlanEditor(plan, notify) };
+    };
+
+    it("edits a room name and skips no-op notifications", () => {
+      const { room, editor, notify } = setup();
+      expect(editor.updateRoom(room, { name: "Kitchen" })).toEqual({ ok: true });
+      expect(room.name).toBe("Kitchen");
+      expect(editor.updateRoom(room, { name: "Kitchen" })).toEqual({ ok: true });
+      expect(editor.updateRoom(room, {})).toEqual({ ok: true });
+      expect(notify).toHaveBeenCalledOnce();
+    });
+
+    it("validates an opening patch before applying any field", () => {
+      const { plan, opening, editor, notify } = setup();
+      const before = plan.toJson();
+      expect(editor.updateOpening(opening, { width: 1200, distanceAlongWall: NaN })).toEqual({
+        ok: false,
+        field: "distanceAlongWall",
+        error: "Enter a finite number of millimetres.",
+      });
+      expect(editor.updateOpening(opening, { width: Infinity })).toEqual({
+        ok: false,
+        field: "width",
+        error: "Enter a finite number of millimetres.",
+      });
+      expect(plan.toJson()).toEqual(before);
+      expect(notify).not.toHaveBeenCalled();
+
+      expect(editor.updateOpening(opening, { width: 1200, distanceAlongWall: 700 })).toEqual({ ok: true });
+      expect(opening.toJson()).toMatchObject({ width: 1200, distanceAlongWall: 700 });
+      expect(editor.updateOpening(opening, { width: 1200, distanceAlongWall: 700 })).toEqual({ ok: true });
+      expect(notify).toHaveBeenCalledOnce();
+    });
+
+    it("validates and applies standard door properties together", () => {
+      const { door, editor, notify } = setup();
+      expect(editor.updateDoor(door, { hingeSide: "right", thickness: NaN })).toEqual({
+        ok: false,
+        field: "thickness",
+        error: "Enter a finite number of millimetres.",
+      });
+      expect(door.hingeSide).toBe("left");
+      expect(notify).not.toHaveBeenCalled();
+
+      expect(editor.updateDoor(door, { hingeSide: "right", swingDirection: "out", thickness: 35 })).toEqual({
+        ok: true,
+      });
+      expect(door.toJson()).toMatchObject({ hingeSide: "right", swingDirection: "out", thickness: 35 });
+      expect(editor.updateDoor(door, { hingeSide: "right", swingDirection: "out", thickness: 35 })).toEqual({
+        ok: true,
+      });
+      expect(notify).toHaveBeenCalledOnce();
+    });
+
+    it("updates sliding-door thickness and rejects non-finite values", () => {
+      const { slidingDoor, editor, notify } = setup();
+      expect(editor.updateSlidingDoor(slidingDoor, { thickness: Infinity })).toEqual({
+        ok: false,
+        field: "thickness",
+        error: "Enter a finite number of millimetres.",
+      });
+      expect(slidingDoor.thickness).toBeUndefined();
+      expect(notify).not.toHaveBeenCalled();
+      expect(editor.updateSlidingDoor(slidingDoor, { thickness: 35 })).toEqual({ ok: true });
+      expect(slidingDoor.toJson().thickness).toBe(35);
+      expect(editor.updateSlidingDoor(slidingDoor, { thickness: 35 })).toEqual({ ok: true });
+      expect(notify).toHaveBeenCalledOnce();
+    });
+
+    it("rejects foreign and removed objects, including descendants of a removed wall", () => {
+      const { level, room, opening, door, slidingDoor, editor, notify } = setup();
+      const foreign = setup();
+      expect(editor.updateRoom(foreign.room, { name: "Other" }).ok).toBe(false);
+      expect(editor.updateOpening(foreign.opening, { width: 200 }).ok).toBe(false);
+      expect(editor.updateDoor(foreign.door, { hingeSide: "right" }).ok).toBe(false);
+      expect(editor.updateSlidingDoor(foreign.slidingDoor, { thickness: 50 }).ok).toBe(false);
+
+      level.rooms.pop();
+      level.walls.pop();
+      expect(editor.updateRoom(room, { name: "Other" }).ok).toBe(false);
+      expect(editor.updateOpening(opening, { width: 200 }).ok).toBe(false);
+      expect(editor.updateDoor(door, { hingeSide: "right" }).ok).toBe(false);
+      expect(editor.updateSlidingDoor(slidingDoor, { thickness: 50 }).ok).toBe(false);
+      expect(room.name).toBe("Room");
+      expect(opening.width.toJson()).toBe(1000);
+      expect(door.hingeSide).toBe("left");
+      expect(slidingDoor.thickness).toBeUndefined();
+      expect(notify).not.toHaveBeenCalled();
+    });
+
+    it("rejects removed openings and opening items even if their parents remain", () => {
+      const { wall, opening, door, slidingDoor, editor, notify } = setup();
+      opening.contents.pop();
+      expect(editor.updateSlidingDoor(slidingDoor, { thickness: 50 }).ok).toBe(false);
+      wall.openings.pop();
+      expect(editor.updateOpening(opening, { width: 200 }).ok).toBe(false);
+      expect(editor.updateDoor(door, { hingeSide: "right" }).ok).toBe(false);
+      expect(notify).not.toHaveBeenCalled();
+    });
+  });
+
   it("rejects invalid widths without changing the wall or notifying", () => {
     const plan = createPlan();
     const wall = plan.buildings[0].levels[0].walls[0];

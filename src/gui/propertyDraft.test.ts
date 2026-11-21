@@ -52,14 +52,14 @@ describe("property drafts", () => {
   it("applies wall edits only on request, preserving defaults for unchanged values", () => {
     const { wall, editor, notify } = setup();
     const draft = createPropertyDraft({ kind: "wall", item: wall });
-    expect(applyPropertyDraft(draft, editor, notify)).toEqual({});
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
     expect(wall.explicitWidth).toBeUndefined();
     expect(notify).not.toHaveBeenCalled();
 
     draft.values = { width: "250" };
     expect(wall.width.toJson()).toBe(100);
     expect(notify).not.toHaveBeenCalled();
-    expect(applyPropertyDraft(draft, editor, notify)).toEqual({});
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
     expect(wall.width.toJson()).toBe(250);
     expect(notify).toHaveBeenCalledOnce();
   });
@@ -68,12 +68,12 @@ describe("property drafts", () => {
     const { level, wall, editor, notify } = setup();
     const draft = createPropertyDraft({ kind: "wall", item: wall });
     draft.values = { width: "" };
-    expect(applyPropertyDraft(draft, editor, notify).width).toBeDefined();
+    expect(applyPropertyDraft(draft, editor).width).toBeDefined();
     draft.values = { width: "-10" };
-    expect(applyPropertyDraft(draft, editor, notify).width).toBeDefined();
+    expect(applyPropertyDraft(draft, editor).width).toBeDefined();
     level.walls.pop();
     draft.values = { width: "200" };
-    expect(applyPropertyDraft(draft, editor, notify).width).toBe("This wall is no longer in the plan.");
+    expect(applyPropertyDraft(draft, editor).width).toBe("This wall is no longer in the plan.");
     expect(wall.width.toJson()).toBe(100);
     expect(notify).not.toHaveBeenCalled();
   });
@@ -82,13 +82,13 @@ describe("property drafts", () => {
     const { opening, editor, notify } = setup();
     const draft = createPropertyDraft({ kind: "opening", item: opening });
     draft.values = { width: "1200", distanceAlongWall: "" };
-    expect(applyPropertyDraft(draft, editor, notify).distanceAlongWall).toBeDefined();
+    expect(applyPropertyDraft(draft, editor).distanceAlongWall).toBeDefined();
     expect(opening.width.toJson()).toBe(1000);
     expect(opening.distanceAlongWall.toJson()).toBe(500);
     expect(notify).not.toHaveBeenCalled();
 
     draft.values = { width: "1200", distanceAlongWall: "600" };
-    expect(applyPropertyDraft(draft, editor, notify)).toEqual({});
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
     expect(opening.width.toJson()).toBe(1200);
     expect(opening.distanceAlongWall.toJson()).toBe(600);
     expect(notify).toHaveBeenCalledOnce();
@@ -98,13 +98,13 @@ describe("property drafts", () => {
     const { opening, door, editor, notify } = setup();
     const draft = createPropertyDraft({ kind: "door", item: door, opening });
     draft.values = { ...draft.values, hingeSide: "right", swingDirection: "out", thickness: "" };
-    expect(applyPropertyDraft(draft, editor, notify).thickness).toBeDefined();
+    expect(applyPropertyDraft(draft, editor).thickness).toBeDefined();
     expect(door.hingeSide).toBe("left");
     expect(door.swingDirection).toBe("in");
     expect(notify).not.toHaveBeenCalled();
 
     draft.values = { ...draft.values, thickness: "35" };
-    expect(applyPropertyDraft(draft, editor, notify)).toEqual({});
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
     expect(door.hingeSide).toBe("right");
     expect(door.swingDirection).toBe("out");
     expect(door.thickness).toBeUndefined();
@@ -112,7 +112,7 @@ describe("property drafts", () => {
 
     const next = createPropertyDraft({ kind: "door", item: door, opening });
     next.values = { ...next.values, thickness: "50" };
-    expect(applyPropertyDraft(next, editor, notify)).toEqual({});
+    expect(applyPropertyDraft(next, editor)).toEqual({});
     expect(door.leafThickness.toJson()).toBe(50);
     expect(notify).toHaveBeenCalledTimes(2);
   });
@@ -127,13 +127,28 @@ describe("property drafts", () => {
     expect(room.name).toBe("Room");
     expect(slidingDoor.thickness).toBeUndefined();
 
-    expect(applyPropertyDraft(roomDraft, editor, notify)).toEqual({});
-    expect(applyPropertyDraft(slidingDraft, editor, notify)).toEqual({});
-    expect(applyPropertyDraft(createPropertyDraft({ kind: "window", item: window, opening }), editor, notify)).toEqual(
-      {},
-    );
+    expect(applyPropertyDraft(roomDraft, editor)).toEqual({});
+    expect(applyPropertyDraft(slidingDraft, editor)).toEqual({});
+    expect(applyPropertyDraft(createPropertyDraft({ kind: "window", item: window, opening }), editor)).toEqual({});
     expect(room.name).toBe("Kitchen");
     expect(slidingDoor.leafThickness.toJson()).toBe(55);
     expect(notify).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports removed rooms and doors without applying their drafts", () => {
+    const { level, opening, door, editor, notify } = setup();
+    const room = level.rooms[0];
+    const roomDraft = createPropertyDraft({ kind: "room", item: room });
+    roomDraft.values = { name: "Kitchen" };
+    const doorDraft = createPropertyDraft({ kind: "door", item: door, opening });
+    doorDraft.values = { ...doorDraft.values, hingeSide: "right" };
+    level.rooms.pop();
+    level.walls.pop();
+
+    expect(applyPropertyDraft(roomDraft, editor).form).toBe("This room is no longer in the plan.");
+    expect(applyPropertyDraft(doorDraft, editor).form).toBe("This door is no longer in the plan.");
+    expect(room.name).toBe("Room");
+    expect(door.hingeSide).toBe("left");
+    expect(notify).not.toHaveBeenCalled();
   });
 });

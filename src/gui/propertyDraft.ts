@@ -1,4 +1,3 @@
-import { Distance } from "../model/geom/Distance";
 import type { PlanEditor } from "../model/PlanEditor";
 import type { SelectionTarget } from "./selection";
 
@@ -13,7 +12,7 @@ type PropertyValues = {
 
 export type PropertyDraft = { target: SelectionTarget; values: PropertyValues; initialValues: PropertyValues };
 
-export type PropertyErrors = Partial<Record<"width" | "distanceAlongWall" | "thickness", string>>;
+export type PropertyErrors = Partial<Record<"width" | "distanceAlongWall" | "thickness" | "form", string>>;
 
 export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
   let values: PropertyValues;
@@ -47,11 +46,7 @@ export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
   return { target, values, initialValues: values };
 };
 
-export const applyPropertyDraft = (
-  draft: PropertyDraft,
-  editPlan: PlanEditor,
-  onChange: () => void,
-): PropertyErrors => {
+export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): PropertyErrors => {
   const { target, values, initialValues } = draft;
   const errors: PropertyErrors = {};
   const parseDistance = (field: "width" | "distanceAlongWall" | "thickness") => {
@@ -63,20 +58,28 @@ export const applyPropertyDraft = (
     }
     return value;
   };
+  const report = (
+    result: { ok: true } | { ok: false; error: string; field?: string },
+    fallback: keyof PropertyErrors = "form",
+  ) => {
+    if (result.ok) return;
+    const field = result.field;
+    if (field === "width" || field === "distanceAlongWall" || field === "thickness") {
+      errors[field] = result.error;
+    } else {
+      errors[fallback] = result.error;
+    }
+  };
 
   switch (target.kind) {
     case "room":
-      if (values.name !== undefined && values.name !== initialValues.name) {
-        target.item.name = values.name;
-        onChange();
-      }
+      report(editPlan.updateRoom(target.item, { name: values.name !== initialValues.name ? values.name : undefined }));
       break;
     case "wall":
       if (values.width !== initialValues.width) {
         const width = parseDistance("width");
         if (width !== undefined) {
-          const result = editPlan.updateWall(target.item, { width });
-          if (!result.ok) errors.width = result.error;
+          report(editPlan.updateWall(target.item, { width }), "width");
         }
       }
       break;
@@ -84,44 +87,34 @@ export const applyPropertyDraft = (
       const width = parseDistance("width");
       const distance = parseDistance("distanceAlongWall");
       if (width === undefined || distance === undefined) break;
-      let changed = false;
-      if (values.width !== initialValues.width) {
-        target.item.width = Distance.fromJson(width);
-        changed = true;
-      }
-      if (values.distanceAlongWall !== initialValues.distanceAlongWall) {
-        target.item.distanceAlongWall = Distance.fromJson(distance);
-        changed = true;
-      }
-      if (changed) onChange();
+      report(
+        editPlan.updateOpening(target.item, {
+          width: values.width !== initialValues.width ? width : undefined,
+          distanceAlongWall: values.distanceAlongWall !== initialValues.distanceAlongWall ? distance : undefined,
+        }),
+      );
       break;
     }
     case "door": {
       const thickness = parseDistance("thickness");
       if (thickness === undefined) break;
-      let changed = false;
-      if (values.hingeSide !== undefined && values.hingeSide !== initialValues.hingeSide) {
-        target.item.hingeSide = values.hingeSide;
-        changed = true;
-      }
-      if (values.swingDirection !== undefined && values.swingDirection !== initialValues.swingDirection) {
-        target.item.swingDirection = values.swingDirection;
-        changed = true;
-      }
-      if (values.thickness !== initialValues.thickness) {
-        target.item.thickness = Distance.fromJson(thickness);
-        changed = true;
-      }
-      if (changed) onChange();
+      report(
+        editPlan.updateDoor(target.item, {
+          hingeSide: values.hingeSide !== initialValues.hingeSide ? values.hingeSide : undefined,
+          swingDirection: values.swingDirection !== initialValues.swingDirection ? values.swingDirection : undefined,
+          thickness: values.thickness !== initialValues.thickness ? thickness : undefined,
+        }),
+      );
       break;
     }
     case "slidingDoor": {
       const thickness = parseDistance("thickness");
       if (thickness === undefined) break;
-      if (values.thickness !== initialValues.thickness) {
-        target.item.thickness = Distance.fromJson(thickness);
-        onChange();
-      }
+      report(
+        editPlan.updateSlidingDoor(target.item, {
+          thickness: values.thickness !== initialValues.thickness ? thickness : undefined,
+        }),
+      );
       break;
     }
     case "window":

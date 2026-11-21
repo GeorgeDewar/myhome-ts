@@ -47,7 +47,6 @@ function App() {
   const activeTarget = selection.targets[selection.activeIndex];
 
   const selectTarget = (target: SelectionTarget) => setSelection({ targets: [target], activeIndex: 0 });
-  const refreshPlan = () => setPlanVersion((version) => version + 1);
 
   const handleDownload = async () => {
     try {
@@ -201,7 +200,6 @@ function App() {
             <PropertyWindow
               target={editingTarget}
               editPlan={editPlan}
-              onChange={refreshPlan}
               onClose={() => setEditingTarget(undefined)}
             />
           )}

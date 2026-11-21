@@ -5,7 +5,7 @@ import { applyPropertyDraft, createPropertyDraft, type PropertyDraft, type Prope
 import type { SelectionTarget } from "./selection";
 import "./PropertyWindow.css";
 
-type PropertyWindowProps = { target: SelectionTarget; editPlan: PlanEditor; onChange: () => void; onClose: () => void };
+type PropertyWindowProps = { target: SelectionTarget; editPlan: PlanEditor; onClose: () => void };
 type Values = PropertyDraft["values"];
 
 const DistanceField = ({
@@ -39,7 +39,7 @@ const DistanceField = ({
   </label>
 );
 
-export const PropertyWindow = ({ target, editPlan, onChange, onClose }: PropertyWindowProps) => {
+export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProps) => {
   const [position, setPosition] = useState({ x: 288, y: 88 });
   const [editor, setEditor] = useState<{ draft: PropertyDraft; errors: PropertyErrors }>(() => ({
     draft: createPropertyDraft(target),
@@ -92,7 +92,7 @@ export const PropertyWindow = ({ target, editPlan, onChange, onClose }: Property
   };
 
   const apply = (close: boolean) => {
-    const errors = applyPropertyDraft(draft, editPlan, onChange);
+    const errors = applyPropertyDraft(draft, editPlan);
     if (Object.keys(errors).length > 0) {
       setEditor({ draft, errors });
     } else if (close) {
@@ -214,6 +214,11 @@ export const PropertyWindow = ({ target, editPlan, onChange, onClose }: Property
             errors={errors}
             onChange={updateValues}
           />
+        )}
+        {errors.form && (
+          <div className="property-error" role="alert">
+            {errors.form}
+          </div>
         )}
         <div className="property-window-actions">
           <button type="button" onClick={() => apply(false)}>
