@@ -95,3 +95,20 @@
 .property-window-actions button:hover {
   background: #d9e2ec;
 }
+.create-window {
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+.create-window fieldset {
+  max-height: 220px;
+  overflow-y: auto;
+}
+.create-window .create-wall-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.create-window .create-wall-option input {
+  width: auto;
+  min-height: auto;
+}

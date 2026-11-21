@@ -1,10 +1,12 @@
 import type { Opening, OpeningItem, SlidingDoor, StandardDoor, StandardWindow } from "../model/Opening";
+import type { Fence } from "../model/Fence";
 import type { Room } from "../model/Room";
 import type { Wall } from "../model/Wall";
 
 export type SelectionTarget =
   | { kind: "room"; item: Room }
   | { kind: "wall"; item: Wall }
+  | { kind: "fence"; item: Fence }
   | { kind: "opening"; item: Opening }
   | { kind: "door"; item: StandardDoor; opening: Opening }
   | { kind: "slidingDoor"; item: SlidingDoor; opening: Opening }
@@ -15,6 +17,7 @@ export type SelectionState = { targets: SelectionTarget[]; activeIndex: number }
 export const selectionTargetNames: Record<SelectionTarget["kind"], string> = {
   room: "Room",
   wall: "Wall",
+  fence: "Fence",
   opening: "Opening",
   door: "Standard Door",
   slidingDoor: "Sliding Door",

@@ -4,6 +4,7 @@ import type { SelectionTarget } from "./selection";
 type PropertyValues = {
   name?: string;
   width?: string;
+  height?: string;
   distanceAlongWall?: string;
   hingeSide?: "left" | "right";
   swingDirection?: "in" | "out";
@@ -12,7 +13,7 @@ type PropertyValues = {
 
 export type PropertyDraft = { target: SelectionTarget; values: PropertyValues; initialValues: PropertyValues };
 
-export type PropertyErrors = Partial<Record<"width" | "distanceAlongWall" | "thickness" | "form", string>>;
+export type PropertyErrors = Partial<Record<"width" | "height" | "distanceAlongWall" | "thickness" | "form", string>>;
 
 export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
   let values: PropertyValues;
@@ -22,6 +23,12 @@ export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
       break;
     case "wall":
       values = { width: String(target.item.width.toJson()) };
+      break;
+    case "fence":
+      values = {
+        width: String(target.item.width.toJson()),
+        height: target.item.height === undefined ? "" : String(target.item.height.toJson()),
+      };
       break;
     case "opening":
       values = {
@@ -49,7 +56,7 @@ export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
 export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): PropertyErrors => {
   const { target, values, initialValues } = draft;
   const errors: PropertyErrors = {};
-  const parseDistance = (field: "width" | "distanceAlongWall" | "thickness") => {
+  const parseDistance = (field: "width" | "height" | "distanceAlongWall" | "thickness") => {
     const text = values[field] ?? "";
     const value = Number(text);
     if (text.trim() === "" || !Number.isFinite(value) || !Number.isFinite(value / 1000)) {
@@ -64,7 +71,7 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
   ) => {
     if (result.ok) return;
     const field = result.field;
-    if (field === "width" || field === "distanceAlongWall" || field === "thickness") {
+    if (field === "width" || field === "height" || field === "distanceAlongWall" || field === "thickness") {
       errors[field] = result.error;
     } else {
       errors[fallback] = result.error;
@@ -83,6 +90,12 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
         }
       }
       break;
+    case "fence": {
+      const width = values.width !== initialValues.width ? parseDistance("width") : undefined;
+      const height = values.height !== initialValues.height ? parseDistance("height") : undefined;
+      if (Object.keys(errors).length === 0) report(editPlan.updateFence(target.item, { width, height }));
+      break;
+    }
     case "opening": {
       const width = parseDistance("width");
       const distance = parseDistance("distanceAlongWall");

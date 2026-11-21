@@ -16,7 +16,7 @@ const DistanceField = ({
   onChange,
 }: {
   label: string;
-  field: "width" | "distanceAlongWall" | "thickness";
+  field: "width" | "height" | "distanceAlongWall" | "thickness";
   values: Values;
   errors: PropertyErrors;
   onChange: (values: Partial<Values>) => void;
@@ -142,6 +142,16 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
               errors={errors}
               onChange={updateValues}
             />
+          </>
+        )}
+        {target.kind === "fence" && (
+          <>
+            <label>
+              Fence ID
+              <input value={target.item.id} readOnly />
+            </label>
+            <DistanceField label="Width (mm)" field="width" values={draft.values} errors={errors} onChange={updateValues} />
+            <DistanceField label="Height (mm, optional)" field="height" values={draft.values} errors={errors} onChange={updateValues} />
           </>
         )}
         {target.kind === "opening" && (

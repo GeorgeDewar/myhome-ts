@@ -42,6 +42,23 @@ export const PlanTree = ({
     <aside className="plan-tree" aria-label="Plan hierarchy">
       <div className="panel-heading">Plan</div>
       <nav>
+        <details className="tree-group tree-category">
+          <summary className="tree-row">
+            <span>Fences</span>
+            <span className="tree-count">{plan.fences.length}</span>
+          </summary>
+          {plan.fences.map((fence) => (
+            <div
+              className={`${rowClassName({ kind: "fence", item: fence })} tree-item`}
+              key={fence.id}
+              onClick={() => select({ kind: "fence", item: fence })}
+              onDoubleClick={() => edit({ kind: "fence", item: fence })}
+              onContextMenu={(event) => contextMenu(event, { kind: "fence", item: fence })}
+            >
+              <span>{fence.id}</span>
+            </div>
+          ))}
+        </details>
         {plan.buildings.map((building) => (
           <details className="tree-group tree-building" key={building.name} open>
             <summary className="tree-row tree-parent">

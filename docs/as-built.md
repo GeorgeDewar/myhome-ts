@@ -9,6 +9,8 @@ Room walls are stored as ordered wall objects; JSON references are derived from 
 
 Selected objects can be deleted with Delete or their context menu. Deleting a wall also deletes its openings and any rooms that reference it; deleting an opening deletes its contents. Deletion goes through `PlanEditor` and notifies the views.
 
+The Add menu creates walls and fences from millimetre endpoints, rooms from an ordered list of walls, openings on a selected wall, and items in a selected opening. New IDs are generated within their parent. Fences can also be selected, edited and deleted from the plan or hierarchy. These operations use `PlanEditor`, which validates the parent, positions and dimensions before changing the plan.
+
 Positions use integer millimetres in JSON and floating-point metres in memory. This includes wall and fence endpoints and opening offsets; widths and other dimensions may be fractional. Position edits must be integers that round-trip accurately through the in-memory representation.
 
 ### Loading plans

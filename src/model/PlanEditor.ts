@@ -1,8 +1,13 @@
 import { Distance, isValidPositiveDistance, isValidPositionInMillimetres } from "./geom/Distance";
-import type { Opening, OpeningItem, SlidingDoor, StandardDoor } from "./Opening";
+import { Point2D } from "./geom/Point2D";
+import { roomPolygon } from "./geom/roomPolygon";
+import { Fence } from "./Fence";
+import type { JsonPosition } from "./json/Document";
+import type { Level } from "./Level";
+import { Opening, SlidingDoor, StandardDoor, StandardWindow, type OpeningItem } from "./Opening";
 import type { Plan } from "./Plan";
-import type { Room } from "./Room";
-import type { Wall } from "./Wall";
+import { Room } from "./Room";
+import { Wall } from "./Wall";
 
 type WallUpdate = { width?: number };
 type RoomUpdate = { name?: string; walls?: readonly Wall[] };
@@ -14,10 +19,25 @@ type DoorUpdate = {
 };
 type SlidingDoorUpdate = { thickness?: number };
 type EditResult<Field extends string = never> = { ok: true } | { ok: false; error: string; field?: Field };
+type AddResult<T> = { ok: true; item: T } | { ok: false; error: string };
 
 const positiveDistanceError = (value: number, label: string) => {
   if (!Number.isFinite(value) || value <= 0) return `${label} must be a positive, finite number of millimetres.`;
   if (!isValidPositiveDistance(value)) return `${label} is too small to save.`;
+};
+
+const lineError = (start: JsonPosition, end: JsonPosition) => {
+  if (![...start, ...end].every(isValidPositionInMillimetres)) {
+    return "Positions must be accurately representable integer millimetres.";
+  }
+  const length = Math.hypot((end[0] - start[0]) / 1000, (end[1] - start[1]) / 1000);
+  if (!Number.isFinite(length) || length === 0) return "Start and end must define a finite, non-zero line.";
+};
+
+const nextId = (prefix: string, ids: readonly string[]) => {
+  let number = 1;
+  while (ids.includes(`${prefix}${number}`)) number++;
+  return `${prefix}${number}`;
 };
 
 export class PlanEditor {
@@ -40,7 +60,8 @@ export class PlanEditor {
     );
   }
 
-  contains(item: Room | Wall | Opening | OpeningItem) {
+  contains(item: Room | Wall | Opening | OpeningItem | Fence) {
+    if (this.plan.fences.some((fence) => fence === item)) return true;
     return this.levels.some(
       (level) =>
         level.rooms.some((room) => room === item) ||
@@ -50,6 +71,151 @@ export class PlanEditor {
             wall.openings.some((opening) => opening === item || opening.contents.some((content) => content === item)),
         ),
     );
+  }
+
+  addWall(level: Level, start: JsonPosition, end: JsonPosition): AddResult<Wall> {
+    if (!this.levels.includes(level)) return { ok: false, error: "This level is no longer in the plan." };
+    const error = lineError(start, end);
+    if (error) return { ok: false, error };
+    const wall = new Wall(
+      nextId(
+        "wall",
+        level.walls.map((item) => item.id),
+      ),
+      Point2D.fromJson(start),
+      Point2D.fromJson(end),
+    );
+    wall.level = level;
+    level.walls.push(wall);
+    this.onChange();
+    return { ok: true, item: wall };
+  }
+
+  addFence(start: JsonPosition, end: JsonPosition): AddResult<Fence> {
+    const error = lineError(start, end);
+    if (error) return { ok: false, error };
+    const fence = new Fence(
+      nextId(
+        "fence",
+        this.plan.fences.map((item) => item.id),
+      ),
+      Point2D.fromJson(start),
+      Point2D.fromJson(end),
+    );
+    this.plan.fences.push(fence);
+    this.onChange();
+    return { ok: true, item: fence };
+  }
+
+  addRoom(level: Level, name: string, walls: readonly Wall[]): AddResult<Room> {
+    if (!this.levels.includes(level)) return { ok: false, error: "This level is no longer in the plan." };
+    if (!name.trim()) return { ok: false, error: "Enter a room name." };
+    if (walls.length < 3) return { ok: false, error: "Select at least three walls in order." };
+    if (walls.some((wall) => !level.walls.includes(wall))) {
+      return { ok: false, error: "Room walls must belong to the same level as the room." };
+    }
+    if (new Set(walls).size !== walls.length) return { ok: false, error: "Select each wall only once." };
+    const room = new Room(name, [...walls]);
+    const corners = roomPolygon(room);
+    const area = corners.reduce((sum, point, index) => {
+      const next = corners[(index + 1) % corners.length];
+      return sum + point.x * next.y - next.x * point.y;
+    }, 0);
+    if (corners.length !== walls.length || !Number.isFinite(area) || area === 0) {
+      return { ok: false, error: "Select walls in boundary order so they form a room." };
+    }
+    room.level = level;
+    level.rooms.push(room);
+    this.onChange();
+    return { ok: true, item: room };
+  }
+
+  addOpening(
+    wall: Wall,
+    width: number,
+    distanceAlongWall: number,
+    height?: number,
+    distanceFromFloor?: number,
+  ): AddResult<Opening> {
+    if (!this.levels.some((level) => level.walls.includes(wall))) {
+      return { ok: false, error: "This wall is no longer in the plan." };
+    }
+    const error =
+      positiveDistanceError(width, "Opening width") ??
+      (height === undefined ? undefined : positiveDistanceError(height, "Opening height"));
+    if (error) return { ok: false, error };
+    if (
+      !isValidPositionInMillimetres(distanceAlongWall) ||
+      (distanceFromFloor !== undefined && !isValidPositionInMillimetres(distanceFromFloor))
+    ) {
+      return { ok: false, error: "Positions must be accurately representable integer millimetres." };
+    }
+    const opening = new Opening(
+      nextId(
+        "opening",
+        wall.openings.map((item) => item.id),
+      ),
+      Distance.fromJson(width),
+      Distance.fromJson(distanceAlongWall),
+      height === undefined ? undefined : Distance.fromJson(height),
+      distanceFromFloor === undefined ? undefined : Distance.fromJson(distanceFromFloor),
+    );
+    opening.wall = wall;
+    wall.openings.push(opening);
+    this.onChange();
+    return { ok: true, item: opening };
+  }
+
+  addOpeningItem(opening: Opening, type: OpeningItem["type"]): AddResult<OpeningItem> {
+    if (!this.ownsOpening(opening)) return { ok: false, error: "This opening is no longer in the plan." };
+    let item: OpeningItem;
+    switch (type) {
+      case "StandardDoor":
+        item = new StandardDoor("left", "in");
+        break;
+      case "SlidingDoor":
+        item = new SlidingDoor();
+        break;
+      case "StandardWindow":
+        item = new StandardWindow();
+        break;
+      default:
+        return { ok: false, error: "Select a valid opening item type." };
+    }
+    opening.contents.push(item);
+    this.onChange();
+    return { ok: true, item };
+  }
+
+  deleteFence(fence: Fence): EditResult {
+    if (!this.plan.fences.includes(fence)) return { ok: false, error: "This fence is no longer in the plan." };
+    this.plan.fences = this.plan.fences.filter((candidate) => candidate !== fence);
+    this.onChange();
+    return { ok: true };
+  }
+
+  updateFence(fence: Fence, update: { width?: number; height?: number }): EditResult {
+    if (!this.plan.fences.includes(fence)) return { ok: false, error: "This fence is no longer in the plan." };
+    for (const [label, value] of [
+      ["Fence width", update.width],
+      ["Fence height", update.height],
+    ] as const) {
+      if (value !== undefined) {
+        const error = positiveDistanceError(value, label);
+        if (error) return { ok: false, error };
+      }
+    }
+    let changed = false;
+    if (update.width !== undefined && fence.explicitWidth?.metres !== update.width / 1000) {
+      fence.explicitWidth = Distance.fromJson(update.width);
+      changed = true;
+    }
+    if (update.height !== undefined && fence.height?.metres !== update.height / 1000) {
+      fence.height = Distance.fromJson(update.height);
+      changed = true;
+    }
+    if (changed) this.onChange();
+    return { ok: true };
   }
 
   deleteWall(wall: Wall): EditResult {

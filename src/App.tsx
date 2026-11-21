@@ -7,6 +7,7 @@ import { PlanContext } from "./context/PlanContext";
 import { PlanView2D, type PlanView2DStatus } from "./graphics2d/PlanView2D";
 import { PlanView3D, type PlanView3DStatus } from "./graphics3d/PlanView3D";
 import { PlanTree } from "./gui/PlanTree";
+import { CreateWindow, type CreateRequest } from "./gui/CreateWindow";
 import { PropertyWindow } from "./gui/PropertyWindow";
 import { isSelectionTarget, selectionTargetNames, type SelectionState, type SelectionTarget } from "./gui/selection";
 import type { JsonPlan } from "./model/json/Document";
@@ -30,6 +31,7 @@ function App() {
   const [activeViewId, setActiveViewId] = useState(initialViews[0].id);
   const [selection, setSelection] = useState<SelectionState>({ targets: [], activeIndex: -1 });
   const [editingTarget, setEditingTarget] = useState<SelectionTarget>();
+  const [creating, setCreating] = useState<CreateRequest>();
   const [contextMenu, setContextMenu] = useState<{ target: SelectionTarget; x: number; y: number }>();
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const contextReturnFocusRef = useRef<HTMLElement | null>(null);
@@ -68,6 +70,8 @@ function App() {
       const result =
         target.kind === "wall"
           ? editPlan.deleteWall(target.item)
+          : target.kind === "fence"
+            ? editPlan.deleteFence(target.item)
           : target.kind === "room"
             ? editPlan.deleteRoom(target.item)
             : target.kind === "opening"
@@ -168,6 +172,29 @@ function App() {
               <Download size={16} aria-hidden="true" />
               Download JSON
             </button>
+            <select
+                aria-label="Add object"
+                value=""
+                onChange={(event) => {
+                  const kind = event.target.value;
+                  if (kind === "wall" || kind === "fence" || kind === "room" || kind === "opening" || kind === "item") {
+                    setCreating({
+                      kind,
+                      level: currentLevel,
+                      wall: activeTarget?.kind === "wall" ? activeTarget.item : undefined,
+                      opening: activeTarget?.kind === "opening" ? activeTarget.item :
+                        activeTarget?.kind === "door" || activeTarget?.kind === "slidingDoor" || activeTarget?.kind === "window" ? activeTarget.opening : undefined,
+                    });
+                  }
+                }}
+              >
+                <option value="">Add...</option>
+                <option value="wall" disabled={!currentLevel}>Wall</option>
+                <option value="room" disabled={!currentLevel}>Room</option>
+                <option value="fence">Fence</option>
+                <option value="opening" disabled={activeTarget?.kind !== "wall"}>Opening (select a wall)</option>
+                <option value="item" disabled={!activeTarget || !["opening", "door", "slidingDoor", "window"].includes(activeTarget.kind)}>Opening item (select an opening)</option>
+            </select>
             <div className="toolbar-divider" />
             <div className="level-control" aria-label="Active level">
               <Tooltip.Root>
@@ -331,6 +358,18 @@ function App() {
               target={editingTarget}
               editPlan={editPlan}
               onClose={() => setEditingTarget(undefined)}
+            />
+          )}
+          {creating && (
+            <CreateWindow
+              key={creating.kind}
+              request={creating}
+              editor={editPlan}
+              onClose={() => setCreating(undefined)}
+              onCreated={(target) => {
+                selectTarget(target);
+                setCreating(undefined);
+              }}
             />
           )}
         </main>

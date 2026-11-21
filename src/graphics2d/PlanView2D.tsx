@@ -12,6 +12,7 @@ import type { Fence } from "../model/Fence";
 import type { Opening, SlidingDoor, StandardDoor } from "../model/Opening";
 import type { Room } from "../model/Room";
 import type { Wall } from "../model/Wall";
+import { roomPolygon } from "../model/geom/roomPolygon";
 import { drawMultiPolygon, slidingDoorLeaves, toPoint, toPolygon } from "./renderPolygons";
 import "./PlanView2D.css";
 
@@ -205,21 +206,6 @@ const drawOpenings = (context: CanvasRenderingContext2D, walls: Wall[], scale: n
   }
 };
 
-const intersection = (first: Wall, second: Wall): Point | undefined => {
-  const a = toPoint(first.from);
-  const b = toPoint(first.to);
-  const c = toPoint(second.from);
-  const d = toPoint(second.to);
-  const denominator = (a.x - b.x) * (c.y - d.y) - (a.y - b.y) * (c.x - d.x);
-  if (denominator === 0) return undefined;
-  const determinantA = a.x * b.y - a.y * b.x;
-  const determinantB = c.x * d.y - c.y * d.x;
-  return {
-    x: (determinantA * (c.x - d.x) - (a.x - b.x) * determinantB) / denominator,
-    y: (determinantA * (c.y - d.y) - (a.y - b.y) * determinantB) / denominator,
-  };
-};
-
 const isInsidePolygon = (point: Point, polygon: Point[]) => {
   let isInside = false;
   for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index++) {
@@ -235,12 +221,7 @@ const isInsidePolygon = (point: Point, polygon: Point[]) => {
   return isInside;
 };
 
-const roomPolygon = (room: Room) =>
-  room.walls
-    .map((wall, index) => intersection(wall, room.walls[(index + 1) % room.walls.length]))
-    .filter((corner): corner is Point => corner !== undefined);
-
-const targetsAtPoint = (point: Point, walls: Wall[], rooms: Room[]): SelectionTarget[] => {
+const targetsAtPoint = (point: Point, walls: Wall[], rooms: Room[], fences: Fence[]): SelectionTarget[] => {
   const targets: SelectionTarget[] = [];
   rooms.forEach((room) => {
     const corners = roomPolygon(room);
@@ -254,6 +235,9 @@ const targetsAtPoint = (point: Point, walls: Wall[], rooms: Room[]): SelectionTa
       targets.push({ kind: "opening", item: opening });
       opening.contents.forEach((content) => targets.push(selectionTargetForOpeningItem(content, opening)));
     });
+  });
+  fences.forEach((fence) => {
+    if (isInsidePolygon(point, fence.basicPolygon2D().map(toPoint))) targets.push({ kind: "fence", item: fence });
   });
   return targets;
 };
@@ -276,7 +260,7 @@ const drawSelection = (
       }
       return;
     }
-    if (target.kind === "wall") {
+    if (target.kind === "wall" || target.kind === "fence") {
       drawPolygon(context, target.item.basicPolygon2D().map(toPoint));
       context.stroke();
       return;
@@ -448,7 +432,7 @@ export const PlanView2D = ({
             x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
             y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
           };
-          const targets = targetsAtPoint(point, walls, rooms);
+          const targets = targetsAtPoint(point, walls, rooms, fences);
           onSelectionChange({ targets, activeIndex: targets.length - 1 });
         }
       }
@@ -460,7 +444,7 @@ export const PlanView2D = ({
         x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
         y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
       };
-      const targets = targetsAtPoint(point, walls, rooms);
+      const targets = targetsAtPoint(point, walls, rooms, fences);
       const activeTarget = targets.at(-1);
       onSelectionChange({ targets, activeIndex: targets.length - 1 });
       if (activeTarget) onEdit(activeTarget);
@@ -473,7 +457,7 @@ export const PlanView2D = ({
         x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
         y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
       };
-      if (targetsAtPoint(point, walls, rooms).some((target) => isSelectionTarget(activeTarget, target))) {
+      if (targetsAtPoint(point, walls, rooms, fences).some((target) => isSelectionTarget(activeTarget, target))) {
         if (onContextMenu(activeTarget, event.clientX, event.clientY)) event.preventDefault();
       }
     };
