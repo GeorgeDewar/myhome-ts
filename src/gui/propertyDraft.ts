@@ -1,19 +1,32 @@
 import type { PlanEditor } from "../model/PlanEditor";
+import type { Wall } from "../model/Wall";
 import type { SelectionTarget } from "./selection";
 
 type PropertyValues = {
   name?: string;
   width?: string;
   height?: string;
+  startX?: string;
+  startY?: string;
+  endX?: string;
+  endY?: string;
   distanceAlongWall?: string;
+  distanceFromFloor?: string;
   hingeSide?: "left" | "right";
   swingDirection?: "in" | "out";
   thickness?: string;
 };
 
-export type PropertyDraft = { target: SelectionTarget; values: PropertyValues; initialValues: PropertyValues };
+export type PropertyDraft = {
+  target: SelectionTarget;
+  values: PropertyValues;
+  initialValues: PropertyValues;
+  walls?: readonly Wall[];
+};
 
-export type PropertyErrors = Partial<Record<"width" | "height" | "distanceAlongWall" | "thickness" | "form", string>>;
+type DistanceField =
+  "width" | "height" | "startX" | "startY" | "endX" | "endY" | "distanceAlongWall" | "distanceFromFloor" | "thickness";
+export type PropertyErrors = Partial<Record<DistanceField | "form", string>>;
 
 export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
   let values: PropertyValues;
@@ -22,18 +35,25 @@ export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
       values = { name: target.item.name };
       break;
     case "wall":
-      values = { width: String(target.item.width.toJson()) };
-      break;
     case "fence":
       values = {
         width: String(target.item.width.toJson()),
-        height: target.item.height === undefined ? "" : String(target.item.height.toJson()),
+        ...(target.kind === "fence"
+          ? { height: target.item.height === undefined ? "" : String(target.item.height.toJson()) }
+          : {}),
+        startX: String(target.item.from.x.toPositionJson()),
+        startY: String(target.item.from.y.toPositionJson()),
+        endX: String(target.item.to.x.toPositionJson()),
+        endY: String(target.item.to.y.toPositionJson()),
       };
       break;
     case "opening":
       values = {
         width: String(target.item.width.toJson()),
         distanceAlongWall: String(target.item.distanceAlongWall.toJson()),
+        height: target.item.height === undefined ? "" : String(target.item.height.toJson()),
+        distanceFromFloor:
+          target.item.distanceFromFloor === undefined ? "" : String(target.item.distanceFromFloor.toPositionJson()),
       };
       break;
     case "door":
@@ -56,8 +76,8 @@ export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
 export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): PropertyErrors => {
   const { target, values, initialValues } = draft;
   const errors: PropertyErrors = {};
-  const parseDistance = (field: "width" | "height" | "distanceAlongWall" | "thickness") => {
-    const text = values[field] ?? "";
+  const parseDistance = (field: DistanceField) => {
+    const text = values[field] ?? initialValues[field] ?? "";
     const value = Number(text);
     if (text.trim() === "" || !Number.isFinite(value) || !Number.isFinite(value / 1000)) {
       errors[field] = "Enter a finite number of millimetres.";
@@ -65,13 +85,33 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
     }
     return value;
   };
+  const optionalDistance = (field: "height" | "distanceFromFloor") => {
+    if (values[field] === undefined || values[field] === initialValues[field]) return undefined;
+    return values[field].trim() === "" ? null : parseDistance(field);
+  };
+  const point = (xField: "startX" | "endX", yField: "startY" | "endY"): [number, number] | undefined => {
+    if (
+      (values[xField] === undefined || values[xField] === initialValues[xField]) &&
+      (values[yField] === undefined || values[yField] === initialValues[yField])
+    )
+      return undefined;
+    const x = parseDistance(xField);
+    const y = parseDistance(yField);
+    return x === undefined || y === undefined ? undefined : [x, y];
+  };
   const report = (
     result: { ok: true } | { ok: false; error: string; field?: string },
     fallback: keyof PropertyErrors = "form",
   ) => {
     if (result.ok) return;
     const field = result.field;
-    if (field === "width" || field === "height" || field === "distanceAlongWall" || field === "thickness") {
+    if (
+      field === "width" ||
+      field === "height" ||
+      field === "distanceAlongWall" ||
+      field === "distanceFromFloor" ||
+      field === "thickness"
+    ) {
       errors[field] = result.error;
     } else {
       errors[fallback] = result.error;
@@ -80,30 +120,44 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
 
   switch (target.kind) {
     case "room":
-      report(editPlan.updateRoom(target.item, { name: values.name !== initialValues.name ? values.name : undefined }));
+      report(
+        editPlan.updateRoom(target.item, {
+          name: values.name !== initialValues.name ? values.name : undefined,
+          walls: draft.walls,
+        }),
+      );
       break;
-    case "wall":
-      if (values.width !== initialValues.width) {
-        const width = parseDistance("width");
-        if (width !== undefined) {
-          report(editPlan.updateWall(target.item, { width }), "width");
-        }
+    case "wall": {
+      const width =
+        values.width !== undefined && values.width !== initialValues.width ? parseDistance("width") : undefined;
+      const start = point("startX", "startY");
+      const end = point("endX", "endY");
+      if (Object.keys(errors).length === 0 && (width !== undefined || start !== undefined || end !== undefined)) {
+        report(editPlan.updateWall(target.item, { width, start, end }), start || end ? "form" : "width");
       }
       break;
+    }
     case "fence": {
-      const width = values.width !== initialValues.width ? parseDistance("width") : undefined;
-      const height = values.height !== initialValues.height ? parseDistance("height") : undefined;
-      if (Object.keys(errors).length === 0) report(editPlan.updateFence(target.item, { width, height }));
+      const width =
+        values.width !== undefined && values.width !== initialValues.width ? parseDistance("width") : undefined;
+      const height = optionalDistance("height");
+      const start = point("startX", "startY");
+      const end = point("endX", "endY");
+      if (Object.keys(errors).length === 0) report(editPlan.updateFence(target.item, { width, height, start, end }));
       break;
     }
     case "opening": {
       const width = parseDistance("width");
       const distance = parseDistance("distanceAlongWall");
-      if (width === undefined || distance === undefined) break;
+      const height = optionalDistance("height");
+      const floor = optionalDistance("distanceFromFloor");
+      if (width === undefined || distance === undefined || Object.keys(errors).length > 0) break;
       report(
         editPlan.updateOpening(target.item, {
           width: values.width !== initialValues.width ? width : undefined,
           distanceAlongWall: values.distanceAlongWall !== initialValues.distanceAlongWall ? distance : undefined,
+          height,
+          distanceFromFloor: floor,
         }),
       );
       break;

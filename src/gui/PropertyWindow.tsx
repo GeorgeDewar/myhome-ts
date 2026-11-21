@@ -16,7 +16,16 @@ const DistanceField = ({
   onChange,
 }: {
   label: string;
-  field: "width" | "height" | "distanceAlongWall" | "thickness";
+  field:
+    | "width"
+    | "height"
+    | "startX"
+    | "startY"
+    | "endX"
+    | "endY"
+    | "distanceAlongWall"
+    | "distanceFromFloor"
+    | "thickness";
   values: Values;
   errors: PropertyErrors;
   onChange: (values: Partial<Values>) => void;
@@ -120,14 +129,41 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
         }}
       >
         {target.kind === "room" && (
-          <label>
-            Name
-            <input
-              value={draft.values.name ?? ""}
-              onChange={(event) => updateValues({ name: event.target.value })}
-              autoFocus
-            />
-          </label>
+          <>
+            <label>
+              Name
+              <input
+                value={draft.values.name ?? ""}
+                onChange={(event) => updateValues({ name: event.target.value })}
+                autoFocus
+              />
+            </label>
+            <fieldset>
+              <legend>Walls in order</legend>
+              {target.item.level?.walls.map((wall) => {
+                const walls = draft.walls ?? target.item.walls;
+                return (
+                  <label key={wall.id} className="wall-option">
+                    <input
+                      type="checkbox"
+                      checked={walls.includes(wall)}
+                      onChange={(event) =>
+                        setEditor((current) => ({
+                          ...current,
+                          draft: {
+                            ...current.draft,
+                            walls: event.target.checked ? [...walls, wall] : walls.filter((item) => item !== wall),
+                          },
+                        }))
+                      }
+                    />
+                    {walls.includes(wall) ? `${walls.indexOf(wall) + 1}. ` : ""}
+                    {wall.id}
+                  </label>
+                );
+              })}
+            </fieldset>
+          </>
         )}
         {target.kind === "wall" && (
           <>
@@ -150,8 +186,52 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
               Fence ID
               <input value={target.item.id} readOnly />
             </label>
-            <DistanceField label="Width (mm)" field="width" values={draft.values} errors={errors} onChange={updateValues} />
-            <DistanceField label="Height (mm, optional)" field="height" values={draft.values} errors={errors} onChange={updateValues} />
+            <DistanceField
+              label="Width (mm)"
+              field="width"
+              values={draft.values}
+              errors={errors}
+              onChange={updateValues}
+            />
+            <DistanceField
+              label="Height (mm, optional)"
+              field="height"
+              values={draft.values}
+              errors={errors}
+              onChange={updateValues}
+            />
+          </>
+        )}
+        {(target.kind === "wall" || target.kind === "fence") && (
+          <>
+            <DistanceField
+              label="Start X (mm)"
+              field="startX"
+              values={draft.values}
+              errors={errors}
+              onChange={updateValues}
+            />
+            <DistanceField
+              label="Start Y (mm)"
+              field="startY"
+              values={draft.values}
+              errors={errors}
+              onChange={updateValues}
+            />
+            <DistanceField
+              label="End X (mm)"
+              field="endX"
+              values={draft.values}
+              errors={errors}
+              onChange={updateValues}
+            />
+            <DistanceField
+              label="End Y (mm)"
+              field="endY"
+              values={draft.values}
+              errors={errors}
+              onChange={updateValues}
+            />
           </>
         )}
         {target.kind === "opening" && (
@@ -170,6 +250,20 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
             <DistanceField
               label="Distance along wall (mm)"
               field="distanceAlongWall"
+              values={draft.values}
+              errors={errors}
+              onChange={updateValues}
+            />
+            <DistanceField
+              label="Height (mm, optional)"
+              field="height"
+              values={draft.values}
+              errors={errors}
+              onChange={updateValues}
+            />
+            <DistanceField
+              label="Distance from floor (mm, optional)"
+              field="distanceFromFloor"
               values={draft.values}
               errors={errors}
               onChange={updateValues}

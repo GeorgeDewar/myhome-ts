@@ -151,4 +151,50 @@ describe("property drafts", () => {
     expect(door.hingeSide).toBe("left");
     expect(notify).not.toHaveBeenCalled();
   });
+
+  it("applies wall endpoints atomically with width and rejects collapsed or fractional lines", () => {
+    const { wall, editor, notify } = setup();
+    const draft = createPropertyDraft({ kind: "wall", item: wall });
+    draft.values = { ...draft.values, width: "200", endX: "0" };
+    expect(applyPropertyDraft(draft, editor).form).toBeDefined();
+    expect(wall.width.toJson()).toBe(100);
+    expect(wall.to.x.toPositionJson()).toBe(3000);
+    draft.values = { ...draft.values, endX: "1500.5" };
+    expect(applyPropertyDraft(draft, editor).form).toBeDefined();
+    expect(notify).not.toHaveBeenCalled();
+    draft.values = { ...draft.values, endX: "1500", endY: "1000" };
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
+    expect(wall.to.toJson()).toEqual([1500, 1000]);
+    expect(wall.width.toJson()).toBe(200);
+    expect(notify).toHaveBeenCalledOnce();
+  });
+
+  it("edits and clears optional opening heights and offsets atomically", () => {
+    const { opening, editor, notify } = setup();
+    const draft = createPropertyDraft({ kind: "opening", item: opening });
+    draft.values = { ...draft.values, height: "2100", distanceFromFloor: "0.5", width: "1200" };
+    expect(applyPropertyDraft(draft, editor).distanceFromFloor).toBeDefined();
+    expect(opening.width.toJson()).toBe(1000);
+    expect(opening.height).toBeUndefined();
+    draft.values = { ...draft.values, distanceFromFloor: "100" };
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
+    expect(opening.toJson()).toMatchObject({ width: 1200, height: 2100, distanceFromFloor: 100 });
+    const next = createPropertyDraft({ kind: "opening", item: opening });
+    next.values = { ...next.values, height: "", distanceFromFloor: "" };
+    expect(applyPropertyDraft(next, editor)).toEqual({});
+    expect(opening.height).toBeUndefined();
+    expect(opening.distanceFromFloor).toBeUndefined();
+    expect(notify).toHaveBeenCalledTimes(2);
+  });
+
+  it("applies room wall changes through the draft", () => {
+    const { level, wall, editor, notify } = setup();
+    const room = level.rooms[0];
+    const draft = createPropertyDraft({ kind: "room", item: room });
+    draft.walls = [wall];
+    expect(room.walls).toEqual([]);
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
+    expect(room.walls).toEqual([wall]);
+    expect(notify).toHaveBeenCalledOnce();
+  });
 });

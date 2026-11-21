@@ -9,9 +9,14 @@ import type { Plan } from "./Plan";
 import { Room } from "./Room";
 import { Wall } from "./Wall";
 
-type WallUpdate = { width?: number };
+type WallUpdate = { width?: number; start?: JsonPosition; end?: JsonPosition };
 type RoomUpdate = { name?: string; walls?: readonly Wall[] };
-type OpeningUpdate = { width?: number; distanceAlongWall?: number };
+type OpeningUpdate = {
+  width?: number;
+  distanceAlongWall?: number;
+  height?: number | null;
+  distanceFromFloor?: number | null;
+};
 type DoorUpdate = {
   hingeSide?: StandardDoor["hingeSide"];
   swingDirection?: StandardDoor["swingDirection"];
@@ -194,24 +199,42 @@ export class PlanEditor {
     return { ok: true };
   }
 
-  updateFence(fence: Fence, update: { width?: number; height?: number }): EditResult {
+  updateFence(
+    fence: Fence,
+    update: { width?: number; height?: number | null; start?: JsonPosition; end?: JsonPosition },
+  ): EditResult {
     if (!this.plan.fences.includes(fence)) return { ok: false, error: "This fence is no longer in the plan." };
     for (const [label, value] of [
       ["Fence width", update.width],
       ["Fence height", update.height],
     ] as const) {
-      if (value !== undefined) {
+      if (value !== undefined && value !== null) {
         const error = positiveDistanceError(value, label);
         if (error) return { ok: false, error };
       }
+    }
+    if (update.start !== undefined || update.end !== undefined) {
+      const error = lineError(update.start ?? fence.from.toJson(), update.end ?? fence.to.toJson());
+      if (error) return { ok: false, error };
     }
     let changed = false;
     if (update.width !== undefined && fence.explicitWidth?.metres !== update.width / 1000) {
       fence.explicitWidth = Distance.fromJson(update.width);
       changed = true;
     }
-    if (update.height !== undefined && fence.height?.metres !== update.height / 1000) {
-      fence.height = Distance.fromJson(update.height);
+    if (
+      update.height !== undefined &&
+      fence.height?.metres !== (update.height === null ? undefined : update.height / 1000)
+    ) {
+      fence.height = update.height === null ? undefined : Distance.fromJson(update.height);
+      changed = true;
+    }
+    if (update.start !== undefined && !fence.from.equals(Point2D.fromJson(update.start))) {
+      fence.from = Point2D.fromJson(update.start);
+      changed = true;
+    }
+    if (update.end !== undefined && !fence.to.equals(Point2D.fromJson(update.end))) {
+      fence.to = Point2D.fromJson(update.end);
       changed = true;
     }
     if (changed) this.onChange();
@@ -269,17 +292,26 @@ export class PlanEditor {
     const belongsToPlan = this.levels.some((level) => level.walls.includes(wall));
     if (!belongsToPlan) return { ok: false, error: "This wall is no longer in the plan." };
 
-    let changed = false;
     if (update.width !== undefined) {
-      const width = update.width / 1000;
       const error = positiveDistanceError(update.width, "Wall width");
       if (error) return { ok: false, error };
-      const distance = new Distance(width);
-
-      if (wall.explicitWidth?.metres !== width) {
-        wall.explicitWidth = distance;
-        changed = true;
-      }
+    }
+    if (update.start !== undefined || update.end !== undefined) {
+      const error = lineError(update.start ?? wall.from.toJson(), update.end ?? wall.to.toJson());
+      if (error) return { ok: false, error };
+    }
+    let changed = false;
+    if (update.width !== undefined && wall.explicitWidth?.metres !== update.width / 1000) {
+      wall.explicitWidth = Distance.fromJson(update.width);
+      changed = true;
+    }
+    if (update.start !== undefined && !wall.from.equals(Point2D.fromJson(update.start))) {
+      wall.from = Point2D.fromJson(update.start);
+      changed = true;
+    }
+    if (update.end !== undefined && !wall.to.equals(Point2D.fromJson(update.end))) {
+      wall.to = Point2D.fromJson(update.end);
+      changed = true;
     }
 
     if (changed) this.onChange();
@@ -311,12 +343,19 @@ export class PlanEditor {
     return { ok: true };
   }
 
-  updateOpening(opening: Opening, update: OpeningUpdate): EditResult<"width" | "distanceAlongWall"> {
+  updateOpening(
+    opening: Opening,
+    update: OpeningUpdate,
+  ): EditResult<"width" | "height" | "distanceAlongWall" | "distanceFromFloor"> {
     if (!this.ownsOpening(opening)) return { ok: false, error: "This opening is no longer in the plan." };
 
     if (update.width !== undefined) {
       const error = positiveDistanceError(update.width, "Opening width");
       if (error) return { ok: false, field: "width", error };
+    }
+    if (update.height !== undefined && update.height !== null) {
+      const error = positiveDistanceError(update.height, "Opening height");
+      if (error) return { ok: false, field: "height", error };
     }
     if (update.distanceAlongWall !== undefined && !Number.isFinite(update.distanceAlongWall)) {
       return { ok: false, field: "distanceAlongWall", error: "Enter a finite number of millimetres." };
@@ -325,6 +364,17 @@ export class PlanEditor {
       return {
         ok: false,
         field: "distanceAlongWall",
+        error: "Position must be an accurately representable integer number of millimetres.",
+      };
+    }
+    if (
+      update.distanceFromFloor !== undefined &&
+      update.distanceFromFloor !== null &&
+      !isValidPositionInMillimetres(update.distanceFromFloor)
+    ) {
+      return {
+        ok: false,
+        field: "distanceFromFloor",
         error: "Position must be an accurately representable integer number of millimetres.",
       };
     }
@@ -339,6 +389,22 @@ export class PlanEditor {
       opening.distanceAlongWall.metres !== update.distanceAlongWall / 1000
     ) {
       opening.distanceAlongWall = Distance.fromJson(update.distanceAlongWall);
+      changed = true;
+    }
+    if (
+      update.height !== undefined &&
+      opening.height?.metres !== (update.height === null ? undefined : update.height / 1000)
+    ) {
+      opening.height = update.height === null ? undefined : Distance.fromJson(update.height);
+      changed = true;
+    }
+    if (
+      update.distanceFromFloor !== undefined &&
+      opening.distanceFromFloor?.metres !==
+        (update.distanceFromFloor === null ? undefined : update.distanceFromFloor / 1000)
+    ) {
+      opening.distanceFromFloor =
+        update.distanceFromFloor === null ? undefined : Distance.fromJson(update.distanceFromFloor);
       changed = true;
     }
     if (changed) this.onChange();

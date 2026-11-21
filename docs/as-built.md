@@ -5,6 +5,8 @@ Use `PlanEditor` to update walls, rooms, openings, standard doors and sliding do
 
 Property windows hold changes locally until Apply or OK is pressed. Apply keeps the window open; OK closes it after a successful update. Closing the window without applying discards its draft. Invalid values are reported in the window and do not change the plan.
 
+Wall and fence endpoints, room wall lists, and opening heights and floor offsets can be edited in these windows. Clearing an optional height or floor offset removes it from the saved plan.
+
 Room walls are stored as ordered wall objects; JSON references are derived from those objects when saving. Each reference must contain a `ref` to a wall on the same level. `PlanEditor.updateRoom` can update the wall list and rejects walls outside the room's level.
 
 Selected objects can be deleted with Delete or their context menu. Deleting a wall also deletes its openings and any rooms that reference it; deleting an opening deletes its contents. Deletion goes through `PlanEditor` and notifies the views.
