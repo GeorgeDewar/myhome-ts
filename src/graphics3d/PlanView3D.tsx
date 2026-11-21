@@ -11,14 +11,18 @@ export type PlanView3DStatus = {
 export const PlanView3D = ({
   level,
   onStatusChange,
+  version,
 }: {
   level: number;
   onStatusChange: (status: PlanView3DStatus) => void;
+  version: number;
 }) => {
   const plan = useContext(PlanContext);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wallsRef = useRef<THREE.Group | null>(null);
 
   useEffect(() => {
+    const canvas = canvasRef.current!;
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#ffffff");
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -28,7 +32,7 @@ export const PlanView3D = ({
     const cube = new THREE.Mesh(geometry, material);
     scene.add(cube);
 
-    const controls = new PointerLockControls(camera, canvasRef.current!);
+    const controls = new PointerLockControls(camera, canvas);
     const pressedKeys = new Set<string>();
     const movementSpeed = 6;
     const reportStatus = () => {
@@ -59,29 +63,15 @@ export const PlanView3D = ({
       if (controls.isLocked) reportStatus();
     };
 
-    canvasRef.current?.addEventListener("click", lockControls);
+    canvas.addEventListener("click", lockControls);
     document.addEventListener("keydown", updatePressedKeys);
     document.addEventListener("keyup", clearPressedKey);
     document.addEventListener("mousemove", reportMouseLook);
     window.addEventListener("blur", clearPressedKeys);
 
-    if (plan) {
-      const walls = plan.getWallsOnLevel(level);
-      for (const wall of walls) {
-        if (wall.virtual) continue;
-        const shape = new THREE.Shape();
-        shape.moveTo(wall.from.x.metres, wall.from.y.metres);
-        for (const point of wall.basicPolygon2D()) {
-          shape.lineTo(point.x.metres, point.y.metres);
-        }
-        const geometry = new THREE.ExtrudeGeometry(shape, { depth: 2.4, bevelEnabled: false });
-        const material = new THREE.MeshPhongMaterial({ color: "#8AC" });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.rotation.x = Math.PI / 2;
-        mesh.position.y = 2.4;
-        scene.add(mesh);
-      }
-    }
+    const walls = new THREE.Group();
+    wallsRef.current = walls;
+    scene.add(walls);
 
     const grid = new THREE.GridHelper(100, 100, "#d9e2ec", "#d9e2ec");
     scene.add(grid);
@@ -98,7 +88,7 @@ export const PlanView3D = ({
 
     scene.add(controls.object);
 
-    const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current! });
+    const renderer = new THREE.WebGLRenderer({ canvas });
     const resizeRenderer = () => {
       const { clientHeight, clientWidth } = renderer.domElement;
       if (!clientWidth || !clientHeight) return;
@@ -152,16 +142,53 @@ export const PlanView3D = ({
 
     return () => {
       // Critical cleanup to avoid context collisions
-      canvasRef.current?.removeEventListener("click", lockControls);
+      canvas.removeEventListener("click", lockControls);
       document.removeEventListener("keydown", updatePressedKeys);
       document.removeEventListener("keyup", clearPressedKey);
       document.removeEventListener("mousemove", reportMouseLook);
       window.removeEventListener("blur", clearPressedKeys);
       resizeObserver.disconnect();
       controls.dispose();
+      renderer.setAnimationLoop(null);
+      geometry.dispose();
+      material.dispose();
+      grid.geometry.dispose();
+      if (Array.isArray(grid.material)) grid.material.forEach((item) => item.dispose());
+      else grid.material.dispose();
+      wallsRef.current = null;
       renderer.dispose();
     };
-  }, [level, plan]);
+  }, [onStatusChange]);
+
+  useEffect(() => {
+    const group = wallsRef.current;
+    if (!plan || !group) return;
+    const meshes: THREE.Mesh[] = [];
+    for (const wall of plan.getWallsOnLevel(level)) {
+      if (wall.virtual) continue;
+      const shape = new THREE.Shape();
+      shape.moveTo(wall.from.x.metres, wall.from.y.metres);
+      for (const point of wall.basicPolygon2D()) {
+        shape.lineTo(point.x.metres, point.y.metres);
+      }
+      const geometry = new THREE.ExtrudeGeometry(shape, { depth: 2.4, bevelEnabled: false });
+      const material = new THREE.MeshPhongMaterial({ color: "#8AC" });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.rotation.x = Math.PI / 2;
+      mesh.position.y = 2.4;
+      group.add(mesh);
+      meshes.push(mesh);
+    }
+
+    return () => {
+      for (const mesh of meshes) {
+        group.remove(mesh);
+        mesh.geometry.dispose();
+        if (Array.isArray(mesh.material)) mesh.material.forEach((item) => item.dispose());
+        else mesh.material.dispose();
+      }
+    };
+  }, [level, plan, version, onStatusChange]);
 
   return <canvas className="plan-view-3d" ref={canvasRef} />;
 };

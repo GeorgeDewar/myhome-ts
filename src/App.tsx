@@ -12,6 +12,7 @@ import type { SelectionState, SelectionTarget } from "./gui/selection";
 import type { JsonPlan } from "./model/json/Document";
 import { downloadPlan } from "./model/json/downloadPlan";
 import { Plan } from "./model/Plan";
+import { PlanEditor } from "./model/PlanEditor";
 import testPlan from "./testData/McKeefry.json";
 
 type ViewDescriptor = { id: string; kind: "2d" | "3d"; level: number };
@@ -30,6 +31,7 @@ function App() {
   const [selection, setSelection] = useState<SelectionState>({ targets: [], activeIndex: -1 });
   const [editingTarget, setEditingTarget] = useState<SelectionTarget>();
   const [planVersion, setPlanVersion] = useState(0);
+  const [editPlan] = useState(() => new PlanEditor(plan, () => setPlanVersion((version) => version + 1)));
   const [twoDStatus, setTwoDStatus] = useState<PlanView2DStatus>({
     cursor: { x: 0, y: 0 },
     offset: { x: 0, y: 0 },
@@ -168,7 +170,7 @@ function App() {
                 />
               </Tabs.Content>
               <Tabs.Content className="view-panel" value="plan-3d">
-                <PlanView3D level={activeLevel} onStatusChange={setThreeDStatus} />
+                <PlanView3D level={activeLevel} onStatusChange={setThreeDStatus} version={planVersion} />
               </Tabs.Content>
             </Tabs.Root>
           </section>
@@ -196,7 +198,12 @@ function App() {
             <span>{activeView.kind.toUpperCase()} view</span>
           </footer>
           {editingTarget && (
-            <PropertyWindow target={editingTarget} onChange={refreshPlan} onClose={() => setEditingTarget(undefined)} />
+            <PropertyWindow
+              target={editingTarget}
+              editPlan={editPlan}
+              onChange={refreshPlan}
+              onClose={() => setEditingTarget(undefined)}
+            />
           )}
         </main>
       </PlanContext>

@@ -120,7 +120,7 @@ The edit dialog for an opening is special. It shows a 2D and 3D representation o
 
 ## Other desired attributes, in no particular order
 
-- Allow a hierachy of defaults for everything (e.g. wall width, door leaf width, colours, etc) so things can be changed in one place
+- Allow a hierachy of defaults for everything (e.g. wall width, door leaf width, colours, etc) so things can be changed in one place. It should be clear to see whether a value is inherited from the default or not, and to replace it with a defined value, or to go back to the inherited default if desired.
 - Import and export from Sweet Home 3D
 - Store arbitrary information on things (user-defined metadata)
 - Store whether a measurement is confirmed or not, guide user through confirming and cross-checking
@@ -131,3 +131,4 @@ The edit dialog for an opening is special. It shows a 2D and 3D representation o
 - Do thermal calculations
 - Plugin ecosystem
 - Capture some details from a photo using AI!
+- Add in street-map data from OSM to provide context
