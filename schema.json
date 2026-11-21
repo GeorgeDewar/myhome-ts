@@ -23,8 +23,8 @@
             "$ref": "#/$defs/position",
             "description": "Position of the end of the fence (right side when viewing face A) relative to the ground, in millimetres. The position is midway through the thickness of the fence."
           },
-          "width": { "type": "number", "description": "Width of the fence in millimetres" },
-          "height": { "type": "number", "description": "Height of the fence in millimetres" }
+          "width": { "type": "number", "exclusiveMinimum": 0, "description": "Width of the fence in millimetres" },
+          "height": { "type": "number", "exclusiveMinimum": 0, "description": "Height of the fence in millimetres" }
         }
       }
     },
@@ -47,10 +47,12 @@
                 "name": { "type": "string", "description": "Displayable name of the floor" },
                 "ceilingHeight": {
                   "type": "number",
+                  "exclusiveMinimum": 0,
                   "description": "Height of the ceiling in millimetres, from the unfinished floor surface to the ceiling surface above"
                 },
                 "totalHeight": {
                   "type": "number",
+                  "exclusiveMinimum": 0,
                   "description": "Height of the floor in millimetres, from the unfinished floor surface to the unfinished floor surface above"
                 },
                 "walls": {
@@ -69,7 +71,7 @@
                         "$ref": "#/$defs/position",
                         "description": "Position of the end of the wall (right side when viewing face A) relative to the floor, in millimetres. The position is midway through the thickness of the wall."
                       },
-                      "width": { "type": "number", "description": "Width of the wall in millimetres" },
+                      "width": { "type": "number", "exclusiveMinimum": 0, "description": "Width of the wall in millimetres" },
                       "openings": {
                         "type": "array",
                         "items": {
@@ -80,10 +82,12 @@
                             "id": { "type": "string" },
                             "width": {
                               "type": "number",
+                              "exclusiveMinimum": 0,
                               "description": "Width of the door (the opening) in millimetres"
                             },
                             "height": {
                               "type": "number",
+                              "exclusiveMinimum": 0,
                               "description": "Height of the door (the opening) in millimetres"
                             },
                             "distanceAlongWall": {
@@ -117,6 +121,7 @@
                                       },
                                       "thickness": {
                                         "type": "number",
+                                        "exclusiveMinimum": 0,
                                         "description": "Thickness of the door leaf in millimetres",
                                         "default": 35
                                       }
@@ -130,6 +135,7 @@
                                       "type": { "const": "SlidingDoor" },
                                       "thickness": {
                                         "type": "number",
+                                        "exclusiveMinimum": 0,
                                         "description": "Thickness of the door leaf in millimetres",
                                         "default": 35
                                       }

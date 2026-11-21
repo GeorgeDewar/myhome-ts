@@ -25,3 +25,6 @@ export class Distance {
     return new Distance(this.metres * factor);
   }
 }
+
+export const isValidPositiveDistance = (millimetres: number) =>
+  Number.isFinite(millimetres) && millimetres > 0 && Distance.fromJson(millimetres).toJson() > 0;

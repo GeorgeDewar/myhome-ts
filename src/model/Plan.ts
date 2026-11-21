@@ -1,20 +1,25 @@
 import { Building } from "./Building";
 import { Fence } from "./Fence";
 import type { JsonPlan } from "./json/Document";
+import { validatePlanJson } from "./json/validatePlan";
 
 export class Plan {
   public buildings: Building[];
   public fences: Fence[];
 
-  constructor(public schema?: string) {
+  constructor(
+    public schema?: string,
+    public readonly loadWarnings: readonly string[] = [],
+  ) {
     this.buildings = [];
     this.fences = [];
   }
 
-  static fromJson(json: JsonPlan): Plan {
-    const plan = new Plan(json.$schema);
-    plan.buildings = (json.buildings ?? []).map(Building.fromJson);
-    plan.fences = (json.fences ?? []).map(Fence.fromJson);
+  static fromJson(input: unknown): Plan {
+    const { document, warnings } = validatePlanJson(input);
+    const plan = new Plan(document.$schema, warnings);
+    plan.buildings = (document.buildings ?? []).map(Building.fromJson);
+    plan.fences = (document.fences ?? []).map(Fence.fromJson);
     plan.buildings.forEach((building) => (building.plan = plan));
     return plan;
   }

@@ -80,6 +80,26 @@
   background: #243b53;
   font-size: 0.75rem;
 }
+.load-warnings {
+  max-height: 180px;
+  overflow: auto;
+  padding: 8px 14px;
+  color: #704300;
+  background: #fff3cd;
+  border-bottom: 1px solid #e6c46a;
+  font-size: 0.85rem;
+}
+.load-warnings summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.load-warnings p {
+  margin: 6px 0;
+}
+.load-warnings ol {
+  margin: 6px 0;
+  padding-left: 24px;
+}
 .workspace {
   display: grid;
   flex: 1;

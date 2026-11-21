@@ -92,7 +92,7 @@ describe("PlanEditor.updateWall", () => {
       expect(editor.updateOpening(opening, { width: Infinity })).toEqual({
         ok: false,
         field: "width",
-        error: "Enter a finite number of millimetres.",
+        error: "Opening width must be a positive, finite number of millimetres.",
       });
       expect(plan.toJson()).toEqual(before);
       expect(notify).not.toHaveBeenCalled();
@@ -108,7 +108,7 @@ describe("PlanEditor.updateWall", () => {
       expect(editor.updateDoor(door, { hingeSide: "right", thickness: NaN })).toEqual({
         ok: false,
         field: "thickness",
-        error: "Enter a finite number of millimetres.",
+        error: "Door leaf thickness must be a positive, finite number of millimetres.",
       });
       expect(door.hingeSide).toBe("left");
       expect(notify).not.toHaveBeenCalled();
@@ -128,7 +128,7 @@ describe("PlanEditor.updateWall", () => {
       expect(editor.updateSlidingDoor(slidingDoor, { thickness: Infinity })).toEqual({
         ok: false,
         field: "thickness",
-        error: "Enter a finite number of millimetres.",
+        error: "Door leaf thickness must be a positive, finite number of millimetres.",
       });
       expect(slidingDoor.thickness).toBeUndefined();
       expect(notify).not.toHaveBeenCalled();
@@ -136,6 +136,21 @@ describe("PlanEditor.updateWall", () => {
       expect(slidingDoor.toJson().thickness).toBe(35);
       expect(editor.updateSlidingDoor(slidingDoor, { thickness: 35 })).toEqual({ ok: true });
       expect(notify).toHaveBeenCalledOnce();
+    });
+
+    it("rejects zero, negative and unrepresentably small dimensions atomically", () => {
+      const { opening, door, slidingDoor, editor, notify } = setup();
+      for (const value of [0, -1, Number.MIN_VALUE]) {
+        expect(editor.updateOpening(opening, { width: value, distanceAlongWall: 700 }).ok).toBe(false);
+        expect(editor.updateDoor(door, { thickness: value, hingeSide: "right" }).ok).toBe(false);
+        expect(editor.updateSlidingDoor(slidingDoor, { thickness: value }).ok).toBe(false);
+      }
+      expect(opening.width.toJson()).toBe(1000);
+      expect(opening.distanceAlongWall.toJson()).toBe(500);
+      expect(door.hingeSide).toBe("left");
+      expect(door.thickness).toBeUndefined();
+      expect(slidingDoor.thickness).toBeUndefined();
+      expect(notify).not.toHaveBeenCalled();
     });
 
     it("rejects foreign and removed objects, including descendants of a removed wall", () => {

@@ -177,7 +177,7 @@ describe("Plan", () => {
     );
   });
 
-  it("rejects zero-length walls and fences when loading a plan", () => {
+  it("ignores zero-length walls and fences when loading a plan", () => {
     const zeroWall = {
       buildings: [{
         name: "House",
@@ -186,8 +186,12 @@ describe("Plan", () => {
     } satisfies JsonPlan;
     const zeroFence = { fences: [{ id: "fence", start: [-100, 200], end: [-100, 200] }] } satisfies JsonPlan;
 
-    expect(() => Plan.fromJson(zeroWall)).toThrow("Wall 'wall' must have a non-zero centerline");
-    expect(() => Plan.fromJson(zeroFence)).toThrow("Fence 'fence' must have a non-zero centerline");
+    const wallPlan = Plan.fromJson(zeroWall);
+    const fencePlan = Plan.fromJson(zeroFence);
+    expect(wallPlan.getWallsOnLevel(0)).toEqual([]);
+    expect(wallPlan.loadWarnings[0]).toContain("non-zero line");
+    expect(fencePlan.fences).toEqual([]);
+    expect(fencePlan.loadWarnings[0]).toContain("non-zero line");
   });
 
   it("uses 50mm for fence width unless specified and retains the original JSON", () => {
@@ -212,7 +216,7 @@ describe("Plan", () => {
     expect(customFence.toJson()).toEqual({ id: "custom", start: [0, 0], end: [0, 1000], width: 100, height: 1800 });
   });
 
-  it("rejects a room that references a missing wall", () => {
+  it("ignores a room that references a missing wall", () => {
     const document = {
       buildings: [
         {
@@ -222,6 +226,8 @@ describe("Plan", () => {
       ],
     } satisfies JsonPlan;
 
-    expect(() => Plan.fromJson(document)).toThrow("references unknown wall 'missing'");
+    const plan = Plan.fromJson(document);
+    expect(plan.getRoomsOnLevel(0)).toEqual([]);
+    expect(plan.loadWarnings[0]).toContain("references unknown wall 'missing'");
   });
 });

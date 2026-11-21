@@ -1,4 +1,4 @@
-import { Distance } from "./geom/Distance";
+import { Distance, isValidPositiveDistance } from "./geom/Distance";
 import type { Opening, OpeningItem, SlidingDoor, StandardDoor } from "./Opening";
 import type { Plan } from "./Plan";
 import type { Room } from "./Room";
@@ -14,6 +14,11 @@ type DoorUpdate = {
 };
 type SlidingDoorUpdate = { thickness?: number };
 type EditResult<Field extends string = never> = { ok: true } | { ok: false; error: string; field?: Field };
+
+const positiveDistanceError = (value: number, label: string) => {
+  if (!Number.isFinite(value) || value <= 0) return `${label} must be a positive, finite number of millimetres.`;
+  if (!isValidPositiveDistance(value)) return `${label} is too small to save.`;
+};
 
 export class PlanEditor {
   constructor(
@@ -42,13 +47,9 @@ export class PlanEditor {
     let changed = false;
     if (update.width !== undefined) {
       const width = update.width / 1000;
-      if (!Number.isFinite(update.width) || !Number.isFinite(width) || update.width <= 0) {
-        return { ok: false, error: "Wall width must be a positive, finite number of millimetres." };
-      }
+      const error = positiveDistanceError(update.width, "Wall width");
+      if (error) return { ok: false, error };
       const distance = new Distance(width);
-      if (distance.toJson() <= 0) {
-        return { ok: false, error: "Wall width is too small to save." };
-      }
 
       if (wall.explicitWidth?.metres !== width) {
         wall.explicitWidth = distance;
@@ -75,8 +76,9 @@ export class PlanEditor {
   updateOpening(opening: Opening, update: OpeningUpdate): EditResult<"width" | "distanceAlongWall"> {
     if (!this.ownsOpening(opening)) return { ok: false, error: "This opening is no longer in the plan." };
 
-    if (update.width !== undefined && !Number.isFinite(update.width)) {
-      return { ok: false, field: "width", error: "Enter a finite number of millimetres." };
+    if (update.width !== undefined) {
+      const error = positiveDistanceError(update.width, "Opening width");
+      if (error) return { ok: false, field: "width", error };
     }
     if (update.distanceAlongWall !== undefined && !Number.isFinite(update.distanceAlongWall)) {
       return { ok: false, field: "distanceAlongWall", error: "Enter a finite number of millimetres." };
@@ -107,8 +109,9 @@ export class PlanEditor {
     if (update.swingDirection !== undefined && update.swingDirection !== "in" && update.swingDirection !== "out") {
       return { ok: false, field: "swingDirection", error: "Select a valid swing direction." };
     }
-    if (update.thickness !== undefined && !Number.isFinite(update.thickness)) {
-      return { ok: false, field: "thickness", error: "Enter a finite number of millimetres." };
+    if (update.thickness !== undefined) {
+      const error = positiveDistanceError(update.thickness, "Door leaf thickness");
+      if (error) return { ok: false, field: "thickness", error };
     }
 
     let changed = false;
@@ -131,8 +134,9 @@ export class PlanEditor {
   updateSlidingDoor(door: SlidingDoor, update: SlidingDoorUpdate): EditResult<"thickness"> {
     if (!this.ownsOpeningItem(door)) return { ok: false, error: "This sliding door is no longer in the plan." };
 
-    if (update.thickness !== undefined && !Number.isFinite(update.thickness)) {
-      return { ok: false, field: "thickness", error: "Enter a finite number of millimetres." };
+    if (update.thickness !== undefined) {
+      const error = positiveDistanceError(update.thickness, "Door leaf thickness");
+      if (error) return { ok: false, field: "thickness", error };
     }
     if (update.thickness !== undefined && door.thickness?.metres !== update.thickness / 1000) {
       door.thickness = Distance.fromJson(update.thickness);

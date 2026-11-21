@@ -139,6 +139,18 @@ function App() {
             </div>
           </header>
 
+          {plan.loadWarnings.length > 0 && (
+            <section className="load-warnings" role="alert" aria-label="Plan loading warnings">
+              <details open>
+                <summary>{plan.loadWarnings.length} plan loading warning{plan.loadWarnings.length === 1 ? "" : "s"}</summary>
+                <p>Invalid items were ignored and will not be included in downloaded JSON.</p>
+                <ol>
+                  {plan.loadWarnings.map((warning, index) => <li key={index}>{warning}</li>)}
+                </ol>
+              </details>
+            </section>
+          )}
+
           <section className="workspace">
             <PlanTree
               plan={plan}
