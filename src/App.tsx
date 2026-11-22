@@ -195,12 +195,12 @@ function App() {
               <span>OpenHome</span>
             </div>
             <div className="toolbar-divider" />
-            <button className="download-button" type="button" onClick={handleDownload}>
+            <button className="toolbar-button" type="button" onClick={handleDownload}>
               <Download size={16} aria-hidden="true" />
               Download JSON
             </button>
             <button
-              className="download-button"
+              className="toolbar-button"
               type="button"
               disabled={!currentLevel}
               aria-pressed={drawingWall}
