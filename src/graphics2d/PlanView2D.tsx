@@ -2,6 +2,7 @@ import { difference, union } from "polygon-clipping";
 import polylabel from "polylabel";
 import { useContext, useEffect, useRef } from "react";
 import { PlanContext } from "../context/PlanContext";
+import type { LayerVisibility } from "../gui/Layers";
 import {
   isSelectionTarget,
   selectionTargetForOpeningItem,
@@ -87,7 +88,7 @@ const drawGrid = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, 
   context.stroke();
 };
 
-const drawWalls = (context: CanvasRenderingContext2D, walls: Wall[], scale: number) => {
+const drawWalls = (context: CanvasRenderingContext2D, walls: Wall[], scale: number, virtual = false) => {
   if (walls.length === 0) return;
   const wallGeometry = walls.map((wall) => toPolygon(wall.basicPolygon2D().map(toPoint)));
   const openingGeometry = walls.flatMap((wall) =>
@@ -105,12 +106,14 @@ const drawWalls = (context: CanvasRenderingContext2D, walls: Wall[], scale: numb
   const mergedWalls = union(wallGeometry[0], ...wallGeometry.slice(1));
   const wallArea = openingGeometry.length > 0 ? difference(mergedWalls, ...openingGeometry) : mergedWalls;
 
-  context.fillStyle = "#ffd700";
-  context.strokeStyle = "#1f2933";
+  context.fillStyle = virtual ? "rgba(38, 128, 194, 0.12)" : "#ffd700";
+  context.strokeStyle = virtual ? "#2680c2" : "#1f2933";
   context.lineWidth = 1 / scale;
+  if (virtual) context.setLineDash([6 / scale, 4 / scale]);
   drawMultiPolygon(context, wallArea);
   context.fill("evenodd");
   context.stroke();
+  if (virtual) context.setLineDash([]);
 };
 
 export const drawFences = (context: CanvasRenderingContext2D, fences: Fence[], scale: number) => {
@@ -195,12 +198,12 @@ const drawSlidingDoor = (
   }
 };
 
-const drawOpenings = (context: CanvasRenderingContext2D, walls: Wall[], scale: number) => {
+export const drawOpenings = (context: CanvasRenderingContext2D, walls: Wall[], scale: number, showDoors: boolean) => {
   for (const wall of walls) {
     for (const opening of wall.openings) {
       opening.contents.forEach((content) => {
-        if (content.type === "StandardDoor") drawDoor(context, wall, opening, content, scale);
-        if (content.type === "SlidingDoor") drawSlidingDoor(context, wall, opening, content, scale);
+        if (showDoors && content.type === "StandardDoor") drawDoor(context, wall, opening, content, scale);
+        if (showDoors && content.type === "SlidingDoor") drawSlidingDoor(context, wall, opening, content, scale);
         if (content.type === "StandardWindow") drawWindow(context, wall, opening, scale);
       });
     }
@@ -222,7 +225,9 @@ const isInsidePolygon = (point: Point, polygon: Point[]) => {
   return isInside;
 };
 
-const targetsAtPoint = (point: Point, walls: Wall[], rooms: Room[], fences: Fence[]): SelectionTarget[] => {
+export const targetsAtPoint = (
+  point: Point, walls: Wall[], rooms: Room[], fences: Fence[], showDoors: boolean,
+): SelectionTarget[] => {
   const targets: SelectionTarget[] = [];
   rooms.forEach((room) => {
     const corners = roomPolygon(room);
@@ -234,7 +239,11 @@ const targetsAtPoint = (point: Point, walls: Wall[], rooms: Room[], fences: Fenc
     wall.openings.forEach((opening) => {
       if (!isInsidePolygon(point, openingPolygon(wall, opening))) return;
       targets.push({ kind: "opening", item: opening });
-      opening.contents.forEach((content) => targets.push(selectionTargetForOpeningItem(content, opening)));
+      opening.contents.forEach((content) => {
+        if (showDoors || content.type === "StandardWindow") {
+          targets.push(selectionTargetForOpeningItem(content, opening));
+        }
+      });
     });
   });
   fences.forEach((fence) => {
@@ -242,6 +251,18 @@ const targetsAtPoint = (point: Point, walls: Wall[], rooms: Room[], fences: Fenc
   });
   return targets;
 };
+
+export const isVisibleTarget = (target: SelectionTarget, walls: Wall[], fences: Fence[], showDoors: boolean) => {
+  if (target.kind === "room") return true;
+  if (target.kind === "fence") return fences.includes(target.item);
+  if (target.kind === "wall") return walls.includes(target.item);
+  if ((target.kind === "door" || target.kind === "slidingDoor") && !showDoors) return false;
+  const wall = target.kind === "opening" ? target.item.wall : target.opening.wall;
+  return wall !== undefined && walls.includes(wall);
+};
+
+export const visibleWalls = (walls: Wall[], visibility: LayerVisibility) =>
+  walls.filter((wall) => wall.virtual ? visibility.virtualWalls : visibility.normalWalls);
 
 const drawSelection = (
   context: CanvasRenderingContext2D,
@@ -314,6 +335,7 @@ const drawRooms = (context: CanvasRenderingContext2D, rooms: Room[]) => {
 
 export const PlanView2D = ({
   level,
+  layerVisibility,
   onStatusChange,
   selection,
   onSelectionChange,
@@ -324,6 +346,7 @@ export const PlanView2D = ({
   version,
 }: {
   level: number;
+  layerVisibility: LayerVisibility;
   onStatusChange: (status: PlanView2DStatus) => void;
   selection: SelectionState;
   onSelectionChange: (selection: SelectionState) => void;
@@ -348,8 +371,9 @@ export const PlanView2D = ({
     if (!canvas || !plan) return;
     const context = canvas.getContext("2d");
     if (!context) return;
-    const walls = plan.getWallsOnLevel(level).filter((wall) => !wall.virtual);
-    const fences = plan.fences;
+    const allWalls = plan.getWallsOnLevel(level);
+    const walls = visibleWalls(allWalls, layerVisibility);
+    const fences = layerVisibility.fences ? plan.fences : [];
     const rooms = plan.getRoomsOnLevel(level);
     const viewport = viewportRef.current;
     let dragOrigin: Point | undefined;
@@ -365,7 +389,9 @@ export const PlanView2D = ({
 
     const fitToPlan = () => {
       if (hasFittedRef.current || !canvas.clientWidth || !canvas.clientHeight) return;
-      const points = [...walls, ...fences].flatMap((item) => item.basicPolygon2D().map(toPoint));
+      const fitItems = [...allWalls.filter((wall) => !wall.virtual), ...plan.fences];
+      if (fitItems.length === 0) fitItems.push(...allWalls);
+      const points = fitItems.flatMap((item) => item.basicPolygon2D().map(toPoint));
       if (points.length === 0) return;
       const minX = Math.min(...points.map((point) => point.x));
       const maxX = Math.max(...points.map((point) => point.x));
@@ -401,10 +427,16 @@ export const PlanView2D = ({
       );
       drawGrid(context, canvas, viewport);
       drawFences(context, fences, viewport.scale);
-      drawWalls(context, walls, viewport.scale);
-      drawOpenings(context, walls, viewport.scale);
-      drawRooms(context, rooms);
-      drawSelection(context, selection.targets, selection.targets[selection.activeIndex], viewport.scale);
+      drawWalls(context, walls.filter((wall) => !wall.virtual), viewport.scale);
+      drawWalls(context, walls.filter((wall) => wall.virtual), viewport.scale, true);
+      drawOpenings(context, walls, viewport.scale, layerVisibility.doors);
+      if (layerVisibility.roomLabels) drawRooms(context, rooms);
+      drawSelection(
+        context,
+        selection.targets.filter((target) => isVisibleTarget(target, walls, fences, layerVisibility.doors)),
+        selection.targets[selection.activeIndex],
+        viewport.scale,
+      );
       if (drawingWall && wallStartRef.current) {
         context.beginPath();
         context.moveTo(wallStartRef.current[0] / 1000, wallStartRef.current[1] / 1000);
@@ -466,7 +498,7 @@ export const PlanView2D = ({
             dragOrigin = undefined;
             return;
           }
-          const targets = targetsAtPoint(point, walls, rooms, fences);
+          const targets = targetsAtPoint(point, walls, rooms, fences, layerVisibility.doors);
           onSelectionChange({ targets, activeIndex: targets.length - 1 });
         }
       }
@@ -480,7 +512,7 @@ export const PlanView2D = ({
         x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
         y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
       };
-      const targets = targetsAtPoint(point, walls, rooms, fences);
+      const targets = targetsAtPoint(point, walls, rooms, fences, layerVisibility.doors);
       const activeTarget = targets.at(-1);
       onSelectionChange({ targets, activeIndex: targets.length - 1 });
       if (activeTarget) onEdit(activeTarget);
@@ -494,7 +526,7 @@ export const PlanView2D = ({
         x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
         y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
       };
-      if (targetsAtPoint(point, walls, rooms, fences).some((target) => isSelectionTarget(activeTarget, target))) {
+      if (targetsAtPoint(point, walls, rooms, fences, layerVisibility.doors).some((target) => isSelectionTarget(activeTarget, target))) {
         if (onContextMenu(activeTarget, event.clientX, event.clientY)) event.preventDefault();
       }
     };
@@ -536,7 +568,7 @@ export const PlanView2D = ({
       canvas.removeEventListener("contextmenu", contextMenu);
       canvas.removeEventListener("wheel", wheel);
     };
-  }, [drawingWall, level, onContextMenu, onDrawWall, onEdit, onSelectionChange, plan, selection, version]);
+  }, [drawingWall, layerVisibility, level, onContextMenu, onDrawWall, onEdit, onSelectionChange, plan, selection, version]);
 
   return <canvas className={`plan-view-2d${drawingWall ? " is-drawing" : ""}`} ref={canvasRef} tabIndex={0} />;
 };

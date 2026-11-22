@@ -6,7 +6,7 @@ Use `PlanEditor` to update walls, rooms, openings, standard doors and sliding do
 Property windows hold changes locally until Apply or OK is pressed. Apply keeps the window open; OK closes it after a successful update. Closing the window without applying discards its draft. Field-specific errors appear under the relevant field; other errors appear above the action buttons. Invalid values do not change the plan.
 
 Wall and fence endpoints, room names, and opening heights and floor offsets can be edited in these windows. Clearing an optional height or floor offset removes it from the saved plan.
-Walls can also be marked virtual. Virtual walls are hidden in the 2D plan and can be edited again via the hierarchy.
+Walls can also be marked virtual.
 
 Room walls are stored as ordered wall objects; JSON references are derived from those objects when saving. Each reference must contain a `ref` to a wall on the same level.
 
@@ -15,6 +15,8 @@ Selected objects can be deleted with Delete or their context menu. Deleting a wa
 The Add menu creates walls and fences from millimetre endpoints, openings on a selected wall, and items in a selected opening. Room creation is not yet available in the UI. New IDs are generated within their parent. Fences can also be selected, edited and deleted from the plan or hierarchy. These operations use `PlanEditor`, which validates the parent, positions and dimensions before changing the plan.
 
 Draw wall also creates a wall by clicking two points in the 2D plan; coordinates are snapped to integer millimetres. Escape cancels the tool.
+
+The Layers panel controls visibility in the 2D plan only. Fences, normal walls, room labels and doors are visible by default; virtual walls are hidden by default and shown with a dashed blue outline when enabled. Doors and windows are hidden when their wall is hidden. Hidden objects remain available in the hierarchy. Layer settings are not saved to the plan.
 
 Positions use integer millimetres in JSON and floating-point metres in memory. This includes wall and fence endpoints and opening offsets; widths and other dimensions may be fractional. Position edits must be integers that round-trip accurately through the in-memory representation.
 

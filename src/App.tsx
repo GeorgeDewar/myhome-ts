@@ -7,6 +7,7 @@ import { PlanContext } from "./context/PlanContext";
 import { PlanView2D, type PlanView2DStatus } from "./graphics2d/PlanView2D";
 import { PlanView3D, type PlanView3DStatus } from "./graphics3d/PlanView3D";
 import { PlanTree } from "./gui/PlanTree";
+import type { LayerVisibility } from "./gui/Layers";
 import { CreateWindow, type CreateRequest } from "./gui/CreateWindow";
 import { PropertyWindow } from "./gui/PropertyWindow";
 import { isSelectionTarget, selectionTargetNames, type SelectionState, type SelectionTarget } from "./gui/selection";
@@ -30,6 +31,13 @@ function App() {
   const [activeLevel, setActiveLevel] = useState(levels[0]?.number ?? 0);
   const [activeViewId, setActiveViewId] = useState(initialViews[0].id);
   const [selection, setSelection] = useState<SelectionState>({ targets: [], activeIndex: -1 });
+  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
+    fences: true,
+    normalWalls: true,
+    virtualWalls: false,
+    roomLabels: true,
+    doors: true,
+  });
   const [editingTarget, setEditingTarget] = useState<SelectionTarget>();
   const [creating, setCreating] = useState<CreateRequest>();
   const [drawingWall, setDrawingWall] = useState(false);
@@ -292,6 +300,8 @@ function App() {
           <section className="workspace">
             <PlanTree
               plan={plan}
+              layerVisibility={layerVisibility}
+              onLayerVisibilityChange={setLayerVisibility}
               activeLevel={activeLevel}
               selectedTargets={selection.targets}
               activeTarget={activeTarget}
@@ -315,6 +325,7 @@ function App() {
               <Tabs.Content className="view-panel" value="plan-2d">
                 <PlanView2D
                   level={activeLevel}
+                  layerVisibility={layerVisibility}
                   onStatusChange={setTwoDStatus}
                   selection={selection}
                   onSelectionChange={setSelection}

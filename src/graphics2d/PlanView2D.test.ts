@@ -1,6 +1,10 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { Layers, type LayerVisibility } from "../gui/Layers";
 import { Fence } from "../model/Fence";
-import { drawFences } from "./PlanView2D";
+import { Plan } from "../model/Plan";
+import { drawFences, drawOpenings, isVisibleTarget, targetsAtPoint, visibleWalls } from "./PlanView2D";
 import { slidingDoorLeaves } from "./renderPolygons";
 
 describe("drawFences", () => {
@@ -26,6 +30,92 @@ describe("drawFences", () => {
     expect(context.stroke).toHaveBeenCalledOnce();
     expect(context.moveTo).toHaveBeenCalledOnce();
     expect(context.lineTo).toHaveBeenCalled();
+  });
+
+  describe("2D layers", () => {
+    const visibility: LayerVisibility = {
+      fences: true, normalWalls: true, virtualWalls: false, roomLabels: true, doors: true,
+    };
+    const setup = () => {
+      const plan = Plan.fromJson({
+        buildings: [{
+          name: "House",
+          levels: [{
+            number: 0,
+            name: "Ground",
+            walls: [
+              {
+                id: "normal",
+                start: [0, 0],
+                end: [4000, 0],
+                openings: [{
+                  id: "opening",
+                  width: 1000,
+                  distanceAlongWall: 2000,
+                  contents: [
+                    { type: "StandardDoor", hingeSide: "left", swingDirection: "in" },
+                    { type: "SlidingDoor" },
+                    { type: "StandardWindow" },
+                  ],
+                }],
+              },
+              { id: "virtual", start: [0, 1000], end: [4000, 1000], virtual: true },
+            ],
+          }],
+        }],
+      });
+      const walls = plan.buildings[0].levels[0].walls;
+      return { walls, opening: walls[0].openings[0] };
+    };
+
+    it("renders all layer controls with the supplied visibility", () => {
+      const markup = renderToStaticMarkup(
+        createElement(Layers, { visibility, onChange: () => {} }),
+      );
+      expect(markup).toContain('<input type="checkbox"/>Walls, virtual');
+      for (const label of ["Fences", "Walls, normal", "Room labels", "Doors"]) {
+        expect(markup).toContain(`<input type="checkbox" checked=""/>${label}`);
+      }
+    });
+
+    it("filters normal and virtual walls independently, including their selection highlights", () => {
+      const { walls, opening } = setup();
+      const visible = visibleWalls(walls, { ...visibility, normalWalls: false, virtualWalls: true });
+      expect(visible).toEqual([walls[1]]);
+      expect(targetsAtPoint({ x: 2, y: 0 }, visible, [], [], true)).toEqual([]);
+      expect(targetsAtPoint({ x: 2, y: 1 }, visible, [], [], true)).toEqual([{ kind: "wall", item: walls[1] }]);
+      expect(isVisibleTarget({ kind: "opening", item: opening }, visible, [], true)).toBe(false);
+      expect(isVisibleTarget({ kind: "wall", item: walls[1] }, visible, [], true)).toBe(true);
+    });
+
+    it("does not select or highlight a hidden fence", () => {
+      const fence = Fence.fromJson({ id: "fence", start: [0, 0], end: [1000, 0] });
+      expect(targetsAtPoint({ x: 0.5, y: 0 }, [], [], [fence], true)).toEqual([{ kind: "fence", item: fence }]);
+      expect(targetsAtPoint({ x: 0.5, y: 0 }, [], [], [], true)).toEqual([]);
+      expect(isVisibleTarget({ kind: "fence", item: fence }, [], [], true)).toBe(false);
+    });
+
+    it("hides both kinds of doors without hiding windows or openings", () => {
+      const { walls, opening } = setup();
+      const context = {
+        beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), closePath: vi.fn(),
+        stroke: vi.fn(), arc: vi.fn(), strokeStyle: "", lineWidth: 0,
+      };
+      drawOpenings(context as unknown as CanvasRenderingContext2D, [walls[0]], 20, false);
+      expect(context.stroke).toHaveBeenCalledTimes(3);
+      expect(context.arc).not.toHaveBeenCalled();
+      const targets = targetsAtPoint({ x: 2, y: 0 }, [walls[0]], [], [], false);
+      expect(targets.map((target) => target.kind)).toEqual(["wall", "opening", "window"]);
+      const [door, slidingDoor] = opening.contents;
+      if (door.type !== "StandardDoor" || slidingDoor.type !== "SlidingDoor") throw new Error("Unexpected door type");
+      expect(isVisibleTarget({ kind: "door", item: door, opening }, [walls[0]], [], false)).toBe(false);
+      expect(isVisibleTarget({ kind: "slidingDoor", item: slidingDoor, opening }, [walls[0]], [], false)).toBe(false);
+
+      drawOpenings(context as unknown as CanvasRenderingContext2D, [walls[0]], 20, true);
+      expect(context.arc).toHaveBeenCalledOnce();
+      expect(targetsAtPoint({ x: 2, y: 0 }, [walls[0]], [], [], true).map((target) => target.kind))
+        .toEqual(["wall", "opening", "door", "slidingDoor", "window"]);
+    });
   });
 
   describe("slidingDoorLeaves", () => {

@@ -1,10 +1,13 @@
 import type { MouseEvent } from "react";
 import type { Plan } from "../model/Plan";
+import { Layers, type LayerVisibility } from "./Layers";
 import { selectionTargetForOpeningItem, selectionTargetNames, isSelectionTarget, type SelectionTarget } from "./selection";
 import "./PlanTree.css";
 
 type PlanTreeProps = {
   plan: Plan;
+  layerVisibility: LayerVisibility;
+  onLayerVisibilityChange: (visibility: LayerVisibility) => void;
   activeLevel: number;
   selectedTargets: SelectionTarget[];
   activeTarget?: SelectionTarget;
@@ -16,6 +19,8 @@ type PlanTreeProps = {
 
 export const PlanTree = ({
   plan,
+  layerVisibility,
+  onLayerVisibilityChange,
   activeLevel,
   selectedTargets = [],
   activeTarget,
@@ -40,6 +45,7 @@ export const PlanTree = ({
 
   return (
     <aside className="plan-tree" aria-label="Plan hierarchy">
+      <Layers visibility={layerVisibility} onChange={onLayerVisibilityChange} />
       <div className="panel-heading">Plan</div>
       <nav>
         <details className="tree-group tree-category">
