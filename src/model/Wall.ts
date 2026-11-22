@@ -57,10 +57,6 @@ export class Wall {
     return new Line2D(this.from, this.to);
   }
 
-  vector() {
-    return this.centerLine().vector();
-  }
-
   basicPolygon2D() {
     return this.centerLine().basicPolygon2D(this.width.metres);
   }

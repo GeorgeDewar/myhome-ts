@@ -1,16 +1,15 @@
 import { Distance, isValidPositiveDistance, isValidPositionInMillimetres } from "./geom/Distance";
 import { Point2D } from "./geom/Point2D";
-import { roomPolygon } from "./geom/roomPolygon";
 import { Fence } from "./Fence";
 import type { JsonPosition } from "./json/Document";
 import type { Level } from "./Level";
 import { Opening, SlidingDoor, StandardDoor, StandardWindow, type OpeningItem } from "./Opening";
 import type { Plan } from "./Plan";
-import { Room } from "./Room";
+import type { Room } from "./Room";
 import { Wall } from "./Wall";
 
 type WallUpdate = { width?: number; start?: JsonPosition; end?: JsonPosition };
-type RoomUpdate = { name?: string; walls?: readonly Wall[] };
+type RoomUpdate = { name?: string };
 type OpeningUpdate = {
   width?: number;
   distanceAlongWall?: number;
@@ -110,29 +109,6 @@ export class PlanEditor {
     this.plan.fences.push(fence);
     this.onChange();
     return { ok: true, item: fence };
-  }
-
-  addRoom(level: Level, name: string, walls: readonly Wall[]): AddResult<Room> {
-    if (!this.levels.includes(level)) return { ok: false, error: "This level is no longer in the plan." };
-    if (!name.trim()) return { ok: false, error: "Enter a room name." };
-    if (walls.length < 3) return { ok: false, error: "Select at least three walls in order." };
-    if (walls.some((wall) => !level.walls.includes(wall))) {
-      return { ok: false, error: "Room walls must belong to the same level as the room." };
-    }
-    if (new Set(walls).size !== walls.length) return { ok: false, error: "Select each wall only once." };
-    const room = new Room(name, [...walls]);
-    const corners = roomPolygon(room);
-    const area = corners.reduce((sum, point, index) => {
-      const next = corners[(index + 1) % corners.length];
-      return sum + point.x * next.y - next.x * point.y;
-    }, 0);
-    if (corners.length !== walls.length || !Number.isFinite(area) || area === 0) {
-      return { ok: false, error: "Select walls in boundary order so they form a room." };
-    }
-    room.level = level;
-    level.rooms.push(room);
-    this.onChange();
-    return { ok: true, item: room };
   }
 
   addOpening(
@@ -319,27 +295,13 @@ export class PlanEditor {
   }
 
   updateRoom(room: Room, update: RoomUpdate): EditResult {
-    const level = this.levels.find((candidate) => candidate.rooms.includes(room));
-    if (!level) {
+    if (!this.levels.some((level) => level.rooms.includes(room))) {
       return { ok: false, error: "This room is no longer in the plan." };
     }
-    if (update.walls?.some((wall) => !level.walls.includes(wall))) {
-      return { ok: false, error: "Room walls must belong to the same level as the room." };
-    }
-
-    let changed = false;
     if (update.name !== undefined && update.name !== room.name) {
       room.name = update.name;
-      changed = true;
+      this.onChange();
     }
-    if (
-      update.walls !== undefined &&
-      (update.walls.length !== room.walls.length || update.walls.some((wall, index) => wall !== room.walls[index]))
-    ) {
-      room.walls = [...update.walls];
-      changed = true;
-    }
-    if (changed) this.onChange();
     return { ok: true };
   }
 
