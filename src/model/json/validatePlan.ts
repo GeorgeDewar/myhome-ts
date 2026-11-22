@@ -24,7 +24,7 @@ const buildingSchema = schema.properties.buildings.items;
 const levelSchema = buildingSchema.properties.levels.items;
 const wallSchema = levelSchema.properties.walls.items;
 const openingSchema = wallSchema.properties.openings.items;
-const ajv = new Ajv2020({ strict: false, strictNumbers: true });
+const ajv = new Ajv2020({ strict: false, strictNumbers: true, allErrors: true });
 const shallowSchema = <T extends { properties: object }>(source: T, children: string[]) => {
   const properties: Record<string, unknown> = { ...source.properties };
   for (const child of children) properties[child] = { type: "array" };
@@ -49,13 +49,22 @@ const describeError = (error: ErrorObject | undefined) => {
   if (!error) return "invalid value";
   if (error.keyword === "required") return `missing required property '${error.params.missingProperty}'`;
   if (error.keyword === "unevaluatedProperties") return `unexpected property '${error.params.unevaluatedProperty}'`;
+  if (error.keyword === "additionalProperties") return `unexpected property '${error.params.additionalProperty}'`;
   return `${error.instancePath || "value"} ${error.message ?? "is invalid"}`;
 };
 
 const isValid = <T>(validator: ValidateFunction<T>, value: unknown, path: string, warnings: string[]): value is T => {
   if (validator(value)) return true;
-  warnings.push(`${path}: ${describeError(validator.errors?.[0])}; ignored.`);
-  return false;
+  const errors = validator.errors ?? [];
+  const invalid = errors.find((error) => error.keyword !== "unevaluatedProperties" && error.keyword !== "additionalProperties");
+  if (invalid || errors.length === 0) {
+    warnings.push(`${path}: ${describeError(invalid)}; ignored.`);
+    return false;
+  }
+  for (const error of errors) {
+    warnings.push(`${path}${error.instancePath}: ${describeError(error)}; property ignored.`);
+  }
+  return true;
 };
 
 const validDimensions = (values: Record<string, number | undefined>, path: string, warnings: string[]) => {

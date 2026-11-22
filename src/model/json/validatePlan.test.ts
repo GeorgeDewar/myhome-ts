@@ -262,7 +262,7 @@ describe("plan loading validation", () => {
     expect(plan.loadWarnings.every((warning) => !warning.includes("Unexamined"))).toBe(true);
   });
 
-  it("rejects malformed types, unknown properties and invalid dimensions without aborting siblings", () => {
+  it("rejects malformed types and invalid dimensions without aborting siblings", () => {
     const plan = Plan.fromJson({
       fences: [
         { id: "bad-coordinate", start: [0, Infinity], end: [1000, 0] },
@@ -304,13 +304,86 @@ describe("plan loading validation", () => {
         },
       ],
     });
-    expect(plan.fences.map((fence) => fence.id)).toEqual(["good"]);
+    expect(plan.fences.map((fence) => fence.id)).toEqual(["extra", "good"]);
     const openings = plan.buildings[0].levels[0].walls[0].openings;
     expect(openings.map((opening) => opening.id)).toEqual(["good"]);
     expect(openings[0].contents.map((item) => item.type)).toEqual(["SlidingDoor"]);
     expect(plan.loadWarnings).toHaveLength(8);
     expect(plan.loadWarnings.some((warning) => warning.includes("too small to save"))).toBe(true);
     expect(plan.loadWarnings.some((warning) => warning.includes("unexpected property 'color'"))).toBe(true);
+  });
+
+  it("warns about unexpected properties at every level without dropping valid objects", () => {
+    const document = {
+      extraRoot: true,
+      anotherRoot: "unused",
+      fences: [{ id: "f", start: [0, 0], end: [1000, 0], color: "red" }],
+      buildings: [{
+        name: "House",
+        extraBuilding: true,
+        levels: [{
+          number: 0,
+          name: "Ground",
+          extraLevel: true,
+          walls: [{
+            id: "wall",
+            start: [0, 0],
+            end: [3000, 0],
+            extraWall: true,
+            openings: [{
+              id: "opening",
+              width: 900,
+              distanceAlongWall: 1000,
+              extraOpening: true,
+              contents: [
+                { type: "StandardDoor", hingeSide: "left", swingDirection: "in", extraDoor: true },
+                { type: "SlidingDoor", extraSlidingDoor: true },
+                { type: "StandardWindow", extraWindow: true },
+              ],
+            }],
+          }],
+          rooms: [{ name: "Room", extraRoom: true, walls: [{ ref: "wall", extraRef: true }] }],
+        }],
+      }],
+    };
+    const original = structuredClone(document);
+    const plan = Plan.fromJson(document);
+    const level = plan.buildings[0].levels[0];
+    expect(document).toEqual(original);
+    expect(plan.fences).toHaveLength(1);
+    expect(level.rooms[0].walls).toEqual([level.walls[0]]);
+    expect(level.walls[0].openings[0].contents.map((item) => item.type))
+      .toEqual(["StandardDoor", "SlidingDoor", "StandardWindow"]);
+    for (const property of [
+      "extraRoot", "anotherRoot", "color", "extraBuilding", "extraLevel", "extraWall", "extraOpening",
+      "extraDoor", "extraSlidingDoor", "extraWindow", "extraRoom", "extraRef",
+    ]) {
+      expect(plan.loadWarnings.filter((warning) => warning.includes(`unexpected property '${property}'`))).toHaveLength(1);
+    }
+    expect(plan.loadWarnings).toHaveLength(12);
+    expect(plan.loadWarnings.find((warning) => warning.includes("extraRef"))).toContain("rooms[0]/walls/0");
+    expect(plan.loadWarnings.every((warning) => warning.endsWith("property ignored."))).toBe(true);
+    const saved = plan.toJson();
+    expect(new Ajv2020({ strict: false }).compile(schema)(saved)).toBe(true);
+    expect(Plan.fromJson(saved).loadWarnings).toEqual([]);
+  });
+
+  it("still ignores invalid objects with unexpected properties without inspecting their children", () => {
+    const plan = Plan.fromJson({
+      buildings: [
+        { name: "Invalid", extra: true },
+        { name: "House", levels: [{
+          number: 0, name: "Ground",
+          walls: [{ id: "invalid", extra: true, openings: [{ unexpectedChild: true }] }],
+        }] },
+      ],
+    });
+    expect(plan.buildings).toHaveLength(1);
+    expect(plan.buildings[0].levels[0].walls).toEqual([]);
+    expect(plan.loadWarnings).toHaveLength(2);
+    expect(plan.loadWarnings[0]).toContain("missing required property 'levels'");
+    expect(plan.loadWarnings[1]).toContain("missing required property 'start'");
+    expect(plan.loadWarnings.every((warning) => !warning.includes("unexpectedChild"))).toBe(true);
   });
 
   it("reports an invalid root rather than silently accepting it", () => {
