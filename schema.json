@@ -80,6 +80,11 @@
                           "unevaluatedProperties": false,
                           "properties": {
                             "id": { "type": "string" },
+                            "shape": {
+                              "type": "string",
+                              "enum": ["rectangle", "halfCircleArch"],
+                              "default": "rectangle"
+                            },
                             "width": {
                               "type": "number",
                               "exclusiveMinimum": 0,
