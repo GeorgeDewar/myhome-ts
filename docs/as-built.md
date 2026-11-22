@@ -6,6 +6,7 @@ Use `PlanEditor` to update walls, rooms, openings, standard doors and sliding do
 Property windows hold changes locally until Apply or OK is pressed. Apply keeps the window open; OK closes it after a successful update. Closing the window without applying discards its draft. Invalid values are reported in the window and do not change the plan.
 
 Wall and fence endpoints, room names, and opening heights and floor offsets can be edited in these windows. Clearing an optional height or floor offset removes it from the saved plan.
+Walls can also be marked virtual. Virtual walls are hidden in the 2D plan and can be edited again via the hierarchy.
 
 Room walls are stored as ordered wall objects; JSON references are derived from those objects when saving. Each reference must contain a `ref` to a wall on the same level.
 

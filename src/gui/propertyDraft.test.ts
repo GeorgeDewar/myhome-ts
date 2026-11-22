@@ -48,7 +48,7 @@ const setup = () => {
     throw new Error("Unexpected opening contents");
   }
   const notify = vi.fn();
-  return { level, wall, opening, door, slidingDoor, window, notify, editor: new PlanEditor(plan, notify) };
+  return { plan, level, wall, opening, door, slidingDoor, window, notify, editor: new PlanEditor(plan, notify) };
 };
 
 describe("property drafts", () => {
@@ -171,6 +171,55 @@ describe("property drafts", () => {
     expect(wall.to.toJson()).toEqual([1500, 1000]);
     expect(wall.width.toJson()).toBe(200);
     expect(notify).toHaveBeenCalledOnce();
+  });
+
+  it("edits wall virtual status atomically and preserves an untouched default", () => {
+    const { plan, wall, editor, notify } = setup();
+    const draft = createPropertyDraft({ kind: "wall", item: wall });
+    expect(draft.values.virtual).toBe(false);
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
+    expect(wall.toJson()).not.toHaveProperty("virtual");
+    expect(notify).not.toHaveBeenCalled();
+
+    draft.values = { ...draft.values, virtual: true, width: "-1" };
+    expect(applyPropertyDraft(draft, editor).width).toBeDefined();
+    expect(wall.virtual).toBeUndefined();
+    expect(notify).not.toHaveBeenCalled();
+
+    draft.values = { ...draft.values, width: "200" };
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
+    expect(wall.width.toJson()).toBe(200);
+    expect(wall.virtual).toBe(true);
+    expect(Plan.fromJson(plan.toJson()).buildings[0].levels[0].walls[0].virtual).toBe(true);
+    expect(notify).toHaveBeenCalledOnce();
+
+    const next = createPropertyDraft({ kind: "wall", item: wall });
+    next.values = { ...next.values, virtual: false };
+    expect(applyPropertyDraft(next, editor)).toEqual({});
+    expect(wall.toJson().virtual).toBe(false);
+    expect(Plan.fromJson(plan.toJson()).buildings[0].levels[0].walls[0].virtual).toBe(false);
+    expect(notify).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports a removed wall when applying a virtual status change", () => {
+    const { level, wall, editor, notify } = setup();
+    const draft = createPropertyDraft({ kind: "wall", item: wall });
+    draft.values = { ...draft.values, virtual: true };
+    level.walls.pop();
+    expect(applyPropertyDraft(draft, editor).form).toBe("This wall is no longer in the plan.");
+    expect(wall.virtual).toBeUndefined();
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("renders a checkbox reflecting wall virtual status", () => {
+    const { wall, editor } = setup();
+    const render = () =>
+      renderToStaticMarkup(
+        createElement(PropertyWindow, { target: { kind: "wall", item: wall }, editPlan: editor, onClose: () => {} }),
+      );
+    expect(render()).toContain('<input type="checkbox"/>Virtual');
+    wall.virtual = true;
+    expect(render()).toContain('<input type="checkbox" checked=""/>Virtual');
   });
 
   it("edits and clears optional opening heights and offsets atomically", () => {

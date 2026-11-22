@@ -8,7 +8,7 @@ import type { Plan } from "./Plan";
 import type { Room } from "./Room";
 import { Wall } from "./Wall";
 
-type WallUpdate = { width?: number; start?: JsonPosition; end?: JsonPosition };
+type WallUpdate = { width?: number; start?: JsonPosition; end?: JsonPosition; virtual?: boolean };
 type RoomUpdate = { name?: string };
 type OpeningUpdate = {
   width?: number;
@@ -287,6 +287,10 @@ export class PlanEditor {
     }
     if (update.end !== undefined && !wall.to.equals(Point2D.fromJson(update.end))) {
       wall.to = Point2D.fromJson(update.end);
+      changed = true;
+    }
+    if (update.virtual !== undefined && update.virtual !== wall.virtual) {
+      wall.virtual = update.virtual;
       changed = true;
     }
 

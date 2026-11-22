@@ -74,6 +74,16 @@
 .property-window-body input[aria-invalid="true"] {
   border-color: #b42318;
 }
+.property-window-body .property-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.property-window-body .property-checkbox input {
+  width: auto;
+  min-height: auto;
+  margin: 0;
+}
 .property-error {
   color: #b42318;
   font-weight: 400;

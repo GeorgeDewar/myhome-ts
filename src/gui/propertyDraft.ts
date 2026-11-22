@@ -3,6 +3,7 @@ import type { SelectionTarget } from "./selection";
 
 type PropertyValues = {
   name?: string;
+  virtual?: boolean;
   width?: string;
   height?: string;
   startX?: string;
@@ -38,7 +39,7 @@ export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
         width: String(target.item.width.toJson()),
         ...(target.kind === "fence"
           ? { height: target.item.height === undefined ? "" : String(target.item.height.toJson()) }
-          : {}),
+          : { virtual: target.item.virtual ?? false }),
         startX: String(target.item.from.x.toPositionJson()),
         startY: String(target.item.from.y.toPositionJson()),
         endX: String(target.item.to.x.toPositionJson()),
@@ -129,8 +130,15 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
         values.width !== undefined && values.width !== initialValues.width ? parseDistance("width") : undefined;
       const start = point("startX", "startY");
       const end = point("endX", "endY");
-      if (Object.keys(errors).length === 0 && (width !== undefined || start !== undefined || end !== undefined)) {
-        report(editPlan.updateWall(target.item, { width, start, end }), start || end ? "form" : "width");
+      const virtual = values.virtual !== initialValues.virtual ? values.virtual : undefined;
+      if (
+        Object.keys(errors).length === 0 &&
+        (width !== undefined || start !== undefined || end !== undefined || virtual !== undefined)
+      ) {
+        report(
+          editPlan.updateWall(target.item, { width, start, end, virtual }),
+          start || end || width === undefined ? "form" : "width",
+        );
       }
       break;
     }

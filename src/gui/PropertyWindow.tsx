@@ -144,6 +144,14 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
               Wall ID
               <input value={target.item.id} readOnly />
             </label>
+            <label className="property-checkbox">
+              <input
+                type="checkbox"
+                checked={draft.values.virtual ?? false}
+                onChange={(event) => updateValues({ virtual: event.target.checked })}
+              />
+              Virtual
+            </label>
             <DistanceField
               label="Width (mm)"
               field="width"
