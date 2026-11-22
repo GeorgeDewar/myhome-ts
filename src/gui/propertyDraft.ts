@@ -1,5 +1,4 @@
 import type { PlanEditor } from "../model/PlanEditor";
-import type { Wall } from "../model/Wall";
 import type { SelectionTarget } from "./selection";
 
 type PropertyValues = {
@@ -21,7 +20,6 @@ export type PropertyDraft = {
   target: SelectionTarget;
   values: PropertyValues;
   initialValues: PropertyValues;
-  walls?: readonly Wall[];
 };
 
 type DistanceField =
@@ -123,7 +121,6 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
       report(
         editPlan.updateRoom(target.item, {
           name: values.name !== initialValues.name ? values.name : undefined,
-          walls: draft.walls,
         }),
       );
       break;

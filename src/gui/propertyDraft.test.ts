@@ -1,7 +1,10 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { Plan } from "../model/Plan";
 import { PlanEditor } from "../model/PlanEditor";
 import { applyPropertyDraft, createPropertyDraft } from "./propertyDraft";
+import { PropertyWindow } from "./PropertyWindow";
 
 const setup = () => {
   const plan = Plan.fromJson({
@@ -12,7 +15,7 @@ const setup = () => {
           {
             number: 0,
             name: "Ground",
-            rooms: [{ name: "Room", walls: [] }],
+            rooms: [{ name: "Room", walls: [{ ref: "wall" }] }],
             walls: [
               {
                 id: "wall",
@@ -131,6 +134,7 @@ describe("property drafts", () => {
     expect(applyPropertyDraft(slidingDraft, editor)).toEqual({});
     expect(applyPropertyDraft(createPropertyDraft({ kind: "window", item: window, opening }), editor)).toEqual({});
     expect(room.name).toBe("Kitchen");
+    expect(room.walls).toEqual([level.walls[0]]);
     expect(slidingDoor.leafThickness.toJson()).toBe(55);
     expect(notify).toHaveBeenCalledTimes(2);
   });
@@ -187,14 +191,14 @@ describe("property drafts", () => {
     expect(notify).toHaveBeenCalledTimes(2);
   });
 
-  it("applies room wall changes through the draft", () => {
-    const { level, wall, editor, notify } = setup();
+  it("renders room properties with a name field but no wall selection", () => {
+    const { level, editor } = setup();
     const room = level.rooms[0];
-    const draft = createPropertyDraft({ kind: "room", item: room });
-    draft.walls = [wall];
-    expect(room.walls).toEqual([]);
-    expect(applyPropertyDraft(draft, editor)).toEqual({});
-    expect(room.walls).toEqual([wall]);
-    expect(notify).toHaveBeenCalledOnce();
+    const markup = renderToStaticMarkup(
+      createElement(PropertyWindow, { target: { kind: "room", item: room }, editPlan: editor, onClose: () => {} }),
+    );
+    expect(markup).toContain("Name<input");
+    expect(markup).toContain('value="Room"');
+    expect(markup).not.toContain('type="checkbox"');
   });
 });

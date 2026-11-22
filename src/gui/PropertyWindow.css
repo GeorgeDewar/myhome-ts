@@ -101,29 +101,3 @@
   max-height: calc(100vh - 100px);
   overflow-y: auto;
 }
-.create-window fieldset {
-  max-height: 220px;
-  overflow-y: auto;
-}
-.create-window .create-wall-option {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.create-window .create-wall-option input {
-  width: auto;
-  min-height: auto;
-}
-.property-window fieldset {
-  max-height: 220px;
-  overflow-y: auto;
-}
-.property-window .wall-option {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.property-window .wall-option input {
-  width: auto;
-  min-height: auto;
-}

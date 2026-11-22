@@ -129,41 +129,14 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
         }}
       >
         {target.kind === "room" && (
-          <>
-            <label>
-              Name
-              <input
-                value={draft.values.name ?? ""}
-                onChange={(event) => updateValues({ name: event.target.value })}
-                autoFocus
-              />
-            </label>
-            <fieldset>
-              <legend>Walls in order</legend>
-              {target.item.level?.walls.map((wall) => {
-                const walls = draft.walls ?? target.item.walls;
-                return (
-                  <label key={wall.id} className="wall-option">
-                    <input
-                      type="checkbox"
-                      checked={walls.includes(wall)}
-                      onChange={(event) =>
-                        setEditor((current) => ({
-                          ...current,
-                          draft: {
-                            ...current.draft,
-                            walls: event.target.checked ? [...walls, wall] : walls.filter((item) => item !== wall),
-                          },
-                        }))
-                      }
-                    />
-                    {walls.includes(wall) ? `${walls.indexOf(wall) + 1}. ` : ""}
-                    {wall.id}
-                  </label>
-                );
-              })}
-            </fieldset>
-          </>
+          <label>
+            Name
+            <input
+              value={draft.values.name ?? ""}
+              onChange={(event) => updateValues({ name: event.target.value })}
+              autoFocus
+            />
+          </label>
         )}
         {target.kind === "wall" && (
           <>

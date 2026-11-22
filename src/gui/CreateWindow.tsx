@@ -7,7 +7,7 @@ import { selectionTargetForOpeningItem, type SelectionTarget } from "./selection
 import "./PropertyWindow.css";
 
 export type CreateRequest = {
-  kind: "wall" | "fence" | "room" | "opening" | "item";
+  kind: "wall" | "fence" | "opening" | "item";
   level?: Level;
   wall?: Wall;
   opening?: Opening;
@@ -29,13 +29,11 @@ export const CreateWindow = ({
     startY: "",
     endX: "",
     endY: "",
-    name: "",
     width: "900",
     distance: "",
     height: "",
     floor: "",
   });
-  const [walls, setWalls] = useState<Wall[]>([]);
   const [itemType, setItemType] = useState<OpeningItem["type"]>("StandardDoor");
   const [error, setError] = useState("");
 
@@ -44,8 +42,8 @@ export const CreateWindow = ({
     <label>
       {label}
       <input
-        type={name === "name" ? "text" : "number"}
-        step={name === "name" ? undefined : "any"}
+        type="number"
+        step="any"
         value={values[name]}
         onChange={(event) => setValues({ ...values, [name]: event.target.value })}
       />
@@ -64,10 +62,6 @@ export const CreateWindow = ({
         const added = editor.addFence(start, end);
         result = added.ok ? { ok: true, target: { kind: "fence", item: added.item } } : added;
       }
-    } else if (request.kind === "room") {
-      if (!request.level) return setError("Select a level first.");
-      const added = editor.addRoom(request.level, values.name, walls);
-      result = added.ok ? { ok: true, target: { kind: "room", item: added.item } } : added;
     } else if (request.kind === "opening") {
       if (!request.wall) return setError("Select a wall first.");
       const added = editor.addOpening(
@@ -98,34 +92,13 @@ export const CreateWindow = ({
           submit();
         }}
       >
-        {(request.kind === "wall" || request.kind === "room") && <span>Level: {request.level?.name}</span>}
+        {request.kind === "wall" && <span>Level: {request.level?.name}</span>}
         {(request.kind === "wall" || request.kind === "fence") && (
           <>
             {field("startX", "Start X (mm)")}
             {field("startY", "Start Y (mm)")}
             {field("endX", "End X (mm)")}
             {field("endY", "End Y (mm)")}
-          </>
-        )}
-        {request.kind === "room" && (
-          <>
-            {field("name", "Room name")}
-            <fieldset>
-              <legend>Select walls in order</legend>
-              {request.level?.walls.map((wall) => (
-                <label key={wall.id} className="create-wall-option">
-                  <input
-                    type="checkbox"
-                    checked={walls.includes(wall)}
-                    onChange={(event) =>
-                      setWalls(event.target.checked ? [...walls, wall] : walls.filter((item) => item !== wall))
-                    }
-                  />
-                  {walls.includes(wall) ? `${walls.indexOf(wall) + 1}. ` : ""}
-                  {wall.id}
-                </label>
-              ))}
-            </fieldset>
           </>
         )}
         {request.kind === "opening" && (

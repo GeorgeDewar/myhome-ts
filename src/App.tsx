@@ -216,7 +216,7 @@ function App() {
                 value=""
                 onChange={(event) => {
                   const kind = event.target.value;
-                  if (kind === "wall" || kind === "fence" || kind === "room" || kind === "opening" || kind === "item") {
+                  if (kind === "wall" || kind === "fence" || kind === "opening" || kind === "item") {
                     setCreating({
                       kind,
                       level: currentLevel,
@@ -229,7 +229,6 @@ function App() {
               >
                 <option value="">Add...</option>
                 <option value="wall" disabled={!currentLevel}>Wall</option>
-                <option value="room" disabled={!currentLevel}>Room</option>
                 <option value="fence">Fence</option>
                 <option value="opening" disabled={activeTarget?.kind !== "wall"}>Opening (select a wall)</option>
                 <option value="item" disabled={!activeTarget || !["opening", "door", "slidingDoor", "window"].includes(activeTarget.kind)}>Opening item (select an opening)</option>
