@@ -16,7 +16,7 @@ The Add menu creates walls and fences from millimetre endpoints, openings on a s
 
 Draw wall also creates a wall by clicking two points in the 2D plan; coordinates are snapped to integer millimetres. Escape cancels the tool.
 
-The Layers panel controls visibility in the 2D plan only. Fences, normal walls, room labels and doors are visible by default; virtual walls are hidden by default and shown with a dashed blue outline when enabled. Doors and windows are hidden when their wall is hidden. Hidden objects remain available in the hierarchy. Layer settings are not saved to the plan.
+The Layers panel controls visibility in the 2D plan only. Fences, normal walls, room labels and doors are visible by default; virtual walls are hidden by default and shown with a dashed gray outline when enabled. Doors and windows are hidden when their wall is hidden. Hidden objects remain available in the hierarchy. Layer settings are not saved to the plan.
 
 Positions use integer millimetres in JSON and floating-point metres in memory. This includes wall and fence endpoints and opening offsets; widths and other dimensions may be fractional. Position edits must be integers that round-trip accurately through the in-memory representation.
 

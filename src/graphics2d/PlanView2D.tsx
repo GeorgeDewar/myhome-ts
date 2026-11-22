@@ -106,8 +106,8 @@ const drawWalls = (context: CanvasRenderingContext2D, walls: Wall[], scale: numb
   const mergedWalls = union(wallGeometry[0], ...wallGeometry.slice(1));
   const wallArea = openingGeometry.length > 0 ? difference(mergedWalls, ...openingGeometry) : mergedWalls;
 
-  context.fillStyle = virtual ? "rgba(38, 128, 194, 0.12)" : "#ffd700";
-  context.strokeStyle = virtual ? "#2680c2" : "#1f2933";
+  context.fillStyle = virtual ? "rgba(100, 100, 100, 0.12)" : "#ffd700";
+  context.strokeStyle = virtual ? "#666666" : "#1f2933";
   context.lineWidth = 1 / scale;
   if (virtual) context.setLineDash([6 / scale, 4 / scale]);
   drawMultiPolygon(context, wallArea);
