@@ -76,7 +76,9 @@ describe("property drafts", () => {
     expect(applyPropertyDraft(draft, editor).width).toBeDefined();
     level.walls.pop();
     draft.values = { width: "200" };
-    expect(applyPropertyDraft(draft, editor).width).toBe("This wall is no longer in the plan.");
+    expect(applyPropertyDraft(draft, editor)).toEqual({ form: "This wall is no longer in the plan." });
+    draft.values = { ...draft.initialValues, virtual: true };
+    expect(applyPropertyDraft(draft, editor)).toEqual({ form: "This wall is no longer in the plan." });
     expect(wall.width.toJson()).toBe(100);
     expect(notify).not.toHaveBeenCalled();
   });
@@ -159,6 +161,10 @@ describe("property drafts", () => {
   it("applies wall endpoints atomically with width and rejects collapsed or fractional lines", () => {
     const { wall, editor, notify } = setup();
     const draft = createPropertyDraft({ kind: "wall", item: wall });
+    draft.values = { ...draft.values, width: "-1", endX: "1500" };
+    expect(applyPropertyDraft(draft, editor)).toEqual({
+      width: "Wall width must be a positive, finite number of millimetres.",
+    });
     draft.values = { ...draft.values, width: "200", endX: "0" };
     expect(applyPropertyDraft(draft, editor).form).toBeDefined();
     expect(wall.width.toJson()).toBe(100);
@@ -171,6 +177,26 @@ describe("property drafts", () => {
     expect(wall.to.toJson()).toEqual([1500, 1000]);
     expect(wall.width.toJson()).toBe(200);
     expect(notify).toHaveBeenCalledOnce();
+  });
+
+  it("reports fence dimension errors under their fields and geometry errors at form level", () => {
+    const { editor, notify } = setup();
+    const added = editor.addFence([0, 0], [1000, 0]);
+    if (!added.ok) throw new Error(added.error);
+    notify.mockClear();
+    const draft = createPropertyDraft({ kind: "fence", item: added.item });
+    draft.values = { ...draft.values, width: "-1", endX: "500" };
+    expect(applyPropertyDraft(draft, editor)).toEqual({
+      width: "Fence width must be a positive, finite number of millimetres.",
+    });
+    draft.values = { ...draft.values, width: "75", height: "-1" };
+    expect(applyPropertyDraft(draft, editor)).toEqual({
+      height: "Fence height must be a positive, finite number of millimetres.",
+    });
+    draft.values = { ...draft.values, height: "", endX: "0" };
+    expect(applyPropertyDraft(draft, editor)).toEqual({ form: "Start and end must define a finite, non-zero line." });
+    expect(added.item.width.toJson()).toBe(50);
+    expect(notify).not.toHaveBeenCalled();
   });
 
   it("edits wall virtual status atomically and preserves an untouched default", () => {
@@ -199,16 +225,6 @@ describe("property drafts", () => {
     expect(wall.toJson().virtual).toBe(false);
     expect(Plan.fromJson(plan.toJson()).buildings[0].levels[0].walls[0].virtual).toBe(false);
     expect(notify).toHaveBeenCalledTimes(2);
-  });
-
-  it("reports a removed wall when applying a virtual status change", () => {
-    const { level, wall, editor, notify } = setup();
-    const draft = createPropertyDraft({ kind: "wall", item: wall });
-    draft.values = { ...draft.values, virtual: true };
-    level.walls.pop();
-    expect(applyPropertyDraft(draft, editor).form).toBe("This wall is no longer in the plan.");
-    expect(wall.virtual).toBeUndefined();
-    expect(notify).not.toHaveBeenCalled();
   });
 
   it("renders a checkbox reflecting wall virtual status", () => {

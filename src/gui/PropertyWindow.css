@@ -71,7 +71,8 @@
   color: #627d98;
   background: #f0f4f8;
 }
-.property-window-body input[aria-invalid="true"] {
+.property-window-body input[aria-invalid="true"],
+.property-window-body select[aria-invalid="true"] {
   border-color: #b42318;
 }
 .property-window-body .property-checkbox {

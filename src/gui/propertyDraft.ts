@@ -25,7 +25,7 @@ export type PropertyDraft = {
 
 type DistanceField =
   "width" | "height" | "startX" | "startY" | "endX" | "endY" | "distanceAlongWall" | "distanceFromFloor" | "thickness";
-export type PropertyErrors = Partial<Record<DistanceField | "form", string>>;
+export type PropertyErrors = Partial<Record<DistanceField | "hingeSide" | "swingDirection" | "form", string>>;
 
 export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
   let values: PropertyValues;
@@ -98,23 +98,9 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
     const y = parseDistance(yField);
     return x === undefined || y === undefined ? undefined : [x, y];
   };
-  const report = (
-    result: { ok: true } | { ok: false; error: string; field?: string },
-    fallback: keyof PropertyErrors = "form",
-  ) => {
+  const report = (result: { ok: true } | { ok: false; error: string; field?: Exclude<keyof PropertyErrors, "form"> }) => {
     if (result.ok) return;
-    const field = result.field;
-    if (
-      field === "width" ||
-      field === "height" ||
-      field === "distanceAlongWall" ||
-      field === "distanceFromFloor" ||
-      field === "thickness"
-    ) {
-      errors[field] = result.error;
-    } else {
-      errors[fallback] = result.error;
-    }
+    errors[result.field ?? "form"] = result.error;
   };
 
   switch (target.kind) {
@@ -135,10 +121,7 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
         Object.keys(errors).length === 0 &&
         (width !== undefined || start !== undefined || end !== undefined || virtual !== undefined)
       ) {
-        report(
-          editPlan.updateWall(target.item, { width, start, end, virtual }),
-          start || end || width === undefined ? "form" : "width",
-        );
+        report(editPlan.updateWall(target.item, { width, start, end, virtual }));
       }
       break;
     }

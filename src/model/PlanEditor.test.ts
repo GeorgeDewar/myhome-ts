@@ -323,11 +323,16 @@ describe("PlanEditor.updateWall", () => {
     for (const width of [0, -1, NaN, Infinity, -Infinity]) {
       expect(editor.updateWall(wall, { width })).toEqual({
         ok: false,
+        field: "width",
         error: "Wall width must be a positive, finite number of millimetres.",
       });
     }
     for (const width of [Number.MIN_VALUE, 0.0000000001]) {
-      expect(editor.updateWall(wall, { width })).toEqual({ ok: false, error: "Wall width is too small to save." });
+      expect(editor.updateWall(wall, { width })).toEqual({
+        ok: false,
+        field: "width",
+        error: "Wall width is too small to save.",
+      });
     }
     expect(plan.toJson()).toEqual(before);
     expect(notify).not.toHaveBeenCalled();

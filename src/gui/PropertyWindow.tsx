@@ -261,6 +261,8 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
               Hinge side
               <select
                 value={draft.values.hingeSide}
+                aria-invalid={!!errors.hingeSide}
+                aria-describedby={errors.hingeSide ? "property-hingeSide-error" : undefined}
                 onChange={(event) => {
                   const value = event.target.value;
                   if (value === "left" || value === "right") updateValues({ hingeSide: value });
@@ -269,11 +271,18 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
                 <option value="left">Left</option>
                 <option value="right">Right</option>
               </select>
+              {errors.hingeSide && (
+                <span className="property-error" id="property-hingeSide-error" role="alert">
+                  {errors.hingeSide}
+                </span>
+              )}
             </label>
             <label>
               Swing direction
               <select
                 value={draft.values.swingDirection}
+                aria-invalid={!!errors.swingDirection}
+                aria-describedby={errors.swingDirection ? "property-swingDirection-error" : undefined}
                 onChange={(event) => {
                   const value = event.target.value;
                   if (value === "in" || value === "out") updateValues({ swingDirection: value });
@@ -282,6 +291,11 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
                 <option value="in">In</option>
                 <option value="out">Out</option>
               </select>
+              {errors.swingDirection && (
+                <span className="property-error" id="property-swingDirection-error" role="alert">
+                  {errors.swingDirection}
+                </span>
+              )}
             </label>
           </>
         )}

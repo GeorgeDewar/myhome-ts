@@ -178,15 +178,15 @@ export class PlanEditor {
   updateFence(
     fence: Fence,
     update: { width?: number; height?: number | null; start?: JsonPosition; end?: JsonPosition },
-  ): EditResult {
+  ): EditResult<"width" | "height"> {
     if (!this.plan.fences.includes(fence)) return { ok: false, error: "This fence is no longer in the plan." };
-    for (const [label, value] of [
-      ["Fence width", update.width],
-      ["Fence height", update.height],
+    for (const [field, label, value] of [
+      ["width", "Fence width", update.width],
+      ["height", "Fence height", update.height],
     ] as const) {
       if (value !== undefined && value !== null) {
         const error = positiveDistanceError(value, label);
-        if (error) return { ok: false, error };
+        if (error) return { ok: false, field, error };
       }
     }
     if (update.start !== undefined || update.end !== undefined) {
@@ -264,13 +264,13 @@ export class PlanEditor {
     return { ok: true };
   }
 
-  updateWall(wall: Wall, update: WallUpdate): EditResult {
+  updateWall(wall: Wall, update: WallUpdate): EditResult<"width"> {
     const belongsToPlan = this.levels.some((level) => level.walls.includes(wall));
     if (!belongsToPlan) return { ok: false, error: "This wall is no longer in the plan." };
 
     if (update.width !== undefined) {
       const error = positiveDistanceError(update.width, "Wall width");
-      if (error) return { ok: false, error };
+      if (error) return { ok: false, field: "width", error };
     }
     if (update.start !== undefined || update.end !== undefined) {
       const error = lineError(update.start ?? wall.from.toJson(), update.end ?? wall.to.toJson());
