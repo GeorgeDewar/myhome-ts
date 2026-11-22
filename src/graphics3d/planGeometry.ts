@@ -1,4 +1,10 @@
 import * as THREE from "three";
+import {
+  isSelectionTarget,
+  selectionTargetForOpeningItem,
+  type SelectionState,
+  type SelectionTarget,
+} from "../gui/selection";
 import { roomPolygon } from "../model/geom/roomPolygon";
 import type { Level } from "../model/Level";
 import type { Opening } from "../model/Opening";
@@ -14,11 +20,12 @@ const box = (
   size: [number, number, number],
   position: [number, number, number],
   color: number,
-  item: object,
+  target: SelectionTarget,
 ) => {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), new THREE.MeshStandardMaterial({ color }));
   mesh.position.set(...position);
-  mesh.userData.item = item;
+  mesh.userData.item = target.item;
+  mesh.userData.target = target;
   parent.add(mesh);
 };
 
@@ -66,7 +73,7 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
           [right - left, interval.bottom - bottom, wall.width.metres],
           [(left + right) / 2, (bottom + interval.bottom) / 2, 0],
           0xe6d994,
-          wall,
+          { kind: "wall", item: wall },
         );
       }
       bottom = Math.max(bottom, interval.top);
@@ -77,12 +84,25 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
         [right - left, height - bottom, wall.width.metres],
         [(left + right) / 2, (bottom + height) / 2, 0],
         0xe6d994,
-        wall,
+        { kind: "wall", item: wall },
       );
     }
   }
 
   for (const { opening, left, right, bottom, top } of openings) {
+    const openingSurface = new THREE.Mesh(
+      new THREE.PlaneGeometry(right - left, top - bottom),
+      new THREE.MeshBasicMaterial({
+        color: 0xd64545,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+      }),
+    );
+    openingSurface.position.set((left + right) / 2, (bottom + top) / 2, 0);
+    openingSurface.userData.target = { kind: "opening", item: opening } satisfies SelectionTarget;
+    group.add(openingSurface);
     for (const item of opening.contents) {
       const width = right - left;
       const itemHeight = top - bottom;
@@ -93,14 +113,14 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
           [leafWidth, itemHeight, item.leafThickness.metres],
           [left + leafWidth / 2, (bottom + top) / 2, -item.leafThickness.metres / 2],
           0xa57952,
-          item,
+          selectionTargetForOpeningItem(item, opening),
         );
         box(
           group,
           [leafWidth, itemHeight, item.leafThickness.metres],
           [right - leafWidth / 2, (bottom + top) / 2, item.leafThickness.metres / 2],
           0xa57952,
-          item,
+          selectionTargetForOpeningItem(item, opening),
         );
       } else {
         const thickness = item.type === "StandardDoor" ? item.leafThickness.metres : 0.02;
@@ -109,7 +129,7 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
           [width, itemHeight, thickness],
           [(left + right) / 2, (bottom + top) / 2, 0],
           item.type === "StandardDoor" ? 0xa57952 : 0x9ac4d5,
-          item,
+          selectionTargetForOpeningItem(item, opening),
         );
       }
     }
@@ -155,6 +175,7 @@ export const createPlanGeometry = (plan: Plan) => {
         floor.rotation.x = Math.PI / 2;
         floor.position.y = elevation + 0.001;
         floor.userData.item = room;
+        floor.userData.target = { kind: "room", item: room } satisfies SelectionTarget;
         group.add(floor);
       }
     }
@@ -163,10 +184,30 @@ export const createPlanGeometry = (plan: Plan) => {
     const fenceGroup = lineGroup(fence.from, fence.to, 0);
     const length = Math.hypot(fence.to.x.metres - fence.from.x.metres, fence.to.y.metres - fence.from.y.metres);
     const height = fence.height?.metres ?? DEFAULT_FENCE_HEIGHT;
-    box(fenceGroup, [length, height, fence.width.metres], [length / 2, height / 2, 0], 0x8b5a2b, fence);
+    box(fenceGroup, [length, height, fence.width.metres], [length / 2, height / 2, 0], 0x8b5a2b, {
+      kind: "fence",
+      item: fence,
+    });
     group.add(fenceGroup);
   }
   return group;
+};
+
+export const highlightSelection = (group: THREE.Group, selection: SelectionState) => {
+  const active = selection.targets[selection.activeIndex];
+  group.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return;
+    const target: SelectionTarget | undefined = object.userData.target;
+    if (!target) return;
+    const isActive = active !== undefined && isSelectionTarget(active, target);
+    const selected = selection.targets.some((candidate) => isSelectionTarget(candidate, target));
+    if (object.material instanceof THREE.MeshStandardMaterial) {
+      object.material.emissive.setHex(isActive ? 0x8b1111 : selected ? 0x155177 : 0);
+    } else if (object.material instanceof THREE.MeshBasicMaterial) {
+      object.material.color.setHex(isActive ? 0xd64545 : 0x2680c2);
+      object.material.opacity = selected ? 0.3 : 0;
+    }
+  });
 };
 
 export const disposePlanGeometry = (group: THREE.Group) => {

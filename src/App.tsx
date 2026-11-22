@@ -327,7 +327,14 @@ function App() {
                 />
               </Tabs.Content>
               <Tabs.Content className="view-panel" value="plan-3d">
-                <PlanView3D onStatusChange={setThreeDStatus} version={planVersion} />
+                <PlanView3D
+                  onStatusChange={setThreeDStatus}
+                  selection={selection}
+                  onSelectionChange={setSelection}
+                  onEdit={setEditingTarget}
+                  onContextMenu={openContextMenu}
+                  version={planVersion}
+                />
               </Tabs.Content>
             </Tabs.Root>
           </section>

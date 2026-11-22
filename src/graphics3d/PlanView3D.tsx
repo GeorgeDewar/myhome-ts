@@ -2,7 +2,8 @@ import { useContext, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import { PlanContext } from "../context/PlanContext";
-import { createPlanGeometry, disposePlanGeometry } from "./planGeometry";
+import { isSelectionTarget, type SelectionState, type SelectionTarget } from "../gui/selection";
+import { createPlanGeometry, disposePlanGeometry, highlightSelection } from "./planGeometry";
 
 export type PlanView3DStatus = {
   position: { x: number; y: number; z: number };
@@ -11,9 +12,17 @@ export type PlanView3DStatus = {
 
 export const PlanView3D = ({
   onStatusChange,
+  selection,
+  onSelectionChange,
+  onEdit,
+  onContextMenu,
   version,
 }: {
   onStatusChange: (status: PlanView3DStatus) => void;
+  selection: SelectionState;
+  onSelectionChange: (selection: SelectionState) => void;
+  onEdit: (target: SelectionTarget) => void;
+  onContextMenu: (target: SelectionTarget, x: number, y: number) => boolean;
   version: number;
 }) => {
   const plan = useContext(PlanContext);
@@ -21,6 +30,12 @@ export const PlanView3D = ({
   const planGroupRef = useRef<THREE.Group | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const hasFittedRef = useRef(false);
+  const selectionRef = useRef(selection);
+  const contextMenuRef = useRef(onContextMenu);
+
+  useEffect(() => {
+    contextMenuRef.current = onContextMenu;
+  }, [onContextMenu]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -44,7 +59,36 @@ export const PlanView3D = ({
     };
 
     // Click the 3D view to lock the pointer and start looking around.
-    const lockControls = () => controls.lock();
+    const raycaster = new THREE.Raycaster();
+    const targetsAt = (event: MouseEvent) => {
+      const bounds = canvas.getBoundingClientRect();
+      const position = new THREE.Vector2(
+        ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
+        1 - ((event.clientY - bounds.top) / bounds.height) * 2,
+      );
+      raycaster.setFromCamera(position, camera);
+      return raycaster
+        .intersectObjects(planGroupRef.current?.children ?? [], true)
+        .map((hit): SelectionTarget | undefined => hit.object.userData.target)
+        .filter((target): target is SelectionTarget => target !== undefined);
+    };
+    const lockControls = (event: MouseEvent) => {
+      if (!controls.isLocked) {
+        const target = targetsAt(event)[0];
+        onSelectionChange(target ? { targets: [target], activeIndex: 0 } : { targets: [], activeIndex: -1 });
+        controls.lock();
+      }
+    };
+    const edit = (event: MouseEvent) => {
+      const target = targetsAt(event)[0];
+      if (target) onEdit(target);
+    };
+    const contextMenu = (event: MouseEvent) => {
+      const active = selectionRef.current.targets[selectionRef.current.activeIndex];
+      if (active && targetsAt(event).some((target) => isSelectionTarget(active, target))) {
+        if (contextMenuRef.current(active, event.clientX, event.clientY)) event.preventDefault();
+      }
+    };
     const updatePressedKeys = (event: KeyboardEvent) => {
       if (
         controls.isLocked &&
@@ -62,6 +106,8 @@ export const PlanView3D = ({
     };
 
     canvas.addEventListener("click", lockControls);
+    canvas.addEventListener("dblclick", edit);
+    canvas.addEventListener("contextmenu", contextMenu);
     document.addEventListener("keydown", updatePressedKeys);
     document.addEventListener("keyup", clearPressedKey);
     document.addEventListener("mousemove", reportMouseLook);
@@ -138,6 +184,8 @@ export const PlanView3D = ({
     return () => {
       // Critical cleanup to avoid context collisions
       canvas.removeEventListener("click", lockControls);
+      canvas.removeEventListener("dblclick", edit);
+      canvas.removeEventListener("contextmenu", contextMenu);
       document.removeEventListener("keydown", updatePressedKeys);
       document.removeEventListener("keyup", clearPressedKey);
       document.removeEventListener("mousemove", reportMouseLook);
@@ -154,7 +202,7 @@ export const PlanView3D = ({
       hasFittedRef.current = false;
       renderer.dispose();
     };
-  }, [onStatusChange]);
+  }, [onEdit, onSelectionChange, onStatusChange]);
 
   useEffect(() => {
     const group = planGroupRef.current;
@@ -188,6 +236,11 @@ export const PlanView3D = ({
       disposePlanGeometry(geometry);
     };
   }, [plan, version, onStatusChange]);
+
+  useEffect(() => {
+    selectionRef.current = selection;
+    if (planGroupRef.current) highlightSelection(planGroupRef.current, selection);
+  }, [selection, version]);
 
   return <canvas className="plan-view-3d" ref={canvasRef} />;
 };

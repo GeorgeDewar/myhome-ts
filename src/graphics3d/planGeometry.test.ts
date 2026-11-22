@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
 import { Plan } from "../model/Plan";
-import { createPlanGeometry, disposePlanGeometry, levelElevations } from "./planGeometry";
+import { createPlanGeometry, disposePlanGeometry, highlightSelection, levelElevations } from "./planGeometry";
 
 const meshesFor = (group: THREE.Group, item: object) => {
   const meshes: THREE.Mesh[] = [];
@@ -135,6 +135,49 @@ describe("3D plan geometry", () => {
     const fence = meshesFor(group, plan.fences[0])[0];
     expect(new THREE.Box3().setFromObject(fence).max.y).toBeCloseTo(1.5);
     expect(levelElevations([level]).get(level)).toBe(0);
+    disposePlanGeometry(group);
+  });
+
+  it("supports picking and highlighting an empty opening without rebuilding geometry", () => {
+    const plan = Plan.fromJson({
+      buildings: [
+        {
+          name: "House",
+          levels: [
+            {
+              number: 0,
+              name: "Ground",
+              walls: [
+                {
+                  id: "wall",
+                  start: [0, 0],
+                  end: [4000, 0],
+                  openings: [
+                    { id: "opening", width: 1000, distanceAlongWall: 2000, height: 1000, distanceFromFloor: 1000 },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const opening = plan.buildings[0].levels[0].walls[0].openings[0];
+    const group = createPlanGeometry(plan);
+    group.updateMatrixWorld(true);
+    const ray = new THREE.Raycaster(new THREE.Vector3(2, 1.5, 5), new THREE.Vector3(0, 0, -1));
+    const hit = ray.intersectObject(group, true)[0];
+    expect(hit.object.userData.target).toEqual({ kind: "opening", item: opening });
+    const mesh = hit.object;
+    if (!(mesh instanceof THREE.Mesh) || !(mesh.material instanceof THREE.MeshBasicMaterial))
+      throw new Error("Unexpected mesh");
+    const geometry = mesh.geometry;
+    expect(mesh.material.opacity).toBe(0);
+    highlightSelection(group, { targets: [{ kind: "opening", item: opening }], activeIndex: 0 });
+    expect(mesh.material.opacity).toBe(0.3);
+    expect(mesh.geometry).toBe(geometry);
+    highlightSelection(group, { targets: [], activeIndex: -1 });
+    expect(mesh.material.opacity).toBe(0);
     disposePlanGeometry(group);
   });
 });
