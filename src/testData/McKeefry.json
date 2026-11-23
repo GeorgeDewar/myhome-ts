@@ -473,24 +473,6 @@
               "walls": [{ "ref": "wall1" }, { "ref": "wall10" }, { "ref": "wall11" }, { "ref": "wall0" }]
             },
             {
-              "name": "Living Area",
-              "type": "Outside",
-              "walls": [
-                { "ref": "wall29" },
-                { "ref": "wall28" },
-                { "ref": "wall27" },
-                { "ref": "wall25" },
-                { "ref": "wall5" },
-                { "ref": "wall30" },
-                { "ref": "wall4" },
-                { "ref": "wall26" },
-                { "ref": "wall24" },
-                { "ref": "wall3" },
-                { "ref": "wall1" },
-                { "ref": "wall0" }
-              ]
-            },
-            {
               "name": "Garage",
               "labelPosition": [13900, 13759],
               "labelFontSize": 150,
@@ -947,19 +929,6 @@
                 { "ref": "wall60" },
                 { "ref": "wall49" },
                 { "ref": "wall37" }
-              ]
-            },
-            {
-              "name": "Living Area",
-              "type": "Outside",
-              "walls": [
-                { "ref": "wall67" },
-                { "ref": "wall64" },
-                { "ref": "wall65" },
-                { "ref": "wall50" },
-                { "ref": "wall62" },
-                { "ref": "wall66" },
-                { "ref": "wall38" }
               ]
             },
             {
