@@ -6,7 +6,7 @@ import { selectedTargets, toggleRoomSelection } from "../gui/selection";
 import { Fence } from "../model/Fence";
 import { Plan } from "../model/Plan";
 import { Room } from "../model/Room";
-import { drawFences, drawOpenings, isVisibleTarget, targetsAtPoint, visibleWalls } from "./PlanView2D";
+import { drawFences, drawOpenings, isVisibleTarget, targetsAtPoint, visibleWalls } from "./planView2DHelpers";
 import { slidingDoorLeaves } from "./renderPolygons";
 
 it.each([
