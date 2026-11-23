@@ -9,7 +9,7 @@ import type { Plan } from "./Plan";
 import type { Room } from "./Room";
 import { Wall } from "./Wall";
 
-type WallUpdate = { width?: number; start?: JsonPosition; end?: JsonPosition; virtual?: boolean };
+type WallUpdate = { width?: number; start?: JsonPosition; end?: JsonPosition; virtual?: boolean; attic?: boolean };
 type RoomUpdate = { name?: string };
 type OpeningUpdate = {
   width?: number;
@@ -318,6 +318,10 @@ export class PlanEditor {
     }
     if (update.virtual !== undefined && update.virtual !== wall.virtual) {
       wall.virtual = update.virtual;
+      changed = true;
+    }
+    if (update.attic !== undefined && update.attic !== wall.attic) {
+      wall.attic = update.attic;
       changed = true;
     }
 

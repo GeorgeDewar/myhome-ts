@@ -152,6 +152,14 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
               />
               Virtual
             </label>
+            <label className="property-checkbox">
+              <input
+                type="checkbox"
+                checked={draft.values.attic ?? false}
+                onChange={(event) => updateValues({ attic: event.target.checked })}
+              />
+              Attic
+            </label>
             <DistanceField
               label="Width (mm)"
               field="width"

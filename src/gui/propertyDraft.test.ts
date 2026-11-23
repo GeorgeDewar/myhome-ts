@@ -238,6 +238,45 @@ describe("property drafts", () => {
     expect(render()).toContain('<input type="checkbox" checked=""/>Virtual');
   });
 
+  it("edits attic status atomically and preserves an untouched default", () => {
+    const { plan, level, wall, editor, notify } = setup();
+    const draft = createPropertyDraft({ kind: "wall", item: wall });
+    expect(draft.values.attic).toBe(false);
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
+    expect(wall.toJson()).not.toHaveProperty("attic");
+
+    draft.values = { ...draft.values, attic: true, width: "-1" };
+    expect(applyPropertyDraft(draft, editor).width).toBeDefined();
+    expect(wall.attic).toBeUndefined();
+    expect(notify).not.toHaveBeenCalled();
+
+    draft.values = { ...draft.values, width: "200" };
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
+    expect(wall.attic).toBe(true);
+    expect(Plan.fromJson(plan.toJson()).buildings[0].levels[0].walls[0].attic).toBe(true);
+    expect(notify).toHaveBeenCalledOnce();
+
+    const next = createPropertyDraft({ kind: "wall", item: wall });
+    next.values = { ...next.values, attic: false };
+    expect(applyPropertyDraft(next, editor)).toEqual({});
+    expect(wall.toJson().attic).toBe(false);
+    expect(notify).toHaveBeenCalledTimes(2);
+    level.walls.pop();
+    next.values = { ...next.values, attic: false };
+    expect(applyPropertyDraft(next, editor)).toEqual({ form: "This wall is no longer in the plan." });
+  });
+
+  it("renders a checkbox reflecting wall attic status", () => {
+    const { wall, editor } = setup();
+    const render = () =>
+      renderToStaticMarkup(
+        createElement(PropertyWindow, { target: { kind: "wall", item: wall }, editPlan: editor, onClose: () => {} }),
+      );
+    expect(render()).toContain('<input type="checkbox"/>Attic');
+    wall.attic = true;
+    expect(render()).toContain('<input type="checkbox" checked=""/>Attic');
+  });
+
   it("edits and clears optional opening heights and offsets atomically", () => {
     const { opening, editor, notify } = setup();
     const draft = createPropertyDraft({ kind: "opening", item: opening });

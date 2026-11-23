@@ -6,7 +6,7 @@ Use `PlanEditor` to update walls, rooms, openings, standard doors and sliding do
 Property windows hold changes locally until Apply or OK is pressed. Apply keeps the window open; OK closes it after a successful update. Closing the window without applying discards its draft. Field-specific errors appear under the relevant field; other errors appear above the action buttons. Invalid values do not change the plan.
 
 Wall and fence endpoints, room names, and opening heights and floor offsets can be edited in these windows. Clearing an optional height or floor offset removes it from the saved plan.
-Walls can also be marked virtual.
+Walls can also be marked virtual or attic.
 
 Room walls are stored as ordered wall objects; JSON references are derived from those objects when saving. Each reference must contain a `ref` to a wall on the same level.
 
@@ -18,7 +18,7 @@ The Add menu creates walls and fences from millimetre endpoints, openings on a s
 
 Draw wall also creates a wall by clicking two points in the 2D plan; coordinates are snapped to integer millimetres. Escape cancels the tool.
 
-The Layers panel controls visibility in the 2D plan only. Fences, normal walls, room labels and doors are visible by default; virtual walls are hidden by default and shown with a dashed gray outline when enabled. Doors and windows are hidden when their wall is hidden. Hidden objects remain available in the hierarchy. Layer settings are not saved to the plan.
+The Layers panel controls visibility in the 2D plan only. Fences, normal walls, room labels and doors are visible by default; virtual and attic walls are hidden by default and shown with a dashed gray outline when enabled. A wall marked both virtual and attic is visible when either layer is enabled. Doors and windows are hidden when their wall is hidden. Hidden objects remain available in the hierarchy. Layer settings are not saved to the plan.
 
 Positions use integer millimetres in JSON and floating-point metres in memory. This includes wall and fence endpoints and opening offsets; widths and other dimensions may be fractional. Position edits must be integers that round-trip accurately through the in-memory representation.
 
@@ -28,9 +28,9 @@ The 3D view shows all levels, room floors, fences, wall openings and their conte
 
 Selections in the hierarchy and 2D plan are highlighted in 3D. Clicking a 3D object selects it and locks the pointer for camera movement; Escape releases the pointer. The 3D context menu and double-click editing use the same selection and property windows as the other views.
 
-Openings are clipped to their wall, and overlapping openings are combined when cutting the wall. The schema does not yet describe positions within an opening, so each item is shown across the opening rather than arranged independently. Virtual walls define rooms but have no 3D solid.
+Openings are clipped to their wall, and overlapping openings are combined when cutting the wall. The schema does not yet describe positions within an opening, so each item is shown across the opening rather than arranged independently. Virtual and attic walls have no 3D solid for now.
 
-Wall `attic` flags and opening `shape` values are preserved on load and save, but do not yet affect rendering; openings are displayed as rectangular.
+Opening `shape` values are preserved on load and save, but do not yet affect rendering; openings are displayed as rectangular.
 
 ### Loading plans
 

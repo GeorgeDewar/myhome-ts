@@ -43,6 +43,7 @@ function App() {
     fences: true,
     normalWalls: true,
     virtualWalls: false,
+    atticWalls: false,
     roomLabels: true,
     doors: true,
   });

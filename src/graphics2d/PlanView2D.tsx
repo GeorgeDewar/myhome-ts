@@ -263,7 +263,11 @@ export const isVisibleTarget = (target: SelectionTarget, walls: Wall[], fences: 
 };
 
 export const visibleWalls = (walls: Wall[], visibility: LayerVisibility) =>
-  walls.filter((wall) => wall.virtual ? visibility.virtualWalls : visibility.normalWalls);
+  walls.filter((wall) =>
+    wall.virtual || wall.attic
+      ? (wall.virtual && visibility.virtualWalls) || (wall.attic && visibility.atticWalls)
+      : visibility.normalWalls,
+  );
 
 const drawSelection = (
   context: CanvasRenderingContext2D,
@@ -392,7 +396,7 @@ export const PlanView2D = ({
 
     const fitToPlan = () => {
       if (hasFittedRef.current || !canvas.clientWidth || !canvas.clientHeight) return;
-      const fitItems = [...allWalls.filter((wall) => !wall.virtual), ...plan.fences];
+      const fitItems = [...allWalls.filter((wall) => !wall.virtual && !wall.attic), ...plan.fences];
       if (fitItems.length === 0) fitItems.push(...allWalls);
       const points = fitItems.flatMap((item) => item.basicPolygon2D().map(toPoint));
       if (points.length === 0) return;
@@ -430,8 +434,8 @@ export const PlanView2D = ({
       );
       drawGrid(context, canvas, viewport);
       drawFences(context, fences, viewport.scale);
-      drawWalls(context, walls.filter((wall) => !wall.virtual), viewport.scale);
-      drawWalls(context, walls.filter((wall) => wall.virtual), viewport.scale, true);
+      drawWalls(context, walls.filter((wall) => !wall.virtual && !wall.attic), viewport.scale);
+      drawWalls(context, walls.filter((wall) => wall.virtual || wall.attic), viewport.scale, true);
       drawOpenings(context, walls, viewport.scale, layerVisibility.doors);
       if (layerVisibility.roomLabels) drawRooms(context, rooms);
       drawSelection(

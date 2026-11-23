@@ -2,6 +2,7 @@ const layers = [
   { id: "fences", label: "Fences" },
   { id: "normalWalls", label: "Walls, normal" },
   { id: "virtualWalls", label: "Walls, virtual" },
+  { id: "atticWalls", label: "Walls, attic" },
   { id: "roomLabels", label: "Room labels" },
   { id: "doors", label: "Doors" },
 ] as const;

@@ -4,6 +4,7 @@ import type { SelectionTarget } from "./selection";
 type PropertyValues = {
   name?: string;
   virtual?: boolean;
+  attic?: boolean;
   width?: string;
   height?: string;
   startX?: string;
@@ -39,7 +40,7 @@ export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
         width: String(target.item.width.toJson()),
         ...(target.kind === "fence"
           ? { height: target.item.height === undefined ? "" : String(target.item.height.toJson()) }
-          : { virtual: target.item.virtual ?? false }),
+          : { virtual: target.item.virtual ?? false, attic: target.item.attic ?? false }),
         startX: String(target.item.from.x.toPositionJson()),
         startY: String(target.item.from.y.toPositionJson()),
         endX: String(target.item.to.x.toPositionJson()),
@@ -117,11 +118,12 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
       const start = point("startX", "startY");
       const end = point("endX", "endY");
       const virtual = values.virtual !== initialValues.virtual ? values.virtual : undefined;
+      const attic = values.attic !== initialValues.attic ? values.attic : undefined;
       if (
         Object.keys(errors).length === 0 &&
-        (width !== undefined || start !== undefined || end !== undefined || virtual !== undefined)
+        (width !== undefined || start !== undefined || end !== undefined || virtual !== undefined || attic !== undefined)
       ) {
-        report(editPlan.updateWall(target.item, { width, start, end, virtual }));
+        report(editPlan.updateWall(target.item, { width, start, end, virtual, attic }));
       }
       break;
     }

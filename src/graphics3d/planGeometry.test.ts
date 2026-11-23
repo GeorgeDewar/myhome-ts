@@ -105,7 +105,7 @@ describe("3D plan geometry", () => {
     disposePlanGeometry(group);
   });
 
-  it("renders fences and room floors while omitting virtual wall solids", () => {
+  it("renders fences and room floors while omitting virtual and attic walls", () => {
     const plan = Plan.fromJson({
       fences: [{ id: "f", start: [0, 0], end: [2000, 0], height: 1500 }],
       buildings: [
@@ -120,6 +120,9 @@ describe("3D plan geometry", () => {
                 { id: "b", start: [2000, 0], end: [2000, 2000] },
                 { id: "c", start: [2000, 2000], end: [0, 2000] },
                 { id: "d", start: [0, 2000], end: [0, 0], virtual: true },
+                { id: "attic", start: [0, 3000], end: [2000, 3000], attic: true, openings: [
+                  { id: "opening", width: 1000, distanceAlongWall: 1000, contents: [{ type: "StandardWindow" }] },
+                ] },
               ],
               rooms: [{ name: "Room", walls: [{ ref: "a" }, { ref: "b" }, { ref: "c" }, { ref: "d" }] }],
             },
@@ -132,6 +135,9 @@ describe("3D plan geometry", () => {
     group.updateMatrixWorld(true);
     expect(meshesFor(group, level.rooms[0])).toHaveLength(1);
     expect(meshesFor(group, level.walls[3])).toHaveLength(0);
+    expect(meshesFor(group, level.walls[4])).toHaveLength(0);
+    expect(meshesFor(group, level.walls[4].openings[0])).toHaveLength(0);
+    expect(meshesFor(group, level.walls[4].openings[0].contents[0])).toHaveLength(0);
     const fence = meshesFor(group, plan.fences[0])[0];
     expect(new THREE.Box3().setFromObject(fence).max.y).toBeCloseTo(1.5);
     expect(levelElevations([level]).get(level)).toBe(0);

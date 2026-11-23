@@ -160,7 +160,7 @@ export const createPlanGeometry = (plan: Plan) => {
       const elevation = elevations.get(level)!;
       const height = level.ceilingHeight?.metres ?? level.totalHeight?.metres ?? DEFAULT_LEVEL_HEIGHT;
       for (const wall of level.walls) {
-        if (!wall.virtual) group.add(wallGroup(wall, height, elevation));
+        if (!wall.virtual && !wall.attic) group.add(wallGroup(wall, height, elevation));
       }
       for (const room of level.rooms) {
         const corners = roomPolygon(room);

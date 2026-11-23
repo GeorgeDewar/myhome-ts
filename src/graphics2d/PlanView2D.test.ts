@@ -54,7 +54,7 @@ describe("drawFences", () => {
 
   describe("2D layers", () => {
     const visibility: LayerVisibility = {
-      fences: true, normalWalls: true, virtualWalls: false, roomLabels: true, doors: true,
+      fences: true, normalWalls: true, virtualWalls: false, atticWalls: false, roomLabels: true, doors: true,
     };
     const setup = () => {
       const plan = Plan.fromJson({
@@ -80,6 +80,10 @@ describe("drawFences", () => {
                 }],
               },
               { id: "virtual", start: [0, 1000], end: [4000, 1000], virtual: true },
+              { id: "attic", start: [0, 2000], end: [4000, 2000], attic: true, openings: [
+                { id: "attic-opening", width: 1000, distanceAlongWall: 2000, contents: [{ type: "StandardWindow" }] },
+              ] },
+              { id: "both", start: [0, 3000], end: [4000, 3000], virtual: true, attic: true },
             ],
           }],
         }],
@@ -94,6 +98,7 @@ describe("drawFences", () => {
         createElement(Layers, { visibility, onChange: () => {} }),
       );
       expect(markup).toContain('<input type="checkbox"/>Walls, virtual');
+      expect(markup).toContain('<input type="checkbox"/>Walls, attic');
       for (const label of ["Fences", "Walls, normal", "Room labels", "Doors"]) {
         expect(markup).toContain(`<input type="checkbox" checked=""/>${label}`);
       }
@@ -102,11 +107,25 @@ describe("drawFences", () => {
     it("filters normal and virtual walls independently, including their selection highlights", () => {
       const { walls, opening } = setup();
       const visible = visibleWalls(walls, { ...visibility, normalWalls: false, virtualWalls: true });
-      expect(visible).toEqual([walls[1]]);
+      expect(visible).toEqual([walls[1], walls[3]]);
       expect(targetsAtPoint({ x: 2, y: 0 }, visible, [], [], true)).toEqual([]);
       expect(targetsAtPoint({ x: 2, y: 1 }, visible, [], [], true)).toEqual([{ kind: "wall", item: walls[1] }]);
       expect(isVisibleTarget({ kind: "opening", item: opening }, visible, [], true)).toBe(false);
       expect(isVisibleTarget({ kind: "wall", item: walls[1] }, visible, [], true)).toBe(true);
+    });
+
+    it("filters attic walls independently and shows a dual-flagged wall on either layer", () => {
+      const { walls } = setup();
+      const atticOpening = walls[2].openings[0];
+      expect(visibleWalls(walls, visibility)).toEqual([walls[0]]);
+      expect(visibleWalls(walls, { ...visibility, normalWalls: false, atticWalls: true })).toEqual([walls[2], walls[3]]);
+      expect(visibleWalls(walls, { ...visibility, normalWalls: false, virtualWalls: true })).toEqual([walls[1], walls[3]]);
+      expect(visibleWalls(walls, { ...visibility, normalWalls: false, virtualWalls: true, atticWalls: true }))
+        .toEqual([walls[1], walls[2], walls[3]]);
+      expect(isVisibleTarget({ kind: "opening", item: atticOpening }, visibleWalls(walls, visibility), [], true)).toBe(false);
+      expect(targetsAtPoint({ x: 2, y: 2 }, visibleWalls(walls, visibility), [], [], true)).toEqual([]);
+      expect(targetsAtPoint({ x: 2, y: 2 }, visibleWalls(walls, { ...visibility, atticWalls: true }), [], [], true)
+        .some((target) => target.kind === "wall" && target.item === walls[2])).toBe(true);
     });
 
     it("does not select or highlight a hidden fence", () => {
