@@ -1,5 +1,6 @@
 import { Distance, isValidPositiveDistance, isValidPositionInMillimetres } from "./geom/Distance";
 import { Point2D } from "./geom/Point2D";
+import { mergeRoomWalls } from "./geom/mergeRoomWalls";
 import { Fence } from "./Fence";
 import type { JsonPosition } from "./json/Document";
 import type { Level } from "./Level";
@@ -238,6 +239,32 @@ export class PlanEditor {
 
     level.rooms = level.rooms.filter((candidate) => candidate !== room);
     room.level = undefined;
+    this.onChange();
+    return { ok: true };
+  }
+
+  private mergedRoomWalls(rooms: readonly Room[]) {
+    if (rooms.length < 2 || new Set(rooms).size !== rooms.length) return;
+    const level = this.levels.find((candidate) => rooms.every((room) => candidate.rooms.includes(room)));
+    if (!level || rooms.some((room) => room.walls.some((wall) => !level.walls.includes(wall)))) return;
+    return mergeRoomWalls(rooms);
+  }
+
+  canMergeRooms(rooms: readonly Room[]) {
+    return this.mergedRoomWalls(rooms) !== undefined;
+  }
+
+  mergeRooms(rooms: readonly Room[], retainedRoom: Room): EditResult {
+    if (!rooms.includes(retainedRoom)) return { ok: false, error: "Select the room to keep." };
+    const walls = this.mergedRoomWalls(rooms);
+    if (!walls) return { ok: false, error: "These rooms cannot be merged." };
+    const level = this.levels.find((candidate) => candidate.rooms.includes(retainedRoom))!;
+    retainedRoom.walls = walls;
+    level.rooms = level.rooms.filter((room) => {
+      if (room === retainedRoom || !rooms.includes(room)) return true;
+      room.level = undefined;
+      return false;
+    });
     this.onChange();
     return { ok: true };
   }

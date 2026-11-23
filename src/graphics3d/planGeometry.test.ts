@@ -180,4 +180,40 @@ describe("3D plan geometry", () => {
     expect(mesh.material.opacity).toBe(0);
     disposePlanGeometry(group);
   });
+
+  it("highlights every selected room in 3D", () => {
+    const plan = Plan.fromJson({
+      buildings: [{
+        name: "House",
+        levels: [{
+          number: 0,
+          name: "Ground",
+          walls: [
+            { id: "a", start: [0, 0], end: [1000, 0] },
+            { id: "b", start: [1000, 0], end: [1000, 1000] },
+            { id: "c", start: [1000, 1000], end: [0, 1000] },
+            { id: "d", start: [0, 1000], end: [0, 0] },
+          ],
+          rooms: [
+            { name: "First", walls: [{ ref: "a" }, { ref: "b" }, { ref: "c" }, { ref: "d" }] },
+            { name: "Second", walls: [{ ref: "a" }, { ref: "b" }, { ref: "c" }, { ref: "d" }] },
+          ],
+        }],
+      }],
+    });
+    const [first, second] = plan.buildings[0].levels[0].rooms;
+    const group = createPlanGeometry(plan);
+    highlightSelection(group, {
+      targets: [{ kind: "room", item: second }],
+      activeIndex: 0,
+      rooms: [first, second],
+    });
+    const firstMaterial = meshesFor(group, first)[0].material;
+    const secondMaterial = meshesFor(group, second)[0].material;
+    if (!(firstMaterial instanceof THREE.MeshStandardMaterial) || !(secondMaterial instanceof THREE.MeshStandardMaterial))
+      throw new Error("Unexpected room material");
+    expect(firstMaterial.emissive.getHex()).toBe(0x155177);
+    expect(secondMaterial.emissive.getHex()).toBe(0x8b1111);
+    disposePlanGeometry(group);
+  });
 });

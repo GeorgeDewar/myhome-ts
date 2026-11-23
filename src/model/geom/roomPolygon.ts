@@ -4,6 +4,9 @@ import type { Wall } from "../Wall";
 type Point = { x: number; y: number };
 
 const intersection = (first: Wall, second: Wall): Point | undefined => {
+  if (first === second) return undefined;
+  const shared = [first.from, first.to].filter((point) => point.equals(second.from) || point.equals(second.to));
+  if (shared.length === 1) return { x: shared[0].x.metres, y: shared[0].y.metres };
   const a = { x: first.from.x.metres, y: first.from.y.metres };
   const b = { x: first.to.x.metres, y: first.to.y.metres };
   const c = { x: second.from.x.metres, y: second.from.y.metres };

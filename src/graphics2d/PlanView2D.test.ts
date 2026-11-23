@@ -2,10 +2,30 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { Layers, type LayerVisibility } from "../gui/Layers";
+import { selectedTargets, toggleRoomSelection } from "../gui/selection";
 import { Fence } from "../model/Fence";
 import { Plan } from "../model/Plan";
+import { Room } from "../model/Room";
 import { drawFences, drawOpenings, isVisibleTarget, targetsAtPoint, visibleWalls } from "./PlanView2D";
 import { slidingDoorLeaves } from "./renderPolygons";
+
+describe("room multi-selection", () => {
+  it("adds and removes rooms without treating overlapping hit candidates as selected rooms", () => {
+    const first = new Room("First", []);
+    const second = new Room("Second", []);
+    const fence = Fence.fromJson({ id: "f", start: [0, 0], end: [1000, 0] });
+    const initial = {
+      targets: [{ kind: "room" as const, item: first }, { kind: "fence" as const, item: fence }],
+      activeIndex: 0,
+    };
+    const both = toggleRoomSelection(initial, second);
+    expect(selectedTargets(both)).toEqual([{ kind: "room", item: first }, { kind: "room", item: second }]);
+    expect(both.targets[both.activeIndex]).toEqual({ kind: "room", item: second });
+    const one = toggleRoomSelection(both, first);
+    expect(selectedTargets(one)).toEqual([{ kind: "room", item: second }]);
+    expect(toggleRoomSelection(one, second)).toEqual({ targets: [], activeIndex: -1 });
+  });
+});
 
 describe("drawFences", () => {
   it("draws fence geometry in brown", () => {
@@ -64,6 +84,7 @@ describe("drawFences", () => {
           }],
         }],
       });
+
       const walls = plan.buildings[0].levels[0].walls;
       return { walls, opening: walls[0].openings[0] };
     };

@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import { PlanContext } from "../context/PlanContext";
 import { isSelectionTarget, type SelectionState, type SelectionTarget } from "../gui/selection";
+import type { Room } from "../model/Room";
 import { createPlanGeometry, disposePlanGeometry, highlightSelection } from "./planGeometry";
 
 export type PlanView3DStatus = {
@@ -14,6 +15,7 @@ export const PlanView3D = ({
   onStatusChange,
   selection,
   onSelectionChange,
+  onToggleRoom,
   onEdit,
   onContextMenu,
   version,
@@ -21,6 +23,7 @@ export const PlanView3D = ({
   onStatusChange: (status: PlanView3DStatus) => void;
   selection: SelectionState;
   onSelectionChange: (selection: SelectionState) => void;
+  onToggleRoom: (room: Room) => void;
   onEdit: (target: SelectionTarget) => void;
   onContextMenu: (target: SelectionTarget, x: number, y: number) => boolean;
   version: number;
@@ -75,6 +78,10 @@ export const PlanView3D = ({
     const lockControls = (event: MouseEvent) => {
       if (!controls.isLocked) {
         const target = targetsAt(event)[0];
+        if (event.ctrlKey || event.metaKey) {
+          if (target?.kind === "room") onToggleRoom(target.item);
+          return;
+        }
         onSelectionChange(target ? { targets: [target], activeIndex: 0 } : { targets: [], activeIndex: -1 });
         controls.lock();
       }
@@ -84,9 +91,13 @@ export const PlanView3D = ({
       if (target) onEdit(target);
     };
     const contextMenu = (event: MouseEvent) => {
-      const active = selectionRef.current.targets[selectionRef.current.activeIndex];
-      if (active && targetsAt(event).some((target) => isSelectionTarget(active, target))) {
-        if (contextMenuRef.current(active, event.clientX, event.clientY)) event.preventDefault();
+      const current = selectionRef.current;
+      const active = current.targets[current.activeIndex];
+      const hits = targetsAt(event);
+      const target = hits.find((candidate) => active && isSelectionTarget(active, candidate)) ??
+        hits.find((candidate) => candidate.kind === "room" && current.rooms?.includes(candidate.item));
+      if (target) {
+        if (contextMenuRef.current(target, event.clientX, event.clientY)) event.preventDefault();
       }
     };
     const updatePressedKeys = (event: KeyboardEvent) => {
@@ -202,7 +213,7 @@ export const PlanView3D = ({
       hasFittedRef.current = false;
       renderer.dispose();
     };
-  }, [onEdit, onSelectionChange, onStatusChange]);
+  }, [onEdit, onSelectionChange, onStatusChange, onToggleRoom]);
 
   useEffect(() => {
     const group = planGroupRef.current;

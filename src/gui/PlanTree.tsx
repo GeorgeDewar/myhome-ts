@@ -12,7 +12,7 @@ type PlanTreeProps = {
   selectedTargets: SelectionTarget[];
   activeTarget?: SelectionTarget;
   onLevelSelect: (level: number) => void;
-  onSelect: (target: SelectionTarget) => void;
+  onSelect: (target: SelectionTarget, toggleRoom?: boolean) => void;
   onEdit: (target: SelectionTarget) => void;
   onContextMenu: (target: SelectionTarget, x: number, y: number) => boolean;
 };
@@ -31,7 +31,7 @@ export const PlanTree = ({
 }: PlanTreeProps) => {
   const rowClassName = (target?: SelectionTarget) =>
     `tree-row${target && selectedTargets.some((selectedTarget) => isSelectionTarget(selectedTarget, target)) ? " is-selected" : ""}${target && activeTarget && isSelectionTarget(activeTarget, target) ? " is-active" : ""}`;
-  const select = (target: SelectionTarget) => onSelect(target);
+  const select = (target: SelectionTarget, toggleRoom = false) => onSelect(target, toggleRoom);
   const edit = (target: SelectionTarget) => {
     select(target);
     onEdit(target);
@@ -131,7 +131,7 @@ export const PlanTree = ({
                     <div
                       className={`${rowClassName({ kind: "room", item: room })} tree-room`}
                       key={`${room.name}-${index}`}
-                      onClick={() => select({ kind: "room", item: room })}
+                      onClick={(event) => select({ kind: "room", item: room }, event.ctrlKey || event.metaKey)}
                       onDoubleClick={() => edit({ kind: "room", item: room })}
                       onContextMenu={(event) => contextMenu(event, { kind: "room", item: room })}
                     >

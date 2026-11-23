@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import {
   isSelectionTarget,
+  selectedTargets,
   selectionTargetForOpeningItem,
   type SelectionState,
   type SelectionTarget,
@@ -195,12 +196,13 @@ export const createPlanGeometry = (plan: Plan) => {
 
 export const highlightSelection = (group: THREE.Group, selection: SelectionState) => {
   const active = selection.targets[selection.activeIndex];
+  const targets = selectedTargets(selection);
   group.traverse((object) => {
     if (!(object instanceof THREE.Mesh)) return;
     const target: SelectionTarget | undefined = object.userData.target;
     if (!target) return;
     const isActive = active !== undefined && isSelectionTarget(active, target);
-    const selected = selection.targets.some((candidate) => isSelectionTarget(candidate, target));
+    const selected = targets.some((candidate) => isSelectionTarget(candidate, target));
     if (object.material instanceof THREE.MeshStandardMaterial) {
       object.material.emissive.setHex(isActive ? 0x8b1111 : selected ? 0x155177 : 0);
     } else if (object.material instanceof THREE.MeshBasicMaterial) {

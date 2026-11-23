@@ -5,6 +5,7 @@ import { PlanContext } from "../context/PlanContext";
 import type { LayerVisibility } from "../gui/Layers";
 import {
   isSelectionTarget,
+  selectedTargets,
   selectionTargetForOpeningItem,
   type SelectionState,
   type SelectionTarget,
@@ -339,6 +340,7 @@ export const PlanView2D = ({
   onStatusChange,
   selection,
   onSelectionChange,
+  onToggleRoom,
   onEdit,
   onContextMenu,
   drawingWall,
@@ -350,6 +352,7 @@ export const PlanView2D = ({
   onStatusChange: (status: PlanView2DStatus) => void;
   selection: SelectionState;
   onSelectionChange: (selection: SelectionState) => void;
+  onToggleRoom: (room: Room) => void;
   onEdit: (target: SelectionTarget) => void;
   onContextMenu: (target: SelectionTarget, x: number, y: number) => boolean;
   drawingWall: boolean;
@@ -433,7 +436,7 @@ export const PlanView2D = ({
       if (layerVisibility.roomLabels) drawRooms(context, rooms);
       drawSelection(
         context,
-        selection.targets.filter((target) => isVisibleTarget(target, walls, fences, layerVisibility.doors)),
+        selectedTargets(selection).filter((target) => isVisibleTarget(target, walls, fences, layerVisibility.doors)),
         selection.targets[selection.activeIndex],
         viewport.scale,
       );
@@ -499,6 +502,12 @@ export const PlanView2D = ({
             return;
           }
           const targets = targetsAtPoint(point, walls, rooms, fences, layerVisibility.doors);
+          if (event.ctrlKey || event.metaKey) {
+            const room = targets.findLast((target) => target.kind === "room");
+            if (room?.kind === "room") onToggleRoom(room.item);
+            dragOrigin = undefined;
+            return;
+          }
           onSelectionChange({ targets, activeIndex: targets.length - 1 });
         }
       }
@@ -519,15 +528,17 @@ export const PlanView2D = ({
     };
     const contextMenu = (event: MouseEvent) => {
       if (drawingWall) return;
-      const activeTarget = selection.targets[selection.activeIndex];
-      if (!activeTarget) return;
       const bounds = canvas.getBoundingClientRect();
       const point = {
         x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
         y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
       };
-      if (targetsAtPoint(point, walls, rooms, fences, layerVisibility.doors).some((target) => isSelectionTarget(activeTarget, target))) {
-        if (onContextMenu(activeTarget, event.clientX, event.clientY)) event.preventDefault();
+      const activeTarget = selection.targets[selection.activeIndex];
+      const hits = targetsAtPoint(point, walls, rooms, fences, layerVisibility.doors);
+      const target = hits.find((candidate) => activeTarget && isSelectionTarget(activeTarget, candidate)) ??
+        hits.find((candidate) => candidate.kind === "room" && selection.rooms?.includes(candidate.item));
+      if (target) {
+        if (onContextMenu(target, event.clientX, event.clientY)) event.preventDefault();
       }
     };
     const wheel = (event: WheelEvent) => {
@@ -568,7 +579,7 @@ export const PlanView2D = ({
       canvas.removeEventListener("contextmenu", contextMenu);
       canvas.removeEventListener("wheel", wheel);
     };
-  }, [drawingWall, layerVisibility, level, onContextMenu, onDrawWall, onEdit, onSelectionChange, plan, selection, version]);
+  }, [drawingWall, layerVisibility, level, onContextMenu, onDrawWall, onEdit, onSelectionChange, onToggleRoom, plan, selection, version]);
 
   return <canvas className={`plan-view-2d${drawingWall ? " is-drawing" : ""}`} ref={canvasRef} tabIndex={0} />;
 };

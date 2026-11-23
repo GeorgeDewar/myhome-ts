@@ -10,11 +10,19 @@ import { PlanTree } from "./gui/PlanTree";
 import type { LayerVisibility } from "./gui/Layers";
 import { CreateWindow, type CreateRequest } from "./gui/CreateWindow";
 import { PropertyWindow } from "./gui/PropertyWindow";
-import { isSelectionTarget, selectionTargetNames, type SelectionState, type SelectionTarget } from "./gui/selection";
+import {
+  isSelectionTarget,
+  selectedTargets,
+  selectionTargetNames,
+  toggleRoomSelection,
+  type SelectionState,
+  type SelectionTarget,
+} from "./gui/selection";
 import type { JsonPlan, JsonPosition } from "./model/json/Document";
 import { downloadPlan } from "./model/json/downloadPlan";
 import { Plan } from "./model/Plan";
 import { PlanEditor } from "./model/PlanEditor";
+import type { Room } from "./model/Room";
 import testPlan from "./testData/McKeefry.json";
 
 type ViewDescriptor = { id: string; kind: "2d" | "3d"; level: number };
@@ -60,7 +68,15 @@ function App() {
   const activeView = initialViews.find((view) => view.id === activeViewId) ?? initialViews[0];
   const activeTarget = selection.targets[selection.activeIndex];
 
-  const selectTarget = (target: SelectionTarget) => setSelection({ targets: [target], activeIndex: 0 });
+  const selectTarget = (target: SelectionTarget, toggleRoom = false) =>
+    setSelection((current) =>
+      toggleRoom && target.kind === "room"
+        ? toggleRoomSelection(current, target.item)
+        : { targets: [target], activeIndex: 0 },
+    );
+  const toggleRoom = useCallback((room: Room) => {
+    setSelection((current) => toggleRoomSelection(current, room));
+  }, [setSelection]);
 
   const drawWall = useCallback((start: JsonPosition, end: JsonPosition) => {
     if (!currentLevel) {
@@ -80,13 +96,16 @@ function App() {
   const openContextMenu = useCallback(
     (target: SelectionTarget, x: number, y: number) => {
       const index = selection.targets.findIndex((selected) => isSelectionTarget(selected, target));
-      if (index < 0) return false;
+      const selectedRoom = target.kind === "room" && selection.rooms?.includes(target.item);
+      if (index < 0 && !selectedRoom) return false;
       contextReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      setSelection((current) => ({ ...current, activeIndex: index }));
+      setSelection((current) =>
+        index < 0 ? { ...current, targets: [target], activeIndex: 0 } : { ...current, activeIndex: index },
+      );
       setContextMenu({ target, x, y });
       return true;
     },
-    [selection.targets, setSelection, setContextMenu],
+    [selection.targets, selection.rooms, setSelection, setContextMenu],
   );
 
   const deleteTarget = useCallback(
@@ -303,7 +322,7 @@ function App() {
               layerVisibility={layerVisibility}
               onLayerVisibilityChange={setLayerVisibility}
               activeLevel={activeLevel}
-              selectedTargets={selection.targets}
+              selectedTargets={selectedTargets(selection)}
               activeTarget={activeTarget}
               onLevelSelect={selectLevel}
               onSelect={selectTarget}
@@ -329,6 +348,7 @@ function App() {
                   onStatusChange={setTwoDStatus}
                   selection={selection}
                   onSelectionChange={setSelection}
+                  onToggleRoom={toggleRoom}
                   onEdit={setEditingTarget}
                   onContextMenu={openContextMenu}
                   drawingWall={drawingWall}
@@ -341,6 +361,7 @@ function App() {
                   onStatusChange={setThreeDStatus}
                   selection={selection}
                   onSelectionChange={setSelection}
+                  onToggleRoom={toggleRoom}
                   onEdit={setEditingTarget}
                   onContextMenu={openContextMenu}
                   version={planVersion}
@@ -413,6 +434,26 @@ function App() {
               <button type="button" role="menuitem" onClick={() => deleteTarget(contextMenu.target)}>
                 Delete
               </button>
+              {contextMenu.target.kind === "room" && selection.rooms && editPlan.canMergeRooms(selection.rooms) && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    if (contextMenu.target.kind !== "room" || !selection.rooms) return;
+                    const room = contextMenu.target.item;
+                    const result = editPlan.mergeRooms(selection.rooms, room);
+                    setContextMenu(undefined);
+                    if (!result.ok) {
+                      window.alert(result.error);
+                      return;
+                    }
+                    setSelection({ targets: [{ kind: "room", item: room }], activeIndex: 0 });
+                    setEditingTarget((current) => (current && editPlan.contains(current.item) ? current : undefined));
+                  }}
+                >
+                  Merge rooms
+                </button>
+              )}
             </div>
           )}
           {editingTarget && (

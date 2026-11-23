@@ -12,7 +12,7 @@ export type SelectionTarget =
   | { kind: "slidingDoor"; item: SlidingDoor; opening: Opening }
   | { kind: "window"; item: StandardWindow; opening: Opening };
 
-export type SelectionState = { targets: SelectionTarget[]; activeIndex: number };
+export type SelectionState = { targets: SelectionTarget[]; activeIndex: number; rooms?: Room[] };
 
 export const selectionTargetNames: Record<SelectionTarget["kind"], string> = {
   room: "Room",
@@ -37,3 +37,19 @@ export const selectionTargetForOpeningItem = (item: OpeningItem, opening: Openin
 
 export const isSelectionTarget = (target: SelectionTarget, candidate: SelectionTarget) =>
   target.kind === candidate.kind && target.item === candidate.item;
+
+export const selectedTargets = (selection: SelectionState): SelectionTarget[] =>
+  selection.rooms ? selection.rooms.map((item) => ({ kind: "room", item })) : selection.targets;
+
+export const toggleRoomSelection = (selection: SelectionState, room: Room): SelectionState => {
+  const active = selection.targets[selection.activeIndex];
+  const rooms = selection.rooms ?? (active?.kind === "room" ? [active.item] : []);
+  const next = rooms.includes(room) ? rooms.filter((item) => item !== room) : [...rooms, room];
+  const selected = next.at(-1);
+  if (!selected) return { targets: [], activeIndex: -1 };
+  return {
+    targets: [{ kind: "room", item: selected }],
+    activeIndex: 0,
+    ...(next.length > 1 ? { rooms: next } : {}),
+  };
+};
