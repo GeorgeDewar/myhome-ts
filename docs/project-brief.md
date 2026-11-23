@@ -133,3 +133,5 @@ The edit dialog for an opening is special. It shows a 2D and 3D representation o
 - Capture some details from a photo using AI!
 - Add in street-map data from OSM to provide context
 - Automatic health assessment - e.g. adequate smoke detectors, ventilation
+- Room types - bedroom, etc
+- Nested rooms - closet is a child of a bedroom with a type "closet"
