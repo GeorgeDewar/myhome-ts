@@ -181,6 +181,14 @@
                     "unevaluatedProperties": false,
                     "properties": {
                       "name": { "type": "string" },
+                      "labelPosition": {
+                        "$ref": "#/$defs/position",
+                        "description": "Position of the room label relative to the floor, in millimetres"
+                      },
+                      "labelFontSize": {
+                        "type": "number",
+                        "description": "Room label character size in millimetres"
+                      },
                       "walls": {
                         "type": "array",
                         "items": {

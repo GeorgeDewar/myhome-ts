@@ -468,14 +468,10 @@
           "rooms": [
             {
               "name": "Lounge",
-              "labelPosition": [22671, 13444],
-              "labelFontSize": 150,
               "walls": [{ "ref": "wall1" }, { "ref": "wall10" }, { "ref": "wall11" }, { "ref": "wall0" }]
             },
             {
               "name": "Garage",
-              "labelPosition": [13900, 13759],
-              "labelFontSize": 150,
               "walls": [
                 { "ref": "wall4" },
                 { "ref": "wall8" },
@@ -490,14 +486,10 @@
             },
             {
               "name": "Family Room",
-              "labelPosition": [12989, 8603],
-              "labelFontSize": 150,
               "walls": [{ "ref": "wall13" }, { "ref": "wall8" }, { "ref": "wall4" }, { "ref": "wall30" }]
             },
             {
               "name": "Dining Room",
-              "labelPosition": [23432, 9218],
-              "labelFontSize": 150,
               "walls": [{ "ref": "wall0" }, { "ref": "wall11" }, { "ref": "wall12" }, { "ref": "wall29" }]
             },
             {
@@ -506,8 +498,6 @@
             },
             {
               "name": "Kitchen",
-              "labelPosition": [19967, 9158],
-              "labelFontSize": 150,
               "walls": [
                 { "ref": "wall12" },
                 { "ref": "wall11" },
@@ -519,8 +509,6 @@
             },
             {
               "name": "Hallway",
-              "labelPosition": [18620, 15411],
-              "labelFontSize": 150,
               "walls": [
                 { "ref": "wall13" },
                 { "ref": "wall18" },
@@ -544,20 +532,14 @@
             },
             {
               "name": "Coat Cupboard",
-              "labelPosition": [19700, 11042],
-              "labelFontSize": 100,
               "walls": [{ "ref": "wall10" }, { "ref": "wall15" }, { "ref": "wall17" }, { "ref": "wall16" }]
             },
             {
               "name": "Kitchen Cupboard",
-              "labelPosition": [18646, 11037],
-              "labelFontSize": 100,
               "walls": [{ "ref": "wall17" }, { "ref": "wall15" }, { "ref": "wall14" }, { "ref": "wall16" }]
             },
             {
               "name": "Laundry",
-              "labelPosition": [17465, 7925],
-              "labelFontSize": 150,
               "walls": [
                 { "ref": "wall30" },
                 { "ref": "wall6" },
@@ -570,26 +552,18 @@
             },
             {
               "name": "Toilet",
-              "labelPosition": [15708, 7345],
-              "labelFontSize": 150,
               "walls": [{ "ref": "wall30" }, { "ref": "wall19" }, { "ref": "wall20" }, { "ref": "wall13" }]
             },
             {
               "name": "Closet",
-              "labelPosition": [15669, 10797],
-              "labelFontSize": 100,
               "walls": [{ "ref": "wall23" }, { "ref": "wall22" }, { "ref": "wall21" }, { "ref": "wall8" }]
             },
             {
               "name": "Verandah",
-              "labelPosition": [20289, 16271],
-              "labelFontSize": 150,
               "walls": [{ "ref": "wall2" }, { "ref": "wall1" }, { "ref": "wall3" }, { "ref": "wall24" }]
             },
             {
               "name": "Conservatory",
-              "labelPosition": [23485, 6255],
-              "labelFontSize": 150,
               "walls": [{ "ref": "wall25" }, { "ref": "wall27" }, { "ref": "wall28" }, { "ref": "wall31" }]
             },
             {
@@ -920,8 +894,6 @@
           "rooms": [
             {
               "name": "Spare Bedroom",
-              "labelPosition": [15504, 14297],
-              "labelFontSize": 150,
               "walls": [
                 { "ref": "wall52" },
                 { "ref": "wall57" },
@@ -933,14 +905,10 @@
             },
             {
               "name": "Sophie's Room",
-              "labelPosition": [12561, 9722],
-              "labelFontSize": 150,
               "walls": [{ "ref": "wall39" }, { "ref": "wall40" }, { "ref": "wall38" }, { "ref": "wall35" }]
             },
             {
               "name": "Master Bedroom",
-              "labelPosition": [20892, 10252],
-              "labelFontSize": 150,
               "walls": [
                 { "ref": "wall41" },
                 { "ref": "wall42" },
@@ -951,8 +919,6 @@
             },
             {
               "name": "Bathroom",
-              "labelPosition": [15718, 9182],
-              "labelFontSize": 150,
               "walls": [
                 { "ref": "wall44" },
                 { "ref": "wall40" },
@@ -964,8 +930,6 @@
             },
             {
               "name": "Shower",
-              "labelPosition": [17642, 9297],
-              "labelFontSize": 150,
               "walls": [{ "ref": "wall45" }, { "ref": "wall44" }, { "ref": "wall35" }, { "ref": "wall43" }]
             },
             {
@@ -978,8 +942,6 @@
             },
             {
               "name": "Ciaran's Room",
-              "labelPosition": [12395, 14157],
-              "labelFontSize": 150,
               "walls": [
                 { "ref": "wall38" },
                 { "ref": "wall54" },
@@ -991,14 +953,10 @@
             },
             {
               "name": "Office",
-              "labelPosition": [21259, 13946],
-              "labelFontSize": 150,
               "walls": [{ "ref": "wall37" }, { "ref": "wall48" }, { "ref": "wall41" }, { "ref": "wall36" }]
             },
             {
               "name": "Stairwell",
-              "labelPosition": [18335, 14532],
-              "labelFontSize": 150,
               "walls": [
                 { "ref": "wall49" },
                 { "ref": "wall53" },
@@ -1026,8 +984,6 @@
             },
             {
               "name": "Lower Attic",
-              "labelPosition": [24001, 11894],
-              "labelFontSize": 150,
               "walls": [
                 { "ref": "wall35" },
                 { "ref": "wall66" },
@@ -1042,8 +998,6 @@
             },
             {
               "name": "Hallway",
-              "labelPosition": [18829, 12599],
-              "labelFontSize": 150,
               "walls": [
                 { "ref": "wall53" },
                 { "ref": "wall60" },
