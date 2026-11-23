@@ -43,6 +43,7 @@ export type JsonOpeningItem = JsonStandardDoor | JsonSlidingDoor | JsonStandardW
 
 export type JsonStandardDoor = {
   type: "StandardDoor";
+  openAngle?: number;
   hingeSide: "left" | "right";
   swingDirection: "in" | "out";
   thickness?: number;

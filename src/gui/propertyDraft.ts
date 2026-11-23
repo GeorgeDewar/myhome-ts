@@ -18,6 +18,7 @@ type PropertyValues = {
   hingeSide?: "left" | "right";
   swingDirection?: "in" | "out";
   thickness?: string;
+  openAngle?: string;
 };
 
 export type PropertyDraft = {
@@ -28,7 +29,7 @@ export type PropertyDraft = {
 
 type DistanceField =
   "width" | "height" | "startX" | "startY" | "endX" | "endY" | "distanceAlongWall" | "distanceFromFloor" | "thickness";
-export type PropertyErrors = Partial<Record<DistanceField | "shape" | "hingeSide" | "swingDirection" | "form", string>>;
+export type PropertyErrors = Partial<Record<DistanceField | "openAngle" | "shape" | "hingeSide" | "swingDirection" | "form", string>>;
 
 export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
   let values: PropertyValues;
@@ -64,6 +65,7 @@ export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
         hingeSide: target.item.hingeSide,
         swingDirection: target.item.swingDirection,
         thickness: String(target.item.leafThickness.toJson()),
+        openAngle: String(target.item.effectiveOpenAngle),
       };
       break;
     case "slidingDoor":
@@ -158,12 +160,18 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
     }
     case "door": {
       const thickness = parseDistance("thickness");
-      if (thickness === undefined) break;
+      const angleText = values.openAngle ?? initialValues.openAngle ?? "";
+      const angle = Number(angleText);
+      if (angleText.trim() === "" || !Number.isFinite(angle) || angle < 0 || angle > 180) {
+        errors.openAngle = "Enter an angle between 0 and 180 degrees.";
+      }
+      if (thickness === undefined || errors.openAngle) break;
       report(
         editPlan.updateDoor(target.item, {
           hingeSide: values.hingeSide !== initialValues.hingeSide ? values.hingeSide : undefined,
           swingDirection: values.swingDirection !== initialValues.swingDirection ? values.swingDirection : undefined,
           thickness: values.thickness !== initialValues.thickness ? thickness : undefined,
+          openAngle: values.openAngle !== initialValues.openAngle ? angle : undefined,
         }),
       );
       break;

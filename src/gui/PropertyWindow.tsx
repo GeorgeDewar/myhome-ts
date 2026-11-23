@@ -325,6 +325,24 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
                 </span>
               )}
             </label>
+            <label>
+              Open angle (degrees)
+              <input
+                type="number"
+                min="0"
+                max="180"
+                step="any"
+                value={draft.values.openAngle ?? ""}
+                aria-invalid={!!errors.openAngle}
+                aria-describedby={errors.openAngle ? "property-openAngle-error" : undefined}
+                onChange={(event) => updateValues({ openAngle: event.target.value })}
+              />
+              {errors.openAngle && (
+                <span className="property-error" id="property-openAngle-error" role="alert">
+                  {errors.openAngle}
+                </span>
+              )}
+            </label>
           </>
         )}
         {(target.kind === "window" || target.kind === "slidingDoor") && (

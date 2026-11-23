@@ -16,6 +16,7 @@ import type { Opening, SlidingDoor, StandardDoor } from "../model/Opening";
 import type { Room } from "../model/Room";
 import type { Wall } from "../model/Wall";
 import { roomPolygon } from "../model/geom/roomPolygon";
+import { doorSweep } from "../model/geom/doorSweep";
 import { drawMultiPolygon, slidingDoorLeaves, toPoint, toPolygon } from "./renderPolygons";
 import "./PlanView2D.css";
 
@@ -156,7 +157,7 @@ const drawDoor = (
   const hingeOffset = ((outward ? -1 : 1) * wall.width.metres) / 2;
   const hinge = { x: hingeEdge.x + normal.x * hingeOffset, y: hingeEdge.y + normal.y * hingeOffset };
   const closedDirection = isLeftHinged ? direction : { x: -direction.x, y: -direction.y };
-  const sweep = ((isLeftHinged === outward ? -1 : 1) * Math.PI) / 2;
+  const sweep = doorSweep(door);
   const rotatedDirection = {
     x: closedDirection.x * Math.cos(sweep) - closedDirection.y * Math.sin(sweep),
     y: closedDirection.x * Math.sin(sweep) + closedDirection.y * Math.cos(sweep),

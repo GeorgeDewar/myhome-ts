@@ -22,6 +22,7 @@ type DoorUpdate = {
   hingeSide?: StandardDoor["hingeSide"];
   swingDirection?: StandardDoor["swingDirection"];
   thickness?: number;
+  openAngle?: number;
 };
 type SlidingDoorUpdate = { thickness?: number };
 type EditResult<Field extends string = never> = { ok: true } | { ok: false; error: string; field?: Field };
@@ -419,9 +420,12 @@ export class PlanEditor {
     return { ok: true };
   }
 
-  updateDoor(door: StandardDoor, update: DoorUpdate): EditResult<"hingeSide" | "swingDirection" | "thickness"> {
+  updateDoor(door: StandardDoor, update: DoorUpdate): EditResult<"hingeSide" | "swingDirection" | "thickness" | "openAngle"> {
     if (!this.ownsOpeningItem(door)) return { ok: false, error: "This door is no longer in the plan." };
 
+    if (update.openAngle !== undefined && (!Number.isFinite(update.openAngle) || update.openAngle < 0 || update.openAngle > 180)) {
+      return { ok: false, field: "openAngle", error: "Enter an angle between 0 and 180 degrees." };
+    }
     if (update.hingeSide !== undefined && update.hingeSide !== "left" && update.hingeSide !== "right") {
       return { ok: false, field: "hingeSide", error: "Select a valid hinge side." };
     }
@@ -444,6 +448,10 @@ export class PlanEditor {
     }
     if (update.thickness !== undefined && door.thickness?.metres !== update.thickness / 1000) {
       door.thickness = Distance.fromJson(update.thickness);
+      changed = true;
+    }
+    if (update.openAngle !== undefined && update.openAngle !== door.openAngle) {
+      door.openAngle = update.openAngle;
       changed = true;
     }
     if (changed) this.onChange();

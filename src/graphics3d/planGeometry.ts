@@ -7,6 +7,7 @@ import {
   type SelectionTarget,
 } from "../gui/selection";
 import { roomPolygon } from "../model/geom/roomPolygon";
+import { doorSweep } from "../model/geom/doorSweep";
 import type { Level } from "../model/Level";
 import type { Opening } from "../model/Opening";
 import type { Plan } from "../model/Plan";
@@ -28,6 +29,7 @@ const box = (
   mesh.userData.item = target.item;
   mesh.userData.target = target;
   parent.add(mesh);
+  return mesh;
 };
 
 const lineGroup = (
@@ -123,13 +125,29 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
           0xa57952,
           selectionTargetForOpeningItem(item, opening),
         );
-      } else {
-        const thickness = item.type === "StandardDoor" ? item.leafThickness.metres : 0.02;
-        box(
+      } else if (item.type === "StandardDoor") {
+        const leftHinged = item.hingeSide === "left";
+        const sweep = doorSweep(item);
+        const direction = leftHinged ? 1 : -1;
+        const dx = direction * Math.cos(sweep);
+        const dz = direction * Math.sin(sweep);
+        const thickness = item.leafThickness.metres;
+        const hinge = leftHinged ? left : right;
+        const hingeDepth = (item.swingDirection === "out" ? -1 : 1) * wall.width.metres / 2;
+        const mesh = box(
           group,
           [width, itemHeight, thickness],
+          [hinge + dx * width / 2 + dz * thickness / 2, (bottom + top) / 2, hingeDepth + dz * width / 2 - dx * thickness / 2],
+          0xa57952,
+          selectionTargetForOpeningItem(item, opening),
+        );
+        mesh.rotation.y = -Math.atan2(dz, dx);
+      } else {
+        box(
+          group,
+          [width, itemHeight, 0.02],
           [(left + right) / 2, (bottom + top) / 2, 0],
-          item.type === "StandardDoor" ? 0xa57952 : 0x9ac4d5,
+          0x9ac4d5,
           selectionTargetForOpeningItem(item, opening),
         );
       }

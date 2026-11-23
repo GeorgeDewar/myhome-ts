@@ -229,6 +229,25 @@ describe("PlanEditor.updateWall", () => {
       expect(notify).not.toHaveBeenCalled();
     });
 
+    it("edits door open angles and validates them atomically", () => {
+      const { plan, door, editor, notify } = setup();
+      const before = plan.toJson();
+      expect(door.effectiveOpenAngle).toBe(90);
+      expect(editor.updateDoor(door, { openAngle: 181, hingeSide: "right" })).toEqual({
+        ok: false, field: "openAngle", error: "Enter an angle between 0 and 180 degrees.",
+      });
+      expect(plan.toJson()).toEqual(before);
+      expect(notify).not.toHaveBeenCalled();
+      expect(editor.updateDoor(door, { openAngle: 0 })).toEqual({ ok: true });
+      expect(door.toJson().openAngle).toBe(0);
+      const reloaded = Plan.fromJson(plan.toJson());
+      const reloadedDoor = reloaded.buildings[0].levels[0].walls[0].openings[0].contents[0];
+      if (reloadedDoor.type !== "StandardDoor") throw new Error("Expected a standard door");
+      expect(reloadedDoor.effectiveOpenAngle).toBe(0);
+      expect(editor.updateDoor(door, { openAngle: 180 })).toEqual({ ok: true });
+      expect(door.effectiveOpenAngle).toBe(180);
+    });
+
     it("rejects fractional opening positions without applying other fields", () => {
       const { opening, editor, notify } = setup();
       expect(editor.updateOpening(opening, { width: 1200, distanceAlongWall: 500.5 })).toEqual({

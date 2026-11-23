@@ -122,6 +122,21 @@ describe("property drafts", () => {
     expect(notify).toHaveBeenCalledTimes(2);
   });
 
+  it("edits a door's open angle with validation", () => {
+    const { opening, door, editor, notify } = setup();
+    const draft = createPropertyDraft({ kind: "door", item: door, opening });
+    expect(draft.values.openAngle).toBe("90");
+    draft.values = { ...draft.values, openAngle: "-1", hingeSide: "right" };
+    expect(applyPropertyDraft(draft, editor).openAngle).toBeDefined();
+    expect(door.hingeSide).toBe("left");
+    expect(notify).not.toHaveBeenCalled();
+    draft.values = { ...draft.values, openAngle: "22.5", hingeSide: "left" };
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
+    expect(door.toJson().openAngle).toBe(22.5);
+    expect(createPropertyDraft({ kind: "door", item: door, opening }).values.openAngle).toBe("22.5");
+    expect(notify).toHaveBeenCalledOnce();
+  });
+
   it("applies room and sliding-door changes, and leaves windows unchanged", () => {
     const { level, opening, slidingDoor, window, editor, notify } = setup();
     const room = level.rooms[0];

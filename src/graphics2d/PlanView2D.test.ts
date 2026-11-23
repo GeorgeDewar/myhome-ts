@@ -9,6 +9,39 @@ import { Room } from "../model/Room";
 import { drawFences, drawOpenings, isVisibleTarget, targetsAtPoint, visibleWalls } from "./PlanView2D";
 import { slidingDoorLeaves } from "./renderPolygons";
 
+it.each([
+  ["left", "in", 0], ["left", "in", 45], ["left", "in", 90], ["left", "in", 180],
+  ["left", "out", 45], ["right", "in", 45], ["right", "out", 45],
+] as const)("draws a %s-hinged %s door at %s degrees", (hingeSide, swingDirection, openAngle) => {
+  const plan = Plan.fromJson({
+    buildings: [{
+      name: "House", levels: [{
+        number: 0, name: "Ground", walls: [{
+          id: "wall", start: [0, 0], end: [4000, 0],
+          openings: [{
+            id: "opening", width: 1000, distanceAlongWall: 2000,
+            contents: [{ type: "StandardDoor", hingeSide, swingDirection, ...(openAngle === 90 ? {} : { openAngle }) }],
+          }],
+        }],
+      }],
+    }],
+  });
+  const context = {
+    beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), closePath: vi.fn(),
+    stroke: vi.fn(), arc: vi.fn(), strokeStyle: "", lineWidth: 0,
+  };
+  drawOpenings(context as unknown as CanvasRenderingContext2D, plan.getWallsOnLevel(0), 20, true);
+  const hingeX = hingeSide === "left" ? 1.5 : 2.5;
+  const hingeY = swingDirection === "out" ? -0.05 : 0.05;
+  const sweep = (hingeSide === "left") === (swingDirection === "out") ? -openAngle : openAngle;
+  const direction = hingeSide === "left" ? 1 : -1;
+  expect(context.moveTo).toHaveBeenCalledWith(hingeX, hingeY);
+  expect(context.lineTo.mock.calls[0][0]).toBeCloseTo(hingeX + direction * Math.cos(sweep * Math.PI / 180));
+  expect(context.lineTo.mock.calls[0][1]).toBeCloseTo(hingeY + direction * Math.sin(sweep * Math.PI / 180));
+  const arc = context.arc.mock.calls[0];
+  expect(Math.abs(arc[4] - arc[3])).toBeCloseTo(openAngle * Math.PI / 180);
+});
+
 describe("room multi-selection", () => {
   it("adds and removes rooms without treating overlapping hit candidates as selected rooms", () => {
     const first = new Room("First", []);

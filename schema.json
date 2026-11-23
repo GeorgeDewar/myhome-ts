@@ -118,6 +118,7 @@
                                     "unevaluatedProperties": false,
                                     "properties": {
                                       "type": { "const": "StandardDoor" },
+                                      "openAngle": { "type": "number", "minimum": 0, "maximum": 180, "default": 90 },
                                       "hingeSide": {
                                         "type": "string",
                                         "enum": ["left", "right"],

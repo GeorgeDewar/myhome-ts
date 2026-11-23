@@ -70,6 +70,36 @@ describe("Plan", () => {
     expect(level.rooms[0].walls[0].level).toBe(level);
   });
 
+  it("round-trips optional door angles and ignores invalid values", () => {
+    const plan = Plan.fromJson({
+      buildings: [{
+        name: "House",
+        levels: [{
+          number: 0, name: "Ground",
+          walls: [{
+            id: "wall", start: [0, 0], end: [1000, 0],
+            openings: [{
+              id: "opening", width: 800, distanceAlongWall: 500,
+              contents: [
+                { type: "StandardDoor", hingeSide: "left", swingDirection: "in" },
+                { type: "StandardDoor", hingeSide: "right", swingDirection: "out", openAngle: 45 },
+                { type: "StandardDoor", hingeSide: "left", swingDirection: "out", openAngle: 181 },
+              ],
+            }],
+          }],
+        }],
+      }],
+    });
+    const [defaultDoor, angled] = plan.buildings[0].levels[0].walls[0].openings[0].contents;
+    if (defaultDoor.type !== "StandardDoor" || angled.type !== "StandardDoor") throw new Error("Expected doors");
+    expect(defaultDoor.effectiveOpenAngle).toBe(90);
+    expect(defaultDoor.toJson()).not.toHaveProperty("openAngle");
+    expect(angled.effectiveOpenAngle).toBe(45);
+    expect(plan.loadWarnings).toHaveLength(1);
+    const saved = plan.toJson();
+    expect(Plan.fromJson(saved).toJson()).toEqual(saved);
+  });
+
   it("serializes room wall references from the ordered wall objects", () => {
     const plan = Plan.fromJson({
       buildings: [{

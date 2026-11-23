@@ -8,6 +8,8 @@ Property windows hold changes locally until Apply or OK is pressed. Apply keeps 
 Wall and fence endpoints, room names, and opening shapes, heights and floor offsets can be edited in these windows. Rectangle is the default opening shape and is omitted from saved JSON. Clearing an optional height or floor offset removes it from the saved plan.
 Walls can also be marked virtual or attic.
 
+Standard door properties include an open angle from 0 to 180 degrees, defaulting to 90. The optional `openAngle` is saved on the door.
+
 Room walls are stored as ordered wall objects; JSON references are derived from those objects when saving. Each reference must contain a `ref` to a wall on the same level.
 
 Selected objects can be deleted with Delete or their context menu. Deleting a wall also deletes its openings and any rooms that reference it; deleting an opening deletes its contents. Deletion goes through `PlanEditor` and notifies the views.
@@ -31,6 +33,8 @@ Selections in the hierarchy and 2D plan are highlighted in 3D. Clicking a 3D obj
 Openings are clipped to their wall, and overlapping openings are combined when cutting the wall. The schema does not yet describe positions within an opening, so each item is shown across the opening rather than arranged independently. Virtual and attic walls have no 3D solid for now.
 
 Opening shapes do not yet affect rendering; openings are displayed as rectangular.
+
+Standard doors are shown at their current open angle in both views; sliding doors do not use an open angle.
 
 ### Loading plans
 

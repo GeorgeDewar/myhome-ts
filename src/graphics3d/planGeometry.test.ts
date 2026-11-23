@@ -105,6 +105,67 @@ describe("3D plan geometry", () => {
     disposePlanGeometry(group);
   });
 
+  it.each([
+    ["left", "in", 0], ["left", "in", 45], ["left", "in", 90], ["left", "in", 180],
+    ["left", "out", 45], ["right", "in", 45], ["right", "out", 45],
+  ] as const)("positions a %s-hinged %s door at %s degrees", (hingeSide, swingDirection, openAngle) => {
+    const plan = Plan.fromJson({
+      buildings: [{
+        name: "House", levels: [{
+          number: 0, name: "Ground", walls: [{
+            id: "wall", start: [0, 0], end: [4000, 0],
+            openings: [{
+              id: "opening", width: 1000, distanceAlongWall: 2000,
+              contents: [{ type: "StandardDoor", hingeSide, swingDirection, ...(openAngle === 90 ? {} : { openAngle }) }],
+            }],
+          }],
+        }],
+      }],
+    });
+    const group = createPlanGeometry(plan);
+    group.updateMatrixWorld(true);
+    const door = plan.buildings[0].levels[0].walls[0].openings[0].contents[0];
+    const mesh = meshesFor(group, door)[0];
+    const start = mesh.localToWorld(new THREE.Vector3(-0.5, 0, 0.0175));
+    const end = mesh.localToWorld(new THREE.Vector3(0.5, 0, 0.0175));
+    const hingeX = hingeSide === "left" ? 1.5 : 2.5;
+    const hingeZ = swingDirection === "out" ? -0.05 : 0.05;
+    const sweep = (hingeSide === "left") === (swingDirection === "out") ? -openAngle : openAngle;
+    const direction = hingeSide === "left" ? 1 : -1;
+    expect(start.x).toBeCloseTo(hingeX);
+    expect(start.z).toBeCloseTo(hingeZ);
+    expect(end.x).toBeCloseTo(hingeX + direction * Math.cos(sweep * Math.PI / 180));
+    expect(end.z).toBeCloseTo(hingeZ + direction * Math.sin(sweep * Math.PI / 180));
+    disposePlanGeometry(group);
+  });
+
+  it("orients the open door with a rotated wall", () => {
+    const plan = Plan.fromJson({
+      buildings: [{
+        name: "House", levels: [{
+          number: 0, name: "Ground", walls: [{
+            id: "wall", start: [1000, 2000], end: [1000, 6000],
+            openings: [{
+              id: "opening", width: 1000, distanceAlongWall: 2000,
+              contents: [{ type: "StandardDoor", hingeSide: "left", swingDirection: "in" }],
+            }],
+          }],
+        }],
+      }],
+    });
+    const group = createPlanGeometry(plan);
+    group.updateMatrixWorld(true);
+    const door = plan.buildings[0].levels[0].walls[0].openings[0].contents[0];
+    const mesh = meshesFor(group, door)[0];
+    const hinge = mesh.localToWorld(new THREE.Vector3(-0.5, 0, 0.0175));
+    const end = mesh.localToWorld(new THREE.Vector3(0.5, 0, 0.0175));
+    expect(hinge.x).toBeCloseTo(0.95);
+    expect(hinge.z).toBeCloseTo(3.5);
+    expect(end.x).toBeCloseTo(-0.05);
+    expect(end.z).toBeCloseTo(3.5);
+    disposePlanGeometry(group);
+  });
+
   it("renders fences and room floors while omitting virtual and attic walls", () => {
     const plan = Plan.fromJson({
       fences: [{ id: "f", start: [0, 0], end: [2000, 0], height: 1500 }],

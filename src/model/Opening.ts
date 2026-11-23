@@ -13,10 +13,15 @@ export class StandardDoor {
     public hingeSide: "left" | "right",
     public swingDirection: "in" | "out",
     public thickness?: Distance,
+    public openAngle?: number,
   ) {}
 
   get leafThickness() {
     return this.thickness ?? new Distance(DEFAULT_DOOR_THICKNESS_METRES);
+  }
+
+  get effectiveOpenAngle() {
+    return this.openAngle ?? 90;
   }
 
   static fromJson(json: Extract<JsonOpeningItem, { type: "StandardDoor" }>) {
@@ -24,12 +29,14 @@ export class StandardDoor {
       json.hingeSide,
       json.swingDirection,
       json.thickness === undefined ? undefined : Distance.fromJson(json.thickness),
+      json.openAngle,
     );
   }
 
   toJson(): Extract<JsonOpeningItem, { type: "StandardDoor" }> {
     return {
       type: this.type,
+      ...(this.openAngle === undefined ? {} : { openAngle: this.openAngle }),
       hingeSide: this.hingeSide,
       swingDirection: this.swingDirection,
       ...(this.thickness ? { thickness: this.thickness.toJson() } : {}),
