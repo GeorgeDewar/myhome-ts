@@ -71,7 +71,11 @@
                         "$ref": "#/$defs/position",
                         "description": "Position of the end of the wall (right side when viewing face A) relative to the floor, in millimetres. The position is midway through the thickness of the wall."
                       },
-                      "width": { "type": "number", "exclusiveMinimum": 0, "description": "Width of the wall in millimetres" },
+                      "width": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "description": "Width of the wall in millimetres"
+                      },
                       "openings": {
                         "type": "array",
                         "items": {
@@ -161,6 +165,10 @@
                       "virtual": {
                         "type": "boolean",
                         "description": "If true, it's not really a wall at all but is only used to define an area"
+                      },
+                      "attic": {
+                        "type": "boolean",
+                        "description": "If true, this wall is classified by Home Designer as an attic wall"
                       }
                     }
                   }
