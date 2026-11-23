@@ -216,6 +216,19 @@ describe("PlanEditor.updateWall", () => {
       expect(notify).toHaveBeenCalledOnce();
     });
 
+    it("rejects an invalid opening shape without applying other changes", () => {
+      const { opening, editor, notify } = setup();
+      // @ts-expect-error Exercise validation of untyped input.
+      expect(editor.updateOpening(opening, { shape: "triangle", width: 1200 })).toEqual({
+        ok: false,
+        field: "shape",
+        error: "Select a valid opening shape.",
+      });
+      expect(opening.width.toJson()).toBe(1000);
+      expect(opening.shape).toBeUndefined();
+      expect(notify).not.toHaveBeenCalled();
+    });
+
     it("rejects fractional opening positions without applying other fields", () => {
       const { opening, editor, notify } = setup();
       expect(editor.updateOpening(opening, { width: 1200, distanceAlongWall: 500.5 })).toEqual({

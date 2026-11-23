@@ -18,6 +18,7 @@ describe("Plan", () => {
         for (const wall of level.walls ?? []) {
           for (const opening of wall.openings ?? []) {
             if (opening.contents?.length === 0) delete opening.contents;
+            if (opening.shape === "rectangle") delete opening.shape;
           }
         }
         if (level.walls?.length === 0) delete level.walls;
@@ -31,7 +32,7 @@ describe("Plan", () => {
     expect(Plan.fromJson(plan.toJson()).loadWarnings).toEqual([]);
   });
 
-  it("preserves explicit default opening shapes and attic flags", () => {
+  it("omits explicit default opening shapes while preserving attic flags", () => {
     const document = {
       buildings: [{
         name: "House",
@@ -49,7 +50,9 @@ describe("Plan", () => {
       }],
     } satisfies JsonPlan;
 
-    expect(Plan.fromJson(document).toJson()).toEqual(document);
+    const savedWall = Plan.fromJson(document).toJson().buildings![0].levels[0].walls![0];
+    expect(savedWall.attic).toBe(false);
+    expect(savedWall.openings).toEqual([{ id: "opening", width: 800, distanceAlongWall: 500 }]);
   });
 
   it("resolves ownership and room-wall relationships", () => {

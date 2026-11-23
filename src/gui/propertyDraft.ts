@@ -1,10 +1,12 @@
 import type { PlanEditor } from "../model/PlanEditor";
+import type { JsonOpening } from "../model/json/Document";
 import type { SelectionTarget } from "./selection";
 
 type PropertyValues = {
   name?: string;
   virtual?: boolean;
   attic?: boolean;
+  shape?: JsonOpening["shape"];
   width?: string;
   height?: string;
   startX?: string;
@@ -26,7 +28,7 @@ export type PropertyDraft = {
 
 type DistanceField =
   "width" | "height" | "startX" | "startY" | "endX" | "endY" | "distanceAlongWall" | "distanceFromFloor" | "thickness";
-export type PropertyErrors = Partial<Record<DistanceField | "hingeSide" | "swingDirection" | "form", string>>;
+export type PropertyErrors = Partial<Record<DistanceField | "shape" | "hingeSide" | "swingDirection" | "form", string>>;
 
 export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
   let values: PropertyValues;
@@ -49,6 +51,7 @@ export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
       break;
     case "opening":
       values = {
+        shape: target.item.shape ?? "rectangle",
         width: String(target.item.width.toJson()),
         distanceAlongWall: String(target.item.distanceAlongWall.toJson()),
         height: target.item.height === undefined ? "" : String(target.item.height.toJson()),
@@ -144,6 +147,7 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
       if (width === undefined || distance === undefined || Object.keys(errors).length > 0) break;
       report(
         editPlan.updateOpening(target.item, {
+          shape: values.shape !== initialValues.shape ? values.shape : undefined,
           width: values.width !== initialValues.width ? width : undefined,
           distanceAlongWall: values.distanceAlongWall !== initialValues.distanceAlongWall ? distance : undefined,
           height,

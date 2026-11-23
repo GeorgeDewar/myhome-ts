@@ -229,6 +229,26 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
               Opening ID
               <input value={target.item.id} readOnly />
             </label>
+            <label>
+              Shape
+              <select
+                value={draft.values.shape}
+                aria-invalid={!!errors.shape}
+                aria-describedby={errors.shape ? "property-shape-error" : undefined}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (value === "rectangle" || value === "halfCircleArch") updateValues({ shape: value });
+                }}
+              >
+                <option value="rectangle">Rectangle</option>
+                <option value="halfCircleArch">Half-circle arch</option>
+              </select>
+              {errors.shape && (
+                <span className="property-error" id="property-shape-error" role="alert">
+                  {errors.shape}
+                </span>
+              )}
+            </label>
             <DistanceField
               label="Width (mm)"
               field="width"

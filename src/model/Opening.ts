@@ -89,7 +89,7 @@ export class Opening {
       Distance.fromJson(json.distanceAlongWall),
       json.height === undefined ? undefined : Distance.fromJson(json.height),
       json.distanceFromFloor === undefined ? undefined : Distance.fromJson(json.distanceFromFloor),
-      json.shape,
+      json.shape === "rectangle" ? undefined : json.shape,
     );
     opening.contents = (json.contents ?? []).map((content) => {
       switch (content.type) {
@@ -109,7 +109,7 @@ export class Opening {
   toJson(): JsonOpening {
     return {
       id: this.id,
-      ...(this.shape === undefined ? {} : { shape: this.shape }),
+      ...(this.shape === undefined || this.shape === "rectangle" ? {} : { shape: this.shape }),
       distanceAlongWall: this.distanceAlongWall.toPositionJson(),
       width: this.width.toJson(),
       ...(this.height ? { height: this.height.toJson() } : {}),

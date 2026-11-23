@@ -12,6 +12,7 @@ import { Wall } from "./Wall";
 type WallUpdate = { width?: number; start?: JsonPosition; end?: JsonPosition; virtual?: boolean; attic?: boolean };
 type RoomUpdate = { name?: string };
 type OpeningUpdate = {
+  shape?: NonNullable<Opening["shape"]>;
   width?: number;
   distanceAlongWall?: number;
   height?: number | null;
@@ -343,9 +344,12 @@ export class PlanEditor {
   updateOpening(
     opening: Opening,
     update: OpeningUpdate,
-  ): EditResult<"width" | "height" | "distanceAlongWall" | "distanceFromFloor"> {
+  ): EditResult<"shape" | "width" | "height" | "distanceAlongWall" | "distanceFromFloor"> {
     if (!this.ownsOpening(opening)) return { ok: false, error: "This opening is no longer in the plan." };
 
+    if (update.shape !== undefined && update.shape !== "rectangle" && update.shape !== "halfCircleArch") {
+      return { ok: false, field: "shape", error: "Select a valid opening shape." };
+    }
     if (update.width !== undefined) {
       const error = positiveDistanceError(update.width, "Opening width");
       if (error) return { ok: false, field: "width", error };
@@ -377,6 +381,13 @@ export class PlanEditor {
     }
 
     let changed = false;
+    if (update.shape !== undefined) {
+      const shape = update.shape === "rectangle" ? undefined : update.shape;
+      if (shape !== opening.shape) {
+        opening.shape = shape;
+        changed = true;
+      }
+    }
     if (update.width !== undefined && opening.width.metres !== update.width / 1000) {
       opening.width = Distance.fromJson(update.width);
       changed = true;

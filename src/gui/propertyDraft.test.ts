@@ -295,6 +295,43 @@ describe("property drafts", () => {
     expect(notify).toHaveBeenCalledTimes(2);
   });
 
+  it("edits opening shape atomically and omits the rectangle default", () => {
+    const { plan, opening, editor, notify } = setup();
+    const draft = createPropertyDraft({ kind: "opening", item: opening });
+    expect(draft.values.shape).toBe("rectangle");
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
+    expect(opening.toJson()).not.toHaveProperty("shape");
+    expect(notify).not.toHaveBeenCalled();
+
+    draft.values = { ...draft.values, shape: "halfCircleArch", width: "-1" };
+    expect(applyPropertyDraft(draft, editor).width).toBeDefined();
+    expect(opening.shape).toBeUndefined();
+    expect(notify).not.toHaveBeenCalled();
+
+    draft.values = { ...draft.values, width: "1000" };
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
+    expect(Plan.fromJson(plan.toJson()).buildings[0].levels[0].walls[0].openings[0].shape).toBe("halfCircleArch");
+    expect(notify).toHaveBeenCalledOnce();
+
+    const next = createPropertyDraft({ kind: "opening", item: opening });
+    next.values = { ...next.values, shape: "rectangle" };
+    expect(applyPropertyDraft(next, editor)).toEqual({});
+    expect(opening.shape).toBeUndefined();
+    expect(opening.toJson()).not.toHaveProperty("shape");
+    expect(notify).toHaveBeenCalledTimes(2);
+  });
+
+  it("renders the opening shape selector with the current value", () => {
+    const { opening, editor } = setup();
+    const render = () =>
+      renderToStaticMarkup(
+        createElement(PropertyWindow, { target: { kind: "opening", item: opening }, editPlan: editor, onClose: () => {} }),
+      );
+    expect(render()).toContain('<option value="rectangle" selected="">Rectangle</option>');
+    opening.shape = "halfCircleArch";
+    expect(render()).toContain('<option value="halfCircleArch" selected="">Half-circle arch</option>');
+  });
+
   it("renders room properties with a name field but no wall selection", () => {
     const { level, editor } = setup();
     const room = level.rooms[0];
