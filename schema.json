@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/myhome.schema.json",
+  "$id": "https://myhome.dewar.co.nz/myhome.schema.json",
   "title": "House",
   "description": "A house",
   "type": "object",

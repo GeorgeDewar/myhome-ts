@@ -1,5 +1,5 @@
 {
-  "$schema": "https://example.com/product.schema.json",
+  "$schema": "https://myhome.dewar.co.nz/myhome.schema.json",
   "fences": [
     { "id": "fence0", "start": [9644, 0], "end": [32632, 0] },
     { "id": "fence1", "start": [25144, 8173], "end": [29069, 9601] },
@@ -201,14 +201,7 @@
               "start": [21779, 7587],
               "end": [21779, 10730],
               "openings": [
-                {
-                  "id": "door7",
-                  "distanceAlongWall": 1883,
-                  "width": 750,
-                  "height": 2100,
-                  "distanceFromFloor": 0,
-                  "contents": []
-                }
+                { "id": "door7", "distanceAlongWall": 1883, "width": 750, "height": 2100, "distanceFromFloor": 0 }
               ]
             },
             {
@@ -218,12 +211,11 @@
               "openings": [
                 {
                   "id": "door8",
+                  "shape": "halfCircleArch",
                   "distanceAlongWall": 3496,
                   "width": 1065,
                   "height": 2100,
-                  "distanceFromFloor": 0,
-                  "shape": "halfCircleArch",
-                  "contents": []
+                  "distanceFromFloor": 0
                 }
               ]
             },
@@ -232,14 +224,7 @@
               "start": [18155, 7587],
               "end": [18155, 11683],
               "openings": [
-                {
-                  "id": "door9",
-                  "distanceAlongWall": 2409,
-                  "width": 750,
-                  "height": 2100,
-                  "distanceFromFloor": 0,
-                  "contents": []
-                }
+                { "id": "door9", "distanceAlongWall": 2409, "width": 750, "height": 2100, "distanceFromFloor": 0 }
               ]
             },
             {
@@ -373,14 +358,7 @@
               "start": [18155, 7587],
               "end": [25187, 7587],
               "openings": [
-                {
-                  "id": "door15",
-                  "distanceAlongWall": 5284,
-                  "width": 1570,
-                  "height": 2100,
-                  "distanceFromFloor": 0,
-                  "contents": []
-                },
+                { "id": "door15", "distanceAlongWall": 5284, "width": 1570, "height": 2100, "distanceFromFloor": 0 },
                 {
                   "id": "window20",
                   "distanceAlongWall": 1852,
@@ -494,7 +472,7 @@
             },
             {
               "name": "Conservatory",
-              "walls": [{ "ref": "wall28" }, { "ref": "wall29" }, { "ref": "wall25" }, { "ref": "wall31" }]
+              "walls": [{ "ref": "wall25" }, { "ref": "wall27" }, { "ref": "wall28" }, { "ref": "wall29" }]
             },
             {
               "name": "Kitchen",
@@ -561,10 +539,6 @@
             {
               "name": "Verandah",
               "walls": [{ "ref": "wall2" }, { "ref": "wall1" }, { "ref": "wall3" }, { "ref": "wall24" }]
-            },
-            {
-              "name": "Conservatory",
-              "walls": [{ "ref": "wall25" }, { "ref": "wall27" }, { "ref": "wall28" }, { "ref": "wall31" }]
             },
             {
               "name": "Mini-verandah",
@@ -884,12 +858,10 @@
             },
             { "id": "wall61", "start": [18115, 13418], "end": [18115, 12247] },
             { "id": "wall62", "start": [10796, 6570], "end": [25144, 6570], "virtual": true },
-            { "id": "wall63", "start": [21783, 5568], "end": [21783, 4953], "attic": true },
             { "id": "wall64", "start": [25139, 16727], "end": [10796, 16727], "virtual": true },
             { "id": "wall65", "start": [25139, 16143], "end": [25139, 16727], "attic": true },
             { "id": "wall66", "start": [10796, 8257], "end": [10796, 6570], "attic": true },
-            { "id": "wall67", "start": [10796, 16727], "end": [10796, 15646], "attic": true },
-            { "id": "wall68", "start": [25187, 4953], "end": [25187, 6435], "attic": true }
+            { "id": "wall67", "start": [10796, 16727], "end": [10796, 15646], "attic": true }
           ],
           "rooms": [
             {
@@ -1011,7 +983,7 @@
             }
           ]
         },
-        { "number": 2, "name": "Floor 2", "walls": [], "rooms": [] }
+        { "number": 2, "name": "Floor 2" }
       ]
     }
   ]
