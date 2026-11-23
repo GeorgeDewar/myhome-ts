@@ -26,10 +26,12 @@ export type JsonWall = {
   width?: number;
   openings?: JsonOpening[];
   virtual?: boolean;
+  attic?: boolean;
 };
 
 export type JsonOpening = {
   id: string;
+  shape?: "rectangle" | "halfCircleArch";
   width: number;
   height?: number;
   distanceAlongWall: number;

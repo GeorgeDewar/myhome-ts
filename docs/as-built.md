@@ -30,6 +30,8 @@ Selections in the hierarchy and 2D plan are highlighted in 3D. Clicking a 3D obj
 
 Openings are clipped to their wall, and overlapping openings are combined when cutting the wall. The schema does not yet describe positions within an opening, so each item is shown across the opening rather than arranged independently. Virtual walls define rooms but have no 3D solid.
 
+Wall `attic` flags and opening `shape` values are preserved on load and save, but do not yet affect rendering; openings are displayed as rectangular.
+
 ### Loading plans
 
 Plans are validated against `schema.json` as they load. Items with fractional positions are ignored with a warning. Invalid buildings, levels, walls, fences, openings, opening items and rooms are omitted, and the app lists warnings identifying their locations. Children of an invalid item are not checked. Walls are checked before rooms so that warnings about invalid walls appear before warnings about rooms that reference them.

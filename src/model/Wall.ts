@@ -17,6 +17,7 @@ export class Wall {
     public to: Point2D,
     public explicitWidth?: Distance,
     public virtual?: boolean,
+    public attic?: boolean,
   ) {
     if (from.equals(to)) throw new Error(`Wall '${id}' must have a non-zero centerline`);
     this.openings = [];
@@ -36,6 +37,7 @@ export class Wall {
       Point2D.fromJson(json.end),
       json.width === undefined ? undefined : Distance.fromJson(json.width),
       json.virtual,
+      json.attic,
     );
     wall.openings = (json.openings ?? []).map(Opening.fromJson);
     wall.openings.forEach((opening) => (opening.wall = wall));
@@ -50,6 +52,7 @@ export class Wall {
       ...(this.explicitWidth ? { width: this.explicitWidth.toJson() } : {}),
       ...(this.openings.length > 0 ? { openings: this.openings.map((opening) => opening.toJson()) } : {}),
       ...(this.virtual === undefined ? {} : { virtual: this.virtual }),
+      ...(this.attic === undefined ? {} : { attic: this.attic }),
     };
   }
 

@@ -12,12 +12,44 @@ import { formatPlanJson } from "./json/formatPlanJson";
 describe("Plan", () => {
   it("round-trips the existing plan fixture, omitting empty optional arrays", () => {
     const document = testPlan as JsonPlan;
-
     const expected = structuredClone(document);
-    const emptyLevel = expected.buildings![0].levels.find((level) => level.number === 3)!;
-    delete emptyLevel.walls;
-    delete emptyLevel.rooms;
-    expect(Plan.fromJson(document).toJson()).toEqual(expected);
+    for (const building of expected.buildings ?? []) {
+      for (const level of building.levels) {
+        for (const wall of level.walls ?? []) {
+          for (const opening of wall.openings ?? []) {
+            if (opening.contents?.length === 0) delete opening.contents;
+          }
+        }
+        if (level.walls?.length === 0) delete level.walls;
+        if (level.rooms?.length === 0) delete level.rooms;
+      }
+    }
+
+    const plan = Plan.fromJson(document);
+    expect(plan.loadWarnings).toEqual([]);
+    expect(plan.toJson()).toEqual(expected);
+    expect(Plan.fromJson(plan.toJson()).loadWarnings).toEqual([]);
+  });
+
+  it("preserves explicit default opening shapes and attic flags", () => {
+    const document = {
+      buildings: [{
+        name: "House",
+        levels: [{
+          number: 0,
+          name: "Ground",
+          walls: [{
+            id: "wall",
+            start: [0, 0],
+            end: [1000, 0],
+            attic: false,
+            openings: [{ id: "opening", width: 800, distanceAlongWall: 500, shape: "rectangle" }],
+          }],
+        }],
+      }],
+    } satisfies JsonPlan;
+
+    expect(Plan.fromJson(document).toJson()).toEqual(document);
   });
 
   it("resolves ownership and room-wall relationships", () => {
