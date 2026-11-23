@@ -8,10 +8,13 @@ type Edge = { start: Point; end: Point; wall: Wall };
 
 const tolerance = 1e-7;
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
-const area = (points: Point[]) => Math.abs(points.reduce((sum, point, index) => {
-  const next = points[(index + 1) % points.length];
-  return sum + point.x * next.y - next.x * point.y;
-}, 0)) / 2;
+const area = (points: Point[]) => {
+  const origin = points[0];
+  return Math.abs(points.reduce((sum, point, index) => {
+    const next = points[(index + 1) % points.length];
+    return sum + (point.x - origin.x) * (next.y - origin.y) - (next.x - origin.x) * (point.y - origin.y);
+  }, 0)) / 2;
+};
 const polygon = (points: Point[]): Polygon => [
   [...points.map(({ x, y }): Pair => [x, y]), [points[0].x, points[0].y]],
 ];
@@ -76,6 +79,8 @@ export const mergeRoomWalls = (rooms: readonly Room[]): Wall[] | undefined => {
   const result = roomPolygon(new Room("", walls));
   if (result.length < 3) return;
   const difference = xor(merged, polygon(result));
-  if (difference.length > 0) return;
+  const differenceArea = difference.reduce((sum, shape) => sum + shape.reduce((shapeArea, ring, index) =>
+    shapeArea + (index === 0 ? 1 : -1) * area(ring.map(([x, y]) => ({ x, y }))), 0), 0);
+  if (differenceArea > Math.max(tolerance, mergedArea * 1e-9)) return;
   return walls;
 };

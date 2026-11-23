@@ -89,6 +89,23 @@ describe("merging rooms", () => {
     expect(editor.mergeRooms([lounge, dining], lounge).ok).toBe(true);
   });
 
+  it("merges the Conservatory rooms in the example plan", () => {
+    const plan = Plan.fromJson(testPlan);
+    const level = plan.buildings[0].levels[0];
+    const rooms = level.rooms.filter((room) => room.name === "Conservatory");
+    const walls = [...level.walls];
+    const editor = new PlanEditor(plan, () => {});
+
+    expect(rooms).toHaveLength(2);
+    expect(editor.canMergeRooms(rooms)).toBe(true);
+    expect(editor.mergeRooms(rooms, rooms[0])).toEqual({ ok: true });
+    expect(level.rooms.filter((room) => room.name === "Conservatory")).toEqual([rooms[0]]);
+    expect(level.walls).toEqual(walls);
+    expect(rooms[0].walls.map((wall) => wall.id).sort()).toEqual(["wall25", "wall27", "wall28", "wall29"]);
+    expect(roomPolygon(rooms[0])).toHaveLength(4);
+    expect(Plan.fromJson(plan.toJson()).loadWarnings).toEqual([]);
+  });
+
   it("preserves the exposed portion of a partially shared wall in a concave perimeter", () => {
     const plan = Plan.fromJson({
       buildings: [{
