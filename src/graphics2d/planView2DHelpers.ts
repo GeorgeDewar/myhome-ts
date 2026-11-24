@@ -265,6 +265,24 @@ export const selectionAtPoint = (
   return { targets: [...labels, ...hits], activeIndex: hits.length ? labels.length + hits.length - 1 : -1 };
 };
 
+export const doubleClickSelection = (before: SelectionState, hits: SelectionState): SelectionState => {
+  const active = before.targets[before.activeIndex];
+  const labels = hits.targets.filter((target) => target.kind === "roomLabel");
+  const selectedLabel = labels.find((label) =>
+    ((active?.kind === "room" || active?.kind === "roomLabel") && active.item === label.item) ||
+    before.rooms?.includes(label.item),
+  );
+  if (selectedLabel) return { ...hits, activeIndex: hits.targets.indexOf(selectedLabel) };
+
+  const label = labels.findLast((candidate) =>
+    hits.targets.some((target) => target.kind === "room" && target.item === candidate.item),
+  ) ?? labels.at(-1);
+  if (!label) return hits;
+  const roomIndex = hits.targets.findIndex((target) => target.kind === "room" && target.item === label.item);
+  if (roomIndex >= 0) return { ...hits, activeIndex: roomIndex };
+  return { targets: [...hits.targets, { kind: "room", item: label.item }], activeIndex: hits.targets.length };
+};
+
 export const isVisibleTarget = (target: SelectionTarget, walls: Wall[], fences: Fence[], showDoors: boolean) => {
   if (target.kind === "room") return true;
   if (target.kind === "roomLabel") return false;

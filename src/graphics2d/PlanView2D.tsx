@@ -11,7 +11,7 @@ import type { JsonPosition } from "../model/json/Document";
 import type { PlanEditor } from "../model/PlanEditor";
 import type { Room } from "../model/Room";
 import {
-  drawFences, drawGrid, drawOpenings, drawSelection, drawWalls,
+  doubleClickSelection, drawFences, drawGrid, drawOpenings, drawSelection, drawWalls,
   isVisibleTarget, selectionAtPoint, targetsAtPoint, visibleWalls,
 } from "./planView2DHelpers";
 import { toPoint } from "./renderPolygons";
@@ -59,6 +59,7 @@ export const PlanView2D = ({
   const hasFittedRef = useRef(false);
   const wallStartRef = useRef<JsonPosition>(undefined);
   const selectedLabelRef = useRef<Room>(undefined);
+  const doubleClickStartRef = useRef<SelectionState>(undefined);
 
   useEffect(() => {
     if (!drawingWall) wallStartRef.current = undefined;
@@ -178,6 +179,9 @@ export const PlanView2D = ({
       fitToPlan();
       render();
     });
+    const mouseDown = (event: MouseEvent) => {
+      if (event.button === 0 && event.detail % 2 === 1) doubleClickStartRef.current = selection;
+    };
     const pointerDown = (event: PointerEvent) => {
       if (event.button !== 0) return;
       canvas.focus();
@@ -292,10 +296,14 @@ export const PlanView2D = ({
     };
     const doubleClick = (event: MouseEvent) => {
       if (drawingWall) return;
-      if (selectedLabelRef.current && layerVisibility.roomLabels) {
-        const layout = labelLayout(context, selectedLabelRef.current);
+      const before = doubleClickStartRef.current ?? selection;
+      doubleClickStartRef.current = undefined;
+      const priorActive = before.targets[before.activeIndex];
+      if (priorActive?.kind === "roomLabel" && layerVisibility.roomLabels) {
+        const layout = labelLayout(context, priorActive.item);
         if (layout && labelHit(layout, worldPoint(event), viewport.scale, true)) {
-          onEdit({ kind: "roomLabel", item: selectedLabelRef.current, effectiveFontSize: layout.fontSize * 1000 });
+          onSelectionChange({ targets: [priorActive], activeIndex: 0 });
+          onEdit({ ...priorActive, effectiveFontSize: layout.fontSize * 1000 });
           return;
         }
       }
@@ -304,9 +312,10 @@ export const PlanView2D = ({
         x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
         y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
       };
-      const next = selectionAtPoint(
+      const hits = selectionAtPoint(
         context, point, walls, rooms, fences, layerVisibility.doors, layerVisibility.roomLabels, viewport.scale,
       );
+      const next = doubleClickSelection(before, hits);
       const activeTarget = next.targets[next.activeIndex];
       onSelectionChange(next);
       if (activeTarget) onEdit(activeTarget);
@@ -351,6 +360,7 @@ export const PlanView2D = ({
     };
 
     resizeObserver.observe(canvas);
+    canvas.addEventListener("mousedown", mouseDown);
     canvas.addEventListener("pointerdown", pointerDown);
     canvas.addEventListener("pointermove", pointerMove);
     canvas.addEventListener("pointerup", pointerUp);
@@ -363,6 +373,7 @@ export const PlanView2D = ({
     reportStatus();
     return () => {
       resizeObserver.disconnect();
+      canvas.removeEventListener("mousedown", mouseDown);
       canvas.removeEventListener("pointerdown", pointerDown);
       canvas.removeEventListener("pointermove", pointerMove);
       canvas.removeEventListener("pointerup", pointerUp);

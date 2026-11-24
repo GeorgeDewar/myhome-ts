@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { Plan } from "../model/Plan";
-import { selectionAtPoint } from "./planView2DHelpers";
+import { doubleClickSelection, selectionAtPoint } from "./planView2DHelpers";
 import { drawRoomLabel, labelDragUpdate, labelHandles, labelHit, labelLayout, labelWorldPoint, oppositeLabelCorner } from "./roomLabel";
 
 const setup = () => {
@@ -55,6 +55,27 @@ describe("room labels", () => {
     const selection = selectionAtPoint(canvas, { x: 6, y: 6 }, [...room.walls], [room], [], true, true, 40);
     expect(selection.targets.map((target) => target.kind)).toEqual(["roomLabel"]);
     expect(selection.activeIndex).toBe(-1);
+  });
+
+  it("uses the selection before a double-click to choose room or label properties", () => {
+    const { room, canvas } = setup();
+    const hits = selectionAtPoint(canvas, { x: 2, y: 2 }, [...room.walls], [room], [], true, true, 40);
+    const cold = doubleClickSelection({ targets: [], activeIndex: -1 }, hits);
+    expect(cold.targets[cold.activeIndex]).toEqual({ kind: "room", item: room });
+    const fromRoom = doubleClickSelection({ targets: [{ kind: "room", item: room }], activeIndex: 0 }, hits);
+    expect(fromRoom.targets[fromRoom.activeIndex].kind).toBe("roomLabel");
+    const fromLabel = doubleClickSelection({ targets: hits.targets, activeIndex: 0 }, hits);
+    expect(fromLabel.targets[fromLabel.activeIndex].kind).toBe("roomLabel");
+    const fromMultiSelection = doubleClickSelection({ targets: [], activeIndex: -1, rooms: [room] }, hits);
+    expect(fromMultiSelection.targets[fromMultiSelection.activeIndex].kind).toBe("roomLabel");
+  });
+
+  it("opens the owning room on a cold double-click of a label outside its room", () => {
+    const { room, canvas } = setup();
+    room.label = { position: [6000, 6000] };
+    const hits = selectionAtPoint(canvas, { x: 6, y: 6 }, [...room.walls], [room], [], true, true, 40);
+    const selection = doubleClickSelection({ targets: [], activeIndex: -1 }, hits);
+    expect(selection.targets[selection.activeIndex]).toEqual({ kind: "room", item: room });
   });
 
   it("uses automatic placement and size unless overridden, and measures multiline text", () => {
