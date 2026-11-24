@@ -38,4 +38,4 @@ export const isValidPositiveDistance = (millimetres: number) =>
   Number.isFinite(millimetres) && millimetres > 0 && Distance.fromJson(millimetres).toJson() > 0;
 
 export const isValidPositionInMillimetres = (millimetres: number) =>
-  Number.isSafeInteger(millimetres) && Distance.fromJson(millimetres).toJson() === millimetres;
+  Number.isInteger(millimetres) && Distance.fromJson(millimetres).toJson() === millimetres;

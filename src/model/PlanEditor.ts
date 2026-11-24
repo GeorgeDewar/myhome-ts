@@ -340,7 +340,7 @@ export class PlanEditor {
       return { ok: false, error: "Label position must be accurately representable integer millimetres." };
     }
     if (label?.fontSize !== undefined && label.fontSize !== null) {
-      if (!Number.isSafeInteger(label.fontSize)) {
+      if (!Number.isInteger(label.fontSize)) {
         return { ok: false, error: "Label font size must be an integer number of millimetres." };
       }
       const error = positiveDistanceError(label.fontSize, "Label font size");

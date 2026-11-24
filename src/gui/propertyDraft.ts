@@ -132,7 +132,7 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
       const rotationText = values.rotation ?? initialValues.rotation ?? "";
       const fontSize = fontSizeText.trim() === "" ? null : Number(fontSizeText);
       const rotation = rotationText.trim() === "" ? null : Number(rotationText);
-      if (fontSize !== null && (!Number.isSafeInteger(fontSize) || fontSize <= 0)) {
+      if (fontSize !== null && (!Number.isInteger(fontSize) || fontSize <= 0)) {
         errors.fontSize = "Enter a positive integer number of millimetres.";
       }
       if (rotation !== null && !Number.isFinite(rotation)) errors.rotation = "Enter a finite angle.";

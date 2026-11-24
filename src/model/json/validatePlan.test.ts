@@ -10,6 +10,21 @@ const expectValidPlan = (document: unknown) => {
 };
 
 describe("plan loading validation", () => {
+  it("accepts integer label sizes and round-trippable positions beyond the safe-integer limit", () => {
+    const value = 2 ** 53;
+    const plan = Plan.fromJson({
+      fences: [{ id: "f", start: [0, 0], end: [value, 0] }],
+      buildings: [{ name: "House", levels: [{
+        number: 0, name: "Ground", rooms: [{ name: "Room", walls: [], label: { fontSize: value } }],
+      }] }],
+    });
+    expect(plan.loadWarnings).toEqual([]);
+    const saved = plan.toJson();
+    expect(saved.fences![0].end).toEqual([value, 0]);
+    expect(saved.buildings![0].levels[0].rooms![0].label?.fontSize).toBe(value);
+    expectValidPlan(saved);
+  });
+
   it("round-trips label overrides and warns about unknown label properties", () => {
     const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{
       number: 0, name: "Ground", rooms: [{
