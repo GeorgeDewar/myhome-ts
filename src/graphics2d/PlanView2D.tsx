@@ -79,6 +79,8 @@ export const PlanView2D = ({
     selectedLabelRef.current = layerVisibility.roomLabels && active?.kind === "roomLabel" && rooms.includes(active.item)
       ? active.item : undefined;
     let dragOrigin: Point | undefined;
+    let dragStart: Point | undefined;
+    let hasPanned = false;
     let labelDrag: {
       room: Room;
       mode: "move" | "resize" | "rotate";
@@ -210,6 +212,8 @@ export const PlanView2D = ({
         }
       }
       dragOrigin = { x: event.clientX, y: event.clientY };
+      dragStart = dragOrigin;
+      hasPanned = false;
       canvas.setPointerCapture(event.pointerId);
     };
     const pointerMove = (event: PointerEvent) => {
@@ -234,6 +238,11 @@ export const PlanView2D = ({
         reportStatus();
         return;
       }
+      if (!hasPanned && dragStart && Math.hypot(event.clientX - dragStart.x, event.clientY - dragStart.y) <= 3) {
+        reportStatus();
+        return;
+      }
+      hasPanned = true;
       viewport.offsetX += event.clientX - dragOrigin.x;
       viewport.offsetY += event.clientY - dragOrigin.y;
       dragOrigin = { x: event.clientX, y: event.clientY };
@@ -260,8 +269,8 @@ export const PlanView2D = ({
         render();
         return;
       }
-      if (dragOrigin) {
-        const moved = Math.hypot(event.clientX - dragOrigin.x, event.clientY - dragOrigin.y) > 3;
+      if (dragOrigin && dragStart) {
+        const moved = hasPanned || Math.hypot(event.clientX - dragStart.x, event.clientY - dragStart.y) > 3;
         if (!moved) {
           const bounds = canvas.getBoundingClientRect();
           const point = {

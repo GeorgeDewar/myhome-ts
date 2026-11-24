@@ -16,6 +16,8 @@ Room labels use the room name and automatic placement and font size unless overr
 
 Inside a room, click the room to select it, then click its label to select the label. A label clicked outside its own room is selected immediately, taking precedence over overlapping items. When a click hits multiple items, use Alt to cycle through them. Drag a selected label to move it, drag a corner to resize its text, or drag the handle above it to rotate. Font size snaps to multiples of 30mm and rotation to 45-degree increments unless Ctrl is held. Hold Shift while resizing to anchor the opposite corner. Double-clicking the label inside the room opens room properties unless the room or label was already selected; in that case it opens label properties. Double-clicking the label outside its room opens label properties. Enter or the context menu edits the selected item. These controls are unavailable when the room-label layer is hidden.
 
+Drag the 2D plan to pan; releasing after a pan does not change the selection.
+
 Selected objects can be deleted with Delete or their context menu. Deleting a wall also deletes its openings and any rooms that reference it; deleting an opening deletes its contents. Deletion goes through `PlanEditor` and notifies the views.
 
 Ctrl-click (Cmd-click on macOS) adds or removes rooms from the selection in the plan, 3D view or hierarchy. Right-clicking a selected room offers Merge rooms when the selected rooms form a connected, non-overlapping area representable by one wall boundary. The merged room keeps the right-clicked room's name; shared walls and their openings remain in the plan. Delete still removes only the active object.
