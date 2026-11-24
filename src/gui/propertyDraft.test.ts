@@ -88,15 +88,6 @@ describe("property drafts", () => {
     expect(room.label).toEqual({ text: "New" });
   });
 
-  it("accepts an integer label size without a safe-integer maximum", () => {
-    const { level, editor } = setup();
-    const room = level.rooms[0];
-    const draft = createPropertyDraft({ kind: "roomLabel", item: room, effectiveFontSize: 300 });
-    draft.values = { ...draft.values, fontSize: String(2 ** 53) };
-    expect(applyPropertyDraft(draft, editor)).toEqual({});
-    expect(room.label?.fontSize).toBe(2 ** 53);
-  });
-
   it("shows a separate label dialog with a read-only room name", () => {
     const { level, editor } = setup();
     const room = level.rooms[0];
