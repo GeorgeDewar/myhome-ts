@@ -186,7 +186,8 @@ function App() {
         event.target.closest(".property-window, .object-context-menu, [contenteditable='true']")
       ) return;
       if (drawingWall) return;
-      if (event.key === "Alt" && !event.repeat && selection.targets.length > 1) {
+      if (event.key === "Alt" && !event.repeat &&
+          (selection.targets.length > 1 || (selection.targets.length === 1 && selection.activeIndex < 0))) {
         event.preventDefault();
         setSelection((currentSelection) => ({
           targets: currentSelection.targets,
@@ -212,7 +213,7 @@ function App() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeTarget, deleteTarget, drawingWall, selection.targets.length]);
+  }, [activeTarget, deleteTarget, drawingWall, selection.activeIndex, selection.targets.length]);
 
   return (
     <Tooltip.Provider delayDuration={300}>

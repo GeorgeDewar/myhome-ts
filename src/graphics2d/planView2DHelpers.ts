@@ -1,6 +1,6 @@
 import { difference, union } from "polygon-clipping";
 import type { LayerVisibility } from "../gui/Layers";
-import { isSelectionTarget, selectionTargetForOpeningItem, type SelectionTarget } from "../gui/selection";
+import { isSelectionTarget, selectionTargetForOpeningItem, type SelectionState, type SelectionTarget } from "../gui/selection";
 import type { Fence } from "../model/Fence";
 import type { Opening, SlidingDoor, StandardDoor } from "../model/Opening";
 import type { Room } from "../model/Room";
@@ -8,6 +8,7 @@ import type { Wall } from "../model/Wall";
 import { doorSweep } from "../model/geom/doorSweep";
 import { roomPolygon } from "../model/geom/roomPolygon";
 import { drawMultiPolygon, slidingDoorLeaves, toPoint, toPolygon } from "./renderPolygons";
+import { labelHit, labelLayout } from "./roomLabel";
 
 type Point = { x: number; y: number };
 type Viewport = { offsetX: number; offsetY: number; scale: number };
@@ -239,6 +240,29 @@ export const targetsAtPoint = (
     if (isInsidePolygon(point, fence.basicPolygon2D().map(toPoint))) targets.push({ kind: "fence", item: fence });
   });
   return targets;
+};
+
+export const selectionAtPoint = (
+  context: CanvasRenderingContext2D,
+  point: Point,
+  walls: Wall[],
+  rooms: Room[],
+  fences: Fence[],
+  showDoors: boolean,
+  showLabels: boolean,
+  scale: number,
+): SelectionState => {
+  const hits = targetsAtPoint(point, walls, rooms, fences, showDoors);
+  const labels: SelectionTarget[] = [];
+  if (showLabels) {
+    for (const room of rooms) {
+      const layout = labelLayout(context, room);
+      if (layout && labelHit(layout, point, scale, false) === "move") {
+        labels.push({ kind: "roomLabel", item: room, effectiveFontSize: layout.fontSize * 1000 });
+      }
+    }
+  }
+  return { targets: [...labels, ...hits], activeIndex: hits.length ? labels.length + hits.length - 1 : -1 };
 };
 
 export const isVisibleTarget = (target: SelectionTarget, walls: Wall[], fences: Fence[], showDoors: boolean) => {

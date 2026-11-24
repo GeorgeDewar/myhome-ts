@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { Plan } from "../model/Plan";
+import { selectionAtPoint } from "./planView2DHelpers";
 import { drawRoomLabel, labelDragUpdate, labelHandles, labelHit, labelLayout, labelWorldPoint, oppositeLabelCorner } from "./roomLabel";
 
 const setup = () => {
@@ -36,6 +37,26 @@ const setup = () => {
 };
 
 describe("room labels", () => {
+  it("prioritizes the room while retaining a label hit for Alt cycling", () => {
+    const { room, canvas } = setup();
+    const point = { x: 2, y: 2 };
+    const selection = selectionAtPoint(canvas, point, [...room.walls], [room], [], true, true, 40);
+    expect(selection.targets.map((target) => target.kind)).toEqual(["roomLabel", "room"]);
+    expect(selection.targets[selection.activeIndex]).toEqual({ kind: "room", item: room });
+    const hidden = selectionAtPoint(canvas, point, [...room.walls], [room], [], true, false, 40);
+    expect(hidden.targets.map((target) => target.kind)).toEqual(["room"]);
+    expect(selectionAtPoint(canvas, { x: 1, y: 1 }, [...room.walls], [room], [], true, true, 40)
+      .targets.map((target) => target.kind)).toEqual(["room"]);
+  });
+
+  it("retains a label outside its room for Alt without selecting it on the first click", () => {
+    const { room, canvas } = setup();
+    room.label = { position: [6000, 6000], rotation: 45 };
+    const selection = selectionAtPoint(canvas, { x: 6, y: 6 }, [...room.walls], [room], [], true, true, 40);
+    expect(selection.targets.map((target) => target.kind)).toEqual(["roomLabel"]);
+    expect(selection.activeIndex).toBe(-1);
+  });
+
   it("uses automatic placement and size unless overridden, and measures multiline text", () => {
     const { room, context, canvas } = setup();
     const automatic = labelLayout(canvas, room)!;

@@ -12,7 +12,7 @@ import type { PlanEditor } from "../model/PlanEditor";
 import type { Room } from "../model/Room";
 import {
   drawFences, drawGrid, drawOpenings, drawSelection, drawWalls,
-  isVisibleTarget, targetsAtPoint, visibleWalls,
+  isVisibleTarget, selectionAtPoint, targetsAtPoint, visibleWalls,
 } from "./planView2DHelpers";
 import { toPoint } from "./renderPolygons";
 import {
@@ -75,9 +75,8 @@ export const PlanView2D = ({
     const rooms = plan.getRoomsOnLevel(level);
     const viewport = viewportRef.current;
     const active = selection.targets[selection.activeIndex];
-    if (!layerVisibility.roomLabels || active?.kind !== "roomLabel" || active.item !== selectedLabelRef.current) {
-      selectedLabelRef.current = undefined;
-    }
+    selectedLabelRef.current = layerVisibility.roomLabels && active?.kind === "roomLabel" && rooms.includes(active.item)
+      ? active.item : undefined;
     let dragOrigin: Point | undefined;
     let labelDrag: {
       room: Room;
@@ -185,8 +184,8 @@ export const PlanView2D = ({
       if (!drawingWall && layerVisibility.roomLabels && !event.metaKey) {
         const point = worldPoint(event);
         const selected = selectedLabelRef.current;
-        const candidates = selected ? [selected, ...rooms.filter((room) => room !== selected).reverse()] : [...rooms].reverse();
-        for (const room of candidates) {
+        const room = active?.kind === "room" || active?.kind === "roomLabel" ? active.item : undefined;
+        if (room && rooms.includes(room)) {
           const layout = labelLayout(context, room);
           const mode = layout && labelHit(layout, point, viewport.scale, selected === room);
           if (layout && mode && (!event.ctrlKey || mode !== "move")) {
@@ -240,8 +239,13 @@ export const PlanView2D = ({
           const result = editPlan.updateRoom(room, { label: update });
           if (!result.ok) window.alert(result.error);
         }
+        const next = selectionAtPoint(
+          context, worldPoint(event), walls, rooms, fences, layerVisibility.doors, layerVisibility.roomLabels, viewport.scale,
+        );
+        const index = next.targets.findIndex((target) => target.kind === "roomLabel" && target.item === room);
         const layout = labelLayout(context, room);
-        if (layout) onSelectionChange({
+        if (index >= 0) onSelectionChange({ ...next, activeIndex: index });
+        else if (layout) onSelectionChange({
           targets: [{ kind: "roomLabel", item: room, effectiveFontSize: layout.fontSize * 1000 }], activeIndex: 0,
         });
         render();
@@ -264,7 +268,10 @@ export const PlanView2D = ({
             dragOrigin = undefined;
             return;
           }
-          const targets = targetsAtPoint(point, walls, rooms, fences, layerVisibility.doors);
+          const next = selectionAtPoint(
+            context, point, walls, rooms, fences, layerVisibility.doors, layerVisibility.roomLabels, viewport.scale,
+          );
+          const targets = next.targets;
           selectedLabelRef.current = undefined;
           if (event.ctrlKey || event.metaKey) {
             const room = targets.findLast((target) => target.kind === "room");
@@ -272,7 +279,7 @@ export const PlanView2D = ({
             dragOrigin = undefined;
             return;
           }
-          onSelectionChange({ targets, activeIndex: targets.length - 1 });
+          onSelectionChange(next);
         }
       }
       dragOrigin = undefined;
@@ -297,9 +304,11 @@ export const PlanView2D = ({
         x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
         y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
       };
-      const targets = targetsAtPoint(point, walls, rooms, fences, layerVisibility.doors);
-      const activeTarget = targets.at(-1);
-      onSelectionChange({ targets, activeIndex: targets.length - 1 });
+      const next = selectionAtPoint(
+        context, point, walls, rooms, fences, layerVisibility.doors, layerVisibility.roomLabels, viewport.scale,
+      );
+      const activeTarget = next.targets[next.activeIndex];
+      onSelectionChange(next);
       if (activeTarget) onEdit(activeTarget);
     };
     const contextMenu = (event: MouseEvent) => {

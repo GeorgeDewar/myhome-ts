@@ -14,7 +14,7 @@ Room walls are stored as ordered wall objects; JSON references are derived from 
 
 Room labels use the room name and automatic placement and font size unless overridden in the room's optional `label` object. Their separate properties window shows the room name, and allows independent multiline text, font size and rotation edits; clearing the text or size restores its automatic value. JSON stores newlines as `\n`, positions as center coordinates and font sizes as integers in millimetres, and rotations in anticlockwise degrees.
 
-Click a label in the 2D plan to select it; drag it to move, drag a corner to resize its text, or drag the handle above it to rotate. Font size snaps to multiples of 30mm and rotation to 45-degree increments unless Ctrl is held. Hold Shift while resizing to anchor the opposite corner. Double-click, Enter, or the context menu opens label properties. These controls are unavailable when the room-label layer is hidden.
+Click a room to select it, then click its label to select the label. Alternatively, when a click hits a label, use Alt to cycle through matching items. Drag a selected label to move it, drag a corner to resize its text, or drag the handle above it to rotate. Font size snaps to multiples of 30mm and rotation to 45-degree increments unless Ctrl is held. Hold Shift while resizing to anchor the opposite corner. Double-click, Enter, or the context menu opens label properties. These controls are unavailable when the room-label layer is hidden.
 
 Selected objects can be deleted with Delete or their context menu. Deleting a wall also deletes its openings and any rooms that reference it; deleting an opening deletes its contents. Deletion goes through `PlanEditor` and notifies the views.
 
