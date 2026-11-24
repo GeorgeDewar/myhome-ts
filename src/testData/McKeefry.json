@@ -468,7 +468,8 @@
             },
             {
               "name": "Dining Room",
-              "walls": [{ "ref": "wall0" }, { "ref": "wall11" }, { "ref": "wall12" }, { "ref": "wall29" }]
+              "walls": [{ "ref": "wall0" }, { "ref": "wall11" }, { "ref": "wall12" }, { "ref": "wall29" }],
+              "label": { "position": [23457, 9159] }
             },
             {
               "name": "Conservatory",
@@ -483,7 +484,8 @@
                 { "ref": "wall16" },
                 { "ref": "wall14" },
                 { "ref": "wall29" }
-              ]
+              ],
+              "label": { "position": [19927, 9188] }
             },
             {
               "name": "Hallway",
@@ -506,15 +508,18 @@
                 { "ref": "wall32" },
                 { "ref": "wall9" },
                 { "ref": "wall8" }
-              ]
+              ],
+              "label": { "position": [18618, 12312] }
             },
             {
               "name": "Coat Cupboard",
-              "walls": [{ "ref": "wall10" }, { "ref": "wall15" }, { "ref": "wall17" }, { "ref": "wall16" }]
+              "walls": [{ "ref": "wall10" }, { "ref": "wall15" }, { "ref": "wall17" }, { "ref": "wall16" }],
+              "label": { "text": "Coat\nCupboard", "fontSize": 180 }
             },
             {
               "name": "Kitchen Cupboard",
-              "walls": [{ "ref": "wall17" }, { "ref": "wall15" }, { "ref": "wall14" }, { "ref": "wall16" }]
+              "walls": [{ "ref": "wall17" }, { "ref": "wall15" }, { "ref": "wall14" }, { "ref": "wall16" }],
+              "label": { "text": "Kitchen\nCupboard", "position": [18638, 11278], "fontSize": 180 }
             },
             {
               "name": "Laundry",
@@ -526,7 +531,8 @@
                 { "ref": "wall13" },
                 { "ref": "wall20" },
                 { "ref": "wall19" }
-              ]
+              ],
+              "label": { "position": [17154, 7847] }
             },
             {
               "name": "Toilet",
@@ -534,15 +540,18 @@
             },
             {
               "name": "Closet",
-              "walls": [{ "ref": "wall23" }, { "ref": "wall22" }, { "ref": "wall21" }, { "ref": "wall8" }]
+              "walls": [{ "ref": "wall23" }, { "ref": "wall22" }, { "ref": "wall21" }, { "ref": "wall8" }],
+              "label": { "position": [15675, 10951], "fontSize": 210 }
             },
             {
               "name": "Verandah",
-              "walls": [{ "ref": "wall2" }, { "ref": "wall1" }, { "ref": "wall3" }, { "ref": "wall24" }]
+              "walls": [{ "ref": "wall2" }, { "ref": "wall1" }, { "ref": "wall3" }, { "ref": "wall24" }],
+              "label": { "position": [21072, 16495] }
             },
             {
               "name": "Mini-verandah",
-              "walls": [{ "ref": "wall25" }, { "ref": "wall29" }, { "ref": "wall6" }, { "ref": "wall5" }]
+              "walls": [{ "ref": "wall25" }, { "ref": "wall29" }, { "ref": "wall6" }, { "ref": "wall5" }],
+              "label": { "position": [19944, 7001] }
             }
           ]
         },
@@ -898,15 +907,18 @@
                 { "ref": "wall46" },
                 { "ref": "wall39" },
                 { "ref": "wall35" }
-              ]
+              ],
+              "label": { "position": [15755, 9158] }
             },
             {
               "name": "Shower",
-              "walls": [{ "ref": "wall45" }, { "ref": "wall44" }, { "ref": "wall35" }, { "ref": "wall43" }]
+              "walls": [{ "ref": "wall45" }, { "ref": "wall44" }, { "ref": "wall35" }, { "ref": "wall43" }],
+              "label": { "position": [17642, 8769], "fontSize": 210 }
             },
             {
               "name": "HWC",
-              "walls": [{ "ref": "wall43" }, { "ref": "wall40" }, { "ref": "wall44" }, { "ref": "wall45" }]
+              "walls": [{ "ref": "wall43" }, { "ref": "wall40" }, { "ref": "wall44" }, { "ref": "wall45" }],
+              "label": { "fontSize": 270 }
             },
             {
               "name": "Toilet",
@@ -940,19 +952,23 @@
             },
             {
               "name": "Closet",
-              "walls": [{ "ref": "wall55" }, { "ref": "wall56" }, { "ref": "wall38" }, { "ref": "wall40" }]
+              "walls": [{ "ref": "wall55" }, { "ref": "wall56" }, { "ref": "wall38" }, { "ref": "wall40" }],
+              "label": { "fontSize": 240 }
             },
             {
               "name": "Closet",
-              "walls": [{ "ref": "wall38" }, { "ref": "wall56" }, { "ref": "wall55" }, { "ref": "wall54" }]
+              "walls": [{ "ref": "wall38" }, { "ref": "wall56" }, { "ref": "wall55" }, { "ref": "wall54" }],
+              "label": { "position": [11732, 12321], "fontSize": 240 }
             },
             {
               "name": "Closet",
-              "walls": [{ "ref": "wall52" }, { "ref": "wall60" }, { "ref": "wall58" }, { "ref": "wall57" }]
+              "walls": [{ "ref": "wall52" }, { "ref": "wall60" }, { "ref": "wall58" }, { "ref": "wall57" }],
+              "label": { "position": [14816, 12608], "fontSize": 240 }
             },
             {
               "name": "Closet",
-              "walls": [{ "ref": "wall35" }, { "ref": "wall59" }, { "ref": "wall40" }, { "ref": "wall43" }]
+              "walls": [{ "ref": "wall35" }, { "ref": "wall59" }, { "ref": "wall40" }, { "ref": "wall43" }],
+              "label": { "position": [18566, 9650], "rotation": 90, "fontSize": 240 }
             },
             {
               "name": "Lower Attic",
@@ -966,7 +982,8 @@
                 { "ref": "wall67" },
                 { "ref": "wall37" },
                 { "ref": "wall36" }
-              ]
+              ],
+              "label": { "position": [24032, 11728] }
             },
             {
               "name": "Hallway",
@@ -979,7 +996,8 @@
                 { "ref": "wall48" },
                 { "ref": "wall51" },
                 { "ref": "wall61" }
-              ]
+              ],
+              "label": { "position": [16153, 11714] }
             }
           ]
         },
