@@ -55,7 +55,8 @@
   font-weight: 600;
 }
 .property-window-body input,
-.property-window-body select {
+.property-window-body select,
+.property-window-body textarea {
   width: 100%;
   min-height: 30px;
   box-sizing: border-box;

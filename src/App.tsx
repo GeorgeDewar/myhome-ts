@@ -354,6 +354,7 @@ function App() {
                   onContextMenu={openContextMenu}
                   drawingWall={drawingWall}
                   onDrawWall={drawWall}
+                  editPlan={editPlan}
                   version={planVersion}
                 />
               </Tabs.Content>

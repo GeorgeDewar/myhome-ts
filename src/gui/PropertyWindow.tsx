@@ -129,14 +129,24 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
         }}
       >
         {target.kind === "room" && (
-          <label>
-            Name
-            <input
-              value={draft.values.name ?? ""}
-              onChange={(event) => updateValues({ name: event.target.value })}
-              autoFocus
-            />
-          </label>
+          <>
+            <label>
+              Name
+              <input
+                value={draft.values.name ?? ""}
+                onChange={(event) => updateValues({ name: event.target.value })}
+                autoFocus
+              />
+            </label>
+            <label>
+              Label text (optional)
+              <textarea
+                value={draft.values.labelText ?? ""}
+                placeholder="Uses room name"
+                onChange={(event) => updateValues({ labelText: event.target.value })}
+              />
+            </label>
+          </>
         )}
         {target.kind === "wall" && (
           <>

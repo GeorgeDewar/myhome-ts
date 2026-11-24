@@ -2,7 +2,7 @@ import { Distance, isValidPositiveDistance, isValidPositionInMillimetres } from 
 import { Point2D } from "./geom/Point2D";
 import { mergeRoomWalls } from "./geom/mergeRoomWalls";
 import { Fence } from "./Fence";
-import type { JsonPosition } from "./json/Document";
+import type { JsonPosition, JsonRoomLabel } from "./json/Document";
 import type { Level } from "./Level";
 import { Opening, SlidingDoor, StandardDoor, StandardWindow, type OpeningItem } from "./Opening";
 import type { Plan } from "./Plan";
@@ -10,7 +10,7 @@ import type { Room } from "./Room";
 import { Wall } from "./Wall";
 
 type WallUpdate = { width?: number; start?: JsonPosition; end?: JsonPosition; virtual?: boolean; attic?: boolean };
-type RoomUpdate = { name?: string };
+type RoomUpdate = { name?: string; label?: { [K in keyof JsonRoomLabel]?: JsonRoomLabel[K] | null } };
 type OpeningUpdate = {
   shape?: NonNullable<Opening["shape"]>;
   width?: number;
@@ -335,10 +335,45 @@ export class PlanEditor {
     if (!this.levels.some((level) => level.rooms.includes(room))) {
       return { ok: false, error: "This room is no longer in the plan." };
     }
+    const label = update.label;
+    if (label?.position && !label.position.every(isValidPositionInMillimetres)) {
+      return { ok: false, error: "Label position must be accurately representable integer millimetres." };
+    }
+    if (label?.fontSize !== undefined && label.fontSize !== null) {
+      const error = positiveDistanceError(label.fontSize, "Label font size");
+      if (error) return { ok: false, error };
+    }
+    if (label?.rotation !== undefined && label.rotation !== null && !Number.isFinite(label.rotation)) {
+      return { ok: false, error: "Label rotation must be finite." };
+    }
+    let changed = false;
     if (update.name !== undefined && update.name !== room.name) {
       room.name = update.name;
-      this.onChange();
+      changed = true;
     }
+    if (label) {
+      const next = { ...room.label };
+      for (const key of ["text", "position", "rotation", "fontSize"] as const) {
+        const value = label[key];
+        if (value === undefined) continue;
+        if (key === "position") {
+          if (value === null) delete next.position;
+          else if (Array.isArray(value)) next.position = [...value];
+        } else if (key === "text") {
+          if (value === null) delete next.text;
+          else if (typeof value === "string") next.text = value;
+        } else if (key === "rotation" || key === "fontSize") {
+          if (value === null) delete next[key];
+          else if (typeof value === "number") next[key] = value;
+        }
+      }
+      const newLabel = Object.keys(next).length ? next : undefined;
+      if (JSON.stringify(newLabel) !== JSON.stringify(room.label)) {
+        room.label = newLabel;
+        changed = true;
+      }
+    }
+    if (changed) this.onChange();
     return { ok: true };
   }
 

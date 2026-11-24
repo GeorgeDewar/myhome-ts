@@ -55,6 +55,8 @@ export type JsonSlidingDoor = { type: "SlidingDoor"; thickness?: number };
 
 export type JsonWallRef = { ref: JsonWall["id"] };
 
-export type JsonRoom = { name: string; walls: JsonWallRef[] };
+export type JsonRoomLabel = { text?: string; position?: JsonPosition; rotation?: number; fontSize?: number };
+
+export type JsonRoom = { name: string; walls: JsonWallRef[]; label?: JsonRoomLabel };
 
 export type JsonPosition = [number, number];

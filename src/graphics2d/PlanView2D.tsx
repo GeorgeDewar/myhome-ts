@@ -8,12 +8,15 @@ import {
   type SelectionTarget,
 } from "../gui/selection";
 import type { JsonPosition } from "../model/json/Document";
+import type { PlanEditor } from "../model/PlanEditor";
 import type { Room } from "../model/Room";
 import {
-  drawFences, drawGrid, drawOpenings, drawRooms, drawSelection, drawWalls,
+  drawFences, drawGrid, drawOpenings, drawSelection, drawWalls,
   isVisibleTarget, targetsAtPoint, visibleWalls,
 } from "./planView2DHelpers";
 import { toPoint } from "./renderPolygons";
+import { drawRoomLabel, labelDragUpdate, labelHit, labelLayout, type LabelLayout } from "./roomLabel";
+import type { JsonRoomLabel } from "../model/json/Document";
 import "./PlanView2D.css";
 
 type Point = { x: number; y: number };
@@ -32,6 +35,7 @@ export const PlanView2D = ({
   onContextMenu,
   drawingWall,
   onDrawWall,
+  editPlan,
   version,
 }: {
   level: number;
@@ -44,6 +48,7 @@ export const PlanView2D = ({
   onContextMenu: (target: SelectionTarget, x: number, y: number) => boolean;
   drawingWall: boolean;
   onDrawWall: (start: JsonPosition, end: JsonPosition) => boolean;
+  editPlan: PlanEditor;
   version: number;
 }) => {
   const plan = useContext(PlanContext);
@@ -51,6 +56,7 @@ export const PlanView2D = ({
   const viewportRef = useRef<Viewport>({ offsetX: 0, offsetY: 0, scale: 20 });
   const hasFittedRef = useRef(false);
   const wallStartRef = useRef<JsonPosition>(undefined);
+  const selectedLabelRef = useRef<Room>(undefined);
 
   useEffect(() => {
     if (!drawingWall) wallStartRef.current = undefined;
@@ -66,8 +72,28 @@ export const PlanView2D = ({
     const fences = layerVisibility.fences ? plan.fences : [];
     const rooms = plan.getRoomsOnLevel(level);
     const viewport = viewportRef.current;
+    const active = selection.targets[selection.activeIndex];
+    if (!layerVisibility.roomLabels || active?.kind !== "room" || active.item !== selectedLabelRef.current) {
+      selectedLabelRef.current = undefined;
+    }
     let dragOrigin: Point | undefined;
+    let labelDrag: {
+      room: Room;
+      mode: "move" | "resize" | "rotate";
+      start: Point;
+      layout: LabelLayout;
+      previousSelected?: Room;
+      update?: JsonRoomLabel;
+    } | undefined;
     let cursor = { x: 0, y: 0 };
+
+    const worldPoint = (event: MouseEvent | PointerEvent) => {
+      const bounds = canvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
+        y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
+      };
+    };
 
     const reportStatus = () => {
       onStatusChange({
@@ -120,13 +146,20 @@ export const PlanView2D = ({
       drawWalls(context, walls.filter((wall) => !wall.virtual && !wall.attic), viewport.scale);
       drawWalls(context, walls.filter((wall) => wall.virtual || wall.attic), viewport.scale, true);
       drawOpenings(context, walls, viewport.scale, layerVisibility.doors);
-      if (layerVisibility.roomLabels) drawRooms(context, rooms);
       drawSelection(
         context,
         selectedTargets(selection).filter((target) => isVisibleTarget(target, walls, fences, layerVisibility.doors)),
         selection.targets[selection.activeIndex],
         viewport.scale,
       );
+      if (layerVisibility.roomLabels) {
+        for (const room of rooms) {
+          const label = labelDrag?.room === room && labelDrag.update
+            ? { ...room.label, ...labelDrag.update } : room.label;
+          const layout = labelLayout(context, room, label);
+          if (layout) drawRoomLabel(context, layout, selectedLabelRef.current === room, viewport.scale);
+        }
+      }
       if (drawingWall && wallStartRef.current) {
         context.beginPath();
         context.moveTo(wallStartRef.current[0] / 1000, wallStartRef.current[1] / 1000);
@@ -146,15 +179,35 @@ export const PlanView2D = ({
     const pointerDown = (event: PointerEvent) => {
       if (event.button !== 0) return;
       canvas.focus();
+      if (!drawingWall && layerVisibility.roomLabels && !event.metaKey) {
+        const point = worldPoint(event);
+        const selected = selectedLabelRef.current;
+        const candidates = selected ? [selected, ...rooms.filter((room) => room !== selected).reverse()] : [...rooms].reverse();
+        for (const room of candidates) {
+          const layout = labelLayout(context, room);
+          const mode = layout && labelHit(layout, point, viewport.scale, selected === room);
+          if (layout && mode && (!event.ctrlKey || mode === "rotate")) {
+            selectedLabelRef.current = room;
+            labelDrag = { room, mode, start: point, layout, previousSelected: selected };
+            canvas.setPointerCapture(event.pointerId);
+            render();
+            return;
+          }
+        }
+      }
       dragOrigin = { x: event.clientX, y: event.clientY };
       canvas.setPointerCapture(event.pointerId);
     };
     const pointerMove = (event: PointerEvent) => {
-      const bounds = canvas.getBoundingClientRect();
-      cursor = {
-        x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
-        y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
-      };
+      cursor = worldPoint(event);
+      if (labelDrag) {
+        if (labelDrag.update || Math.hypot(cursor.x - labelDrag.start.x, cursor.y - labelDrag.start.y) * viewport.scale > 2) {
+          labelDrag.update = labelDragUpdate(labelDrag.layout, labelDrag.mode, labelDrag.start, cursor, event.ctrlKey);
+        }
+        render();
+        reportStatus();
+        return;
+      }
       if (drawingWall) {
         render();
         reportStatus();
@@ -171,6 +224,17 @@ export const PlanView2D = ({
       reportStatus();
     };
     const pointerUp = (event: PointerEvent) => {
+      if (labelDrag) {
+        const { room, update } = labelDrag;
+        labelDrag = undefined;
+        if (update) {
+          const result = editPlan.updateRoom(room, { label: update });
+          if (!result.ok) window.alert(result.error);
+        }
+        onSelectionChange({ targets: [{ kind: "room", item: room }], activeIndex: 0 });
+        render();
+        return;
+      }
       if (dragOrigin) {
         const moved = Math.hypot(event.clientX - dragOrigin.x, event.clientY - dragOrigin.y) > 3;
         if (!moved) {
@@ -189,6 +253,7 @@ export const PlanView2D = ({
             return;
           }
           const targets = targetsAtPoint(point, walls, rooms, fences, layerVisibility.doors);
+          selectedLabelRef.current = undefined;
           if (event.ctrlKey || event.metaKey) {
             const room = targets.findLast((target) => target.kind === "room");
             if (room?.kind === "room") onToggleRoom(room.item);
@@ -200,9 +265,21 @@ export const PlanView2D = ({
       }
       dragOrigin = undefined;
     };
-    const pointerCancel = () => { dragOrigin = undefined; };
+    const pointerCancel = () => {
+      dragOrigin = undefined;
+      if (labelDrag) selectedLabelRef.current = labelDrag.previousSelected;
+      labelDrag = undefined;
+      render();
+    };
     const doubleClick = (event: MouseEvent) => {
       if (drawingWall) return;
+      if (selectedLabelRef.current && layerVisibility.roomLabels) {
+        const layout = labelLayout(context, selectedLabelRef.current);
+        if (layout && labelHit(layout, worldPoint(event), viewport.scale, true)) {
+          onEdit({ kind: "room", item: selectedLabelRef.current });
+          return;
+        }
+      }
       const bounds = canvas.getBoundingClientRect();
       const point = {
         x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
@@ -266,7 +343,7 @@ export const PlanView2D = ({
       canvas.removeEventListener("contextmenu", contextMenu);
       canvas.removeEventListener("wheel", wheel);
     };
-  }, [drawingWall, layerVisibility, level, onContextMenu, onDrawWall, onEdit, onSelectionChange, onStatusChange, onToggleRoom, plan, selection, version]);
+  }, [drawingWall, editPlan, layerVisibility, level, onContextMenu, onDrawWall, onEdit, onSelectionChange, onStatusChange, onToggleRoom, plan, selection, version]);
 
   return <canvas className={`plan-view-2d${drawingWall ? " is-drawing" : ""}`} ref={canvasRef} tabIndex={0} />;
 };

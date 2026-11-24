@@ -189,13 +189,16 @@
         "label": {
           "type": "object",
           "description": "Label information for the room",
-          "position": {
-            "$ref": "#/$defs/position",
-            "description": "Position of the room label within the plan, in millimetres",
-            "default": "(dynamically determined)"
-          },
-          "rotation": { "type": "number", "description": "Rotation of the room label in degrees (anticlockwise)", "default": 0 },
-          "fontSize": { "type": "number", "description": "Font size of the room label in millimetres", "default": "(dynamically determined)" }
+          "unevaluatedProperties": false,
+          "properties": {
+            "text": { "type": "string", "description": "Label text, defaulting to the room name" },
+            "position": {
+              "$ref": "#/$defs/position",
+              "description": "Position of the room label center within the plan, in millimetres"
+            },
+            "rotation": { "type": "number", "description": "Rotation of the room label in degrees (anticlockwise)", "default": 0 },
+            "fontSize": { "type": "number", "exclusiveMinimum": 0, "description": "Font size of the room label in millimetres" }
+          }
         },
         "walls": {
           "type": "array",

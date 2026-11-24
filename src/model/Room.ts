@@ -1,4 +1,4 @@
-import type { JsonRoom } from "./json/Document";
+import type { JsonRoom, JsonRoomLabel } from "./json/Document";
 import type { Level } from "./Level";
 import type { Wall } from "./Wall";
 
@@ -7,6 +7,7 @@ export class Room {
   constructor(
     public name: string,
     public walls: readonly Wall[],
+    public label?: JsonRoomLabel,
   ) {}
 
   static fromJson(json: JsonRoom, wallsById: ReadonlyMap<string, Wall>): Room {
@@ -17,10 +18,23 @@ export class Room {
       if (!wall) throw new Error(`Room '${json.name}' references unknown wall '${ref}'`);
       return wall;
     });
-    return new Room(json.name, walls);
+    const label = json.label;
+    return new Room(json.name, walls, label === undefined ? undefined : {
+      ...(label.text !== undefined ? { text: label.text } : {}),
+      ...(label.position !== undefined ? { position: [...label.position] } : {}),
+      ...(label.rotation !== undefined ? { rotation: label.rotation } : {}),
+      ...(label.fontSize !== undefined ? { fontSize: label.fontSize } : {}),
+    });
   }
 
   toJson(): JsonRoom {
-    return { name: this.name, walls: this.walls.map((wall) => ({ ref: wall.id })) };
+    return {
+      name: this.name,
+      walls: this.walls.map((wall) => ({ ref: wall.id })),
+      ...(this.label !== undefined ? { label: {
+        ...this.label,
+        ...(this.label.position !== undefined ? { position: [...this.label.position] as [number, number] } : {}),
+      } } : {}),
+    };
   }
 }

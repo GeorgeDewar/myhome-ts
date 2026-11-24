@@ -4,6 +4,7 @@ import type { SelectionTarget } from "./selection";
 
 type PropertyValues = {
   name?: string;
+  labelText?: string;
   virtual?: boolean;
   attic?: boolean;
   shape?: JsonOpening["shape"];
@@ -35,7 +36,7 @@ export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
   let values: PropertyValues;
   switch (target.kind) {
     case "room":
-      values = { name: target.item.name };
+      values = { name: target.item.name, labelText: target.item.label?.text ?? "" };
       break;
     case "wall":
     case "fence":
@@ -114,6 +115,9 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
       report(
         editPlan.updateRoom(target.item, {
           name: values.name !== initialValues.name ? values.name : undefined,
+          label: values.labelText !== undefined && values.labelText !== initialValues.labelText
+            ? { text: values.labelText === "" ? null : values.labelText }
+            : undefined,
         }),
       );
       break;

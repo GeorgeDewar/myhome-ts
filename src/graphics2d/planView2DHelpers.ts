@@ -1,5 +1,4 @@
 import { difference, union } from "polygon-clipping";
-import polylabel from "polylabel";
 import type { LayerVisibility } from "../gui/Layers";
 import { isSelectionTarget, selectionTargetForOpeningItem, type SelectionTarget } from "../gui/selection";
 import type { Fence } from "../model/Fence";
@@ -287,43 +286,5 @@ export const drawSelection = (
     drawPolygon(context, openingPolygon(wall, opening));
     context.stroke();
   });
-};
-
-export const drawRooms = (context: CanvasRenderingContext2D, rooms: Room[]) => {
-  context.fillStyle = "#243b53";
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  for (const room of rooms) {
-    const corners = roomPolygon(room);
-    if (corners.length < 3) continue;
-
-    const ring = [
-      ...corners.map((corner) => [corner.x, corner.y] as [number, number]),
-      [corners[0].x, corners[0].y] as [number, number],
-    ];
-    const [labelX, labelY] = polylabel([ring], 0.01);
-    const minX = Math.min(...corners.map((corner) => corner.x));
-    const maxX = Math.max(...corners.map((corner) => corner.x));
-    const minY = Math.min(...corners.map((corner) => corner.y));
-    const maxY = Math.max(...corners.map((corner) => corner.y));
-    let fontSize = 0.3;
-
-    while (fontSize > 0.1) {
-      context.font = `${fontSize}px "IBM Plex Sans", sans-serif`;
-      const halfWidth = context.measureText(room.name).width / 2;
-      const halfHeight = fontSize / 2;
-      if (
-        labelX - halfWidth >= minX &&
-        labelX + halfWidth <= maxX &&
-        labelY - halfHeight >= minY &&
-        labelY + halfHeight <= maxY
-      )
-        break;
-      fontSize *= 0.8;
-    }
-
-    context.font = `${fontSize}px "IBM Plex Sans", sans-serif`;
-    context.fillText(room.name, labelX, labelY);
-  }
 };
 

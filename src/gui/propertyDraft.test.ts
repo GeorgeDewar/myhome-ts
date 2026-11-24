@@ -52,6 +52,20 @@ const setup = () => {
 };
 
 describe("property drafts", () => {
+  it("edits and clears multiline label text independently of the room name", () => {
+    const { level, editor } = setup();
+    const room = level.rooms[0];
+    const draft = createPropertyDraft({ kind: "room", item: room });
+    draft.values = { ...draft.values, labelText: "First\nSecond" };
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
+    expect(room.name).toBe("Room");
+    expect(room.toJson().label).toEqual({ text: "First\nSecond" });
+    const reset = createPropertyDraft({ kind: "room", item: room });
+    reset.values = { ...reset.values, labelText: "" };
+    expect(applyPropertyDraft(reset, editor)).toEqual({});
+    expect(room.toJson().label).toBeUndefined();
+  });
+
   it("applies wall edits only on request, preserving defaults for unchanged values", () => {
     const { wall, editor, notify } = setup();
     const draft = createPropertyDraft({ kind: "wall", item: wall });

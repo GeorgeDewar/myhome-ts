@@ -189,6 +189,11 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
       (levelValue.rooms ?? []).forEach((roomValue, roomIndex) => {
         const roomPath = `${levelPath}.rooms[${roomIndex}]`;
         if (!isValid(validateRoom, roomValue, roomPath, warnings)) return;
+        if (!validDimensions({ fontSize: roomValue.label?.fontSize }, roomPath, warnings)) return;
+        if (roomValue.label?.position && !roomValue.label.position.every(isValidPositionInMillimetres)) {
+          warnings.push(`${roomPath}: label position cannot be accurately represented in integer millimetres; ignored.`);
+          return;
+        }
         const missing = roomValue.walls.find(({ ref }) => !wallIds.has(ref));
         if (missing) {
           warnings.push(`${roomPath}: references unknown wall '${missing.ref}'; ignored.`);

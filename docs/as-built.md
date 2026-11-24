@@ -12,6 +12,10 @@ Standard door properties include an open angle from 0 to 180 degrees, defaulting
 
 Room walls are stored as ordered wall objects; JSON references are derived from those objects when saving. Each reference must contain a `ref` to a wall on the same level.
 
+Room labels use the room name and automatic placement and font size unless overridden in the room's optional `label` object. The room properties window allows an independent multiline label text; clearing it restores the name. JSON stores newlines as `\n`, positions as center coordinates in integer millimetres, font sizes in millimetres and rotations in anticlockwise degrees.
+
+Click a label in the 2D plan to select it; drag it to move, drag a corner to resize its text, or drag the handle above it to rotate. Rotation snaps to 45-degree increments unless Ctrl is held. Double-clicking a label opens its room properties. These controls are unavailable when the room-label layer is hidden.
+
 Selected objects can be deleted with Delete or their context menu. Deleting a wall also deletes its openings and any rooms that reference it; deleting an opening deletes its contents. Deletion goes through `PlanEditor` and notifies the views.
 
 Ctrl-click (Cmd-click on macOS) adds or removes rooms from the selection in the plan, 3D view or hierarchy. Right-clicking a selected room offers Merge rooms when the selected rooms form a connected, non-overlapping area representable by one wall boundary. The merged room keeps the right-clicked room's name; shared walls and their openings remain in the plan. Delete still removes only the active object.
