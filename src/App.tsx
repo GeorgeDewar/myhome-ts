@@ -111,6 +111,7 @@ function App() {
 
   const deleteTarget = useCallback(
     (target: SelectionTarget) => {
+      if (target.kind === "roomLabel") return;
       const result =
         target.kind === "wall"
           ? editPlan.deleteWall(target.item)
@@ -433,9 +434,11 @@ function App() {
               >
                 Edit
               </button>
-              <button type="button" role="menuitem" onClick={() => deleteTarget(contextMenu.target)}>
-                Delete
-              </button>
+              {contextMenu.target.kind !== "roomLabel" && (
+                <button type="button" role="menuitem" onClick={() => deleteTarget(contextMenu.target)}>
+                  Delete
+                </button>
+              )}
               {contextMenu.target.kind === "room" && selection.rooms && editPlan.canMergeRooms(selection.rooms) && (
                 <button
                   type="button"

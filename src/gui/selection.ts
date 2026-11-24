@@ -5,6 +5,7 @@ import type { Wall } from "../model/Wall";
 
 export type SelectionTarget =
   | { kind: "room"; item: Room }
+  | { kind: "roomLabel"; item: Room; effectiveFontSize: number }
   | { kind: "wall"; item: Wall }
   | { kind: "fence"; item: Fence }
   | { kind: "opening"; item: Opening }
@@ -16,6 +17,7 @@ export type SelectionState = { targets: SelectionTarget[]; activeIndex: number; 
 
 export const selectionTargetNames: Record<SelectionTarget["kind"], string> = {
   room: "Room",
+  roomLabel: "Room Label",
   wall: "Wall",
   fence: "Fence",
   opening: "Opening",

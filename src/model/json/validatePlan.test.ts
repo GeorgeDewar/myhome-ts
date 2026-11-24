@@ -13,14 +13,14 @@ describe("plan loading validation", () => {
   it("round-trips label overrides and warns about unknown label properties", () => {
     const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{
       number: 0, name: "Ground", rooms: [{
-        name: "Room", walls: [], label: { text: "First\nSecond", position: [100, -200], rotation: 45, fontSize: 250.5, extra: true },
+        name: "Room", walls: [], label: { text: "First\nSecond", position: [100, -200], rotation: 45, fontSize: 251, extra: true },
       }],
     }] }] });
     expect(plan.loadWarnings).toHaveLength(1);
     expect(plan.loadWarnings[0]).toContain("unexpected property 'extra'");
     const saved = plan.toJson();
     expect(saved.buildings![0].levels[0].rooms![0].label).toEqual({
-      text: "First\nSecond", position: [100, -200], rotation: 45, fontSize: 250.5,
+      text: "First\nSecond", position: [100, -200], rotation: 45, fontSize: 251,
     });
     expect(JSON.stringify(saved)).toContain("First\\nSecond");
     expectValidPlan(saved);
@@ -34,12 +34,14 @@ describe("plan loading validation", () => {
       number: 0, name: "Ground", rooms: [
         { name: "Bad position", walls: [], label: { position: [1.5, 0] } },
         { name: "Bad size", walls: [], label: { fontSize: 0 } },
+        { name: "Fractional size", walls: [], label: { fontSize: 250.5 } },
       ],
     }] }] });
     expect(plan.getRoomsOnLevel(0)).toEqual([]);
-    expect(plan.loadWarnings).toHaveLength(2);
+    expect(plan.loadWarnings).toHaveLength(3);
     expect(plan.loadWarnings[0]).toContain("/label/position/0");
     expect(plan.loadWarnings[1]).toContain("/label/fontSize");
+    expect(plan.loadWarnings[2]).toContain("/label/fontSize must be integer");
   });
 
   it("ignores fractional fence and opening positions but retains fractional dimensions", () => {

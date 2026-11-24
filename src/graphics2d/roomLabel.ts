@@ -100,8 +100,18 @@ export const labelHit = (layout: LabelLayout, point: Point, scale: number, selec
   if (local.x >= left && local.x <= right && local.y >= top && local.y <= bottom) return "move";
 };
 
+export const oppositeLabelCorner = (layout: LabelLayout, point: Point, scale: number): Point => {
+  const corners = labelHandles(layout, scale).corners;
+  const local = labelLocalPoint(layout, point);
+  const index = corners.reduce((nearest, corner, index) =>
+    Math.hypot(local.x - corner.x, local.y - corner.y) <
+      Math.hypot(local.x - corners[nearest].x, local.y - corners[nearest].y) ? index : nearest, 0);
+  return labelWorldPoint(layout, corners[(index + 2) % corners.length]);
+};
+
 export const labelDragUpdate = (
-  layout: LabelLayout, mode: "move" | "resize" | "rotate", start: Point, point: Point, freeRotation: boolean,
+  layout: LabelLayout, mode: "move" | "resize" | "rotate", start: Point, point: Point,
+  options: { free: boolean; oppositeCorner?: Point },
 ): JsonRoomLabel => {
   if (mode === "move") return {
     position: [
@@ -110,16 +120,27 @@ export const labelDragUpdate = (
     ],
   };
   if (mode === "resize") {
-    const dx = start.x - layout.position.x;
-    const dy = start.y - layout.position.y;
-    const factor = ((point.x - layout.position.x) * dx + (point.y - layout.position.y) * dy) / (dx * dx + dy * dy);
-    return { fontSize: Math.max(1, layout.fontSize * 1000 * factor) };
+    const anchor = options.oppositeCorner ?? layout.position;
+    const dx = start.x - anchor.x;
+    const dy = start.y - anchor.y;
+    const factor = ((point.x - anchor.x) * dx + (point.y - anchor.y) * dy) / (dx * dx + dy * dy);
+    const rawSize = layout.fontSize * 1000 * factor;
+    const fontSize = options.free ? Math.max(1, Math.round(rawSize)) : Math.max(30, Math.round(rawSize / 30) * 30);
+    if (!options.oppositeCorner) return { fontSize };
+    const actualFactor = fontSize / (layout.fontSize * 1000);
+    return {
+      fontSize,
+      position: [
+        Math.round((anchor.x + (layout.position.x - anchor.x) * actualFactor) * 1000),
+        Math.round((anchor.y + (layout.position.y - anchor.y) * actualFactor) * 1000),
+      ],
+    };
   }
   const startAngle = Math.atan2(start.y - layout.position.y, start.x - layout.position.x);
   const angle = Math.atan2(point.y - layout.position.y, point.x - layout.position.x);
   const delta = Math.atan2(Math.sin(angle - startAngle), Math.cos(angle - startAngle));
   const rotation = layout.rotation - delta * 180 / Math.PI;
-  return { rotation: freeRotation ? rotation : Math.round(rotation / 45) * 45 };
+  return { rotation: options.free ? rotation : Math.round(rotation / 45) * 45 };
 };
 
 export const drawRoomLabel = (context: CanvasRenderingContext2D, layout: LabelLayout, selected: boolean, scale: number) => {

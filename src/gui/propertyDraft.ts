@@ -5,6 +5,8 @@ import type { SelectionTarget } from "./selection";
 type PropertyValues = {
   name?: string;
   labelText?: string;
+  fontSize?: string;
+  rotation?: string;
   virtual?: boolean;
   attic?: boolean;
   shape?: JsonOpening["shape"];
@@ -30,13 +32,20 @@ export type PropertyDraft = {
 
 type DistanceField =
   "width" | "height" | "startX" | "startY" | "endX" | "endY" | "distanceAlongWall" | "distanceFromFloor" | "thickness";
-export type PropertyErrors = Partial<Record<DistanceField | "openAngle" | "shape" | "hingeSide" | "swingDirection" | "form", string>>;
+export type PropertyErrors = Partial<Record<DistanceField | "fontSize" | "rotation" | "openAngle" | "shape" | "hingeSide" | "swingDirection" | "form", string>>;
 
 export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
   let values: PropertyValues;
   switch (target.kind) {
     case "room":
-      values = { name: target.item.name, labelText: target.item.label?.text ?? "" };
+      values = { name: target.item.name };
+      break;
+    case "roomLabel":
+      values = {
+        labelText: target.item.label?.text ?? "",
+        fontSize: String(target.item.label?.fontSize ?? Math.round(target.effectiveFontSize)),
+        rotation: String(target.item.label?.rotation ?? 0),
+      };
       break;
     case "wall":
     case "fence":
@@ -115,12 +124,29 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
       report(
         editPlan.updateRoom(target.item, {
           name: values.name !== initialValues.name ? values.name : undefined,
-          label: values.labelText !== undefined && values.labelText !== initialValues.labelText
-            ? { text: values.labelText === "" ? null : values.labelText }
-            : undefined,
         }),
       );
       break;
+    case "roomLabel": {
+      const fontSizeText = values.fontSize ?? initialValues.fontSize ?? "";
+      const rotationText = values.rotation ?? initialValues.rotation ?? "";
+      const fontSize = fontSizeText.trim() === "" ? null : Number(fontSizeText);
+      const rotation = rotationText.trim() === "" ? null : Number(rotationText);
+      if (fontSize !== null && (!Number.isSafeInteger(fontSize) || fontSize <= 0)) {
+        errors.fontSize = "Enter a positive integer number of millimetres.";
+      }
+      if (rotation !== null && !Number.isFinite(rotation)) errors.rotation = "Enter a finite angle.";
+      if (Object.keys(errors).length > 0) break;
+      report(editPlan.updateRoom(target.item, {
+        label: {
+          text: values.labelText !== undefined && values.labelText !== initialValues.labelText
+            ? (values.labelText === "" ? null : values.labelText) : undefined,
+          fontSize: fontSizeText !== initialValues.fontSize ? fontSize : undefined,
+          rotation: rotationText !== initialValues.rotation ? rotation : undefined,
+        },
+      }));
+      break;
+    }
     case "wall": {
       const width =
         values.width !== undefined && values.width !== initialValues.width ? parseDistance("width") : undefined;

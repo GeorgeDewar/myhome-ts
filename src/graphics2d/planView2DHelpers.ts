@@ -243,6 +243,7 @@ export const targetsAtPoint = (
 
 export const isVisibleTarget = (target: SelectionTarget, walls: Wall[], fences: Fence[], showDoors: boolean) => {
   if (target.kind === "room") return true;
+  if (target.kind === "roomLabel") return false;
   if (target.kind === "fence") return fences.includes(target.item);
   if (target.kind === "wall") return walls.includes(target.item);
   if ((target.kind === "door" || target.kind === "slidingDoor") && !showDoors) return false;
@@ -265,6 +266,7 @@ export const drawSelection = (
 ) => {
   targets.forEach((target) => {
     const isActive = activeTarget !== undefined && isSelectionTarget(activeTarget, target);
+    if (target.kind === "roomLabel") return;
     context.strokeStyle = isActive ? "#d64545" : "#2680c2";
     context.lineWidth = (isActive ? 3 : 1.5) / scale;
     if (target.kind === "room") {

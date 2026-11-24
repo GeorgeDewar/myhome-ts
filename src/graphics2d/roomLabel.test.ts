@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { Plan } from "../model/Plan";
-import { drawRoomLabel, labelDragUpdate, labelHandles, labelHit, labelLayout, labelWorldPoint } from "./roomLabel";
+import { drawRoomLabel, labelDragUpdate, labelHandles, labelHit, labelLayout, labelWorldPoint, oppositeLabelCorner } from "./roomLabel";
 
 const setup = () => {
   const plan = Plan.fromJson({
@@ -68,22 +68,43 @@ describe("room labels", () => {
     expect(labelHit(layout, { x: -10, y: -10 }, 40, true)).toBeUndefined();
   });
 
-  it("moves, resizes continuously, and snaps rotation unless Ctrl is held", () => {
+  it("moves, snaps font size and rotation, and allows unsnapped integer sizes with Ctrl", () => {
     const { room, canvas } = setup();
     const layout = labelLayout(canvas, room)!;
     const start = { x: 3, y: 2 };
-    expect(labelDragUpdate(layout, "move", start, { x: 3.1254, y: 1.75 }, false))
+    expect(labelDragUpdate(layout, "move", start, { x: 3.1254, y: 1.75 }, { free: false }))
       .toEqual({ position: [2125, 1750] });
-    expect(labelDragUpdate(layout, "resize", start, { x: 3.5, y: 2 }, false).fontSize).toBeCloseTo(450);
-    expect(labelDragUpdate(layout, "resize", start, { x: 1, y: 2 }, false).fontSize).toBe(1);
+    expect(labelDragUpdate(layout, "resize", start, { x: 3.51, y: 2 }, { free: false }).fontSize).toBe(450);
+    expect(labelDragUpdate(layout, "resize", start, { x: 3.51, y: 2 }, { free: true }).fontSize).toBe(453);
+    expect(labelDragUpdate(layout, "resize", start, { x: 1, y: 2 }, { free: false }).fontSize).toBe(30);
+    expect(labelDragUpdate(layout, "resize", start, { x: 1, y: 2 }, { free: true }).fontSize).toBe(1);
     const angle = 20 * Math.PI / 180;
     const end = { x: 2 + Math.cos(angle), y: 2 - Math.sin(angle) };
-    expect(labelDragUpdate(layout, "rotate", start, end, false).rotation).toBe(0);
-    expect(labelDragUpdate(layout, "rotate", start, end, true).rotation).toBeCloseTo(20);
+    expect(labelDragUpdate(layout, "rotate", start, end, { free: false }).rotation).toBe(0);
+    expect(labelDragUpdate(layout, "rotate", start, end, { free: true }).rotation).toBeCloseTo(20);
     const end70 = { x: 2 + Math.cos(70 * Math.PI / 180), y: 2 - Math.sin(70 * Math.PI / 180) };
-    expect(labelDragUpdate(layout, "rotate", start, end70, false).rotation).toBe(90);
+    expect(labelDragUpdate(layout, "rotate", start, end70, { free: false }).rotation).toBe(90);
     const acrossStart = { x: 2 - Math.cos(angle), y: 2 + Math.sin(angle) };
     const acrossEnd = { x: 2 - Math.cos(angle), y: 2 - Math.sin(angle) };
-    expect(labelDragUpdate(layout, "rotate", acrossStart, acrossEnd, true).rotation).toBeCloseTo(-40);
+    expect(labelDragUpdate(layout, "rotate", acrossStart, acrossEnd, { free: true }).rotation).toBeCloseTo(-40);
+  });
+
+  it.each([0, 45])("keeps the opposite corner anchored while resizing at %s degrees", (rotation) => {
+    const { room, canvas } = setup();
+    room.label = { text: "One\nLonger", position: [2000, 2000], fontSize: 300, rotation };
+    const layout = labelLayout(canvas, room)!;
+    for (const [index, corner] of labelHandles(layout, 40).corners.entries()) {
+      const start = labelWorldPoint(layout, corner);
+      const anchor = oppositeLabelCorner(layout, start, 40);
+      const point = { x: anchor.x + (start.x - anchor.x) * 1.53, y: anchor.y + (start.y - anchor.y) * 1.53 };
+      for (const free of [false, true]) {
+        const update = labelDragUpdate(layout, "resize", start, point, { free, oppositeCorner: anchor });
+        expect(update.fontSize).toBe(free ? 459 : 450);
+        const next = labelLayout(canvas, room, { ...room.label, ...update })!;
+        const opposite = labelWorldPoint(next, labelHandles(next, 40).corners[(index + 2) % 4]);
+        expect(opposite.x).toBeCloseTo(anchor.x, 3);
+        expect(opposite.y).toBeCloseTo(anchor.y, 3);
+      }
+    }
   });
 });

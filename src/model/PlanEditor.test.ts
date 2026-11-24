@@ -197,14 +197,15 @@ describe("PlanEditor.updateWall", () => {
     it("validates label changes atomically and preserves other label overrides", () => {
       const { room, editor, notify } = setup();
       expect(editor.updateRoom(room, { name: "Changed", label: { fontSize: -1 } }).ok).toBe(false);
+      expect(editor.updateRoom(room, { label: { fontSize: 125.5 } }).ok).toBe(false);
       expect(editor.updateRoom(room, { label: { position: [1.5, 0] } }).ok).toBe(false);
       expect(editor.updateRoom(room, { label: { rotation: Infinity } }).ok).toBe(false);
       expect(room.name).toBe("Room");
       expect(room.label).toBeUndefined();
       expect(notify).not.toHaveBeenCalled();
       expect(editor.updateRoom(room, { label: { text: "Two\nlines", position: [100, 200] } }).ok).toBe(true);
-      expect(editor.updateRoom(room, { label: { fontSize: 125.5, rotation: 45 } }).ok).toBe(true);
-      expect(room.label).toEqual({ text: "Two\nlines", position: [100, 200], fontSize: 125.5, rotation: 45 });
+      expect(editor.updateRoom(room, { label: { fontSize: 126, rotation: 45 } }).ok).toBe(true);
+      expect(room.label).toEqual({ text: "Two\nlines", position: [100, 200], fontSize: 126, rotation: 45 });
       expect(editor.updateRoom(room, { label: { position: [100, 200], rotation: 45 } }).ok).toBe(true);
       expect(notify).toHaveBeenCalledTimes(2);
       expect(editor.updateRoom(room, { label: { text: null } }).ok).toBe(true);

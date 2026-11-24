@@ -15,7 +15,9 @@ import {
   isVisibleTarget, targetsAtPoint, visibleWalls,
 } from "./planView2DHelpers";
 import { toPoint } from "./renderPolygons";
-import { drawRoomLabel, labelDragUpdate, labelHit, labelLayout, type LabelLayout } from "./roomLabel";
+import {
+  drawRoomLabel, labelDragUpdate, labelHit, labelLayout, oppositeLabelCorner, type LabelLayout,
+} from "./roomLabel";
 import type { JsonRoomLabel } from "../model/json/Document";
 import "./PlanView2D.css";
 
@@ -73,7 +75,7 @@ export const PlanView2D = ({
     const rooms = plan.getRoomsOnLevel(level);
     const viewport = viewportRef.current;
     const active = selection.targets[selection.activeIndex];
-    if (!layerVisibility.roomLabels || active?.kind !== "room" || active.item !== selectedLabelRef.current) {
+    if (!layerVisibility.roomLabels || active?.kind !== "roomLabel" || active.item !== selectedLabelRef.current) {
       selectedLabelRef.current = undefined;
     }
     let dragOrigin: Point | undefined;
@@ -82,6 +84,7 @@ export const PlanView2D = ({
       mode: "move" | "resize" | "rotate";
       start: Point;
       layout: LabelLayout;
+      oppositeCorner?: Point;
       previousSelected?: Room;
       update?: JsonRoomLabel;
     } | undefined;
@@ -186,9 +189,12 @@ export const PlanView2D = ({
         for (const room of candidates) {
           const layout = labelLayout(context, room);
           const mode = layout && labelHit(layout, point, viewport.scale, selected === room);
-          if (layout && mode && (!event.ctrlKey || mode === "rotate")) {
+          if (layout && mode && (!event.ctrlKey || mode !== "move")) {
             selectedLabelRef.current = room;
-            labelDrag = { room, mode, start: point, layout, previousSelected: selected };
+            labelDrag = {
+              room, mode, start: point, layout, previousSelected: selected,
+              ...(mode === "resize" ? { oppositeCorner: oppositeLabelCorner(layout, point, viewport.scale) } : {}),
+            };
             canvas.setPointerCapture(event.pointerId);
             render();
             return;
@@ -202,7 +208,10 @@ export const PlanView2D = ({
       cursor = worldPoint(event);
       if (labelDrag) {
         if (labelDrag.update || Math.hypot(cursor.x - labelDrag.start.x, cursor.y - labelDrag.start.y) * viewport.scale > 2) {
-          labelDrag.update = labelDragUpdate(labelDrag.layout, labelDrag.mode, labelDrag.start, cursor, event.ctrlKey);
+          labelDrag.update = labelDragUpdate(labelDrag.layout, labelDrag.mode, labelDrag.start, cursor, {
+            free: event.ctrlKey,
+            ...(event.shiftKey && labelDrag.mode === "resize" ? { oppositeCorner: labelDrag.oppositeCorner } : {}),
+          });
         }
         render();
         reportStatus();
@@ -231,7 +240,10 @@ export const PlanView2D = ({
           const result = editPlan.updateRoom(room, { label: update });
           if (!result.ok) window.alert(result.error);
         }
-        onSelectionChange({ targets: [{ kind: "room", item: room }], activeIndex: 0 });
+        const layout = labelLayout(context, room);
+        if (layout) onSelectionChange({
+          targets: [{ kind: "roomLabel", item: room, effectiveFontSize: layout.fontSize * 1000 }], activeIndex: 0,
+        });
         render();
         return;
       }
@@ -276,7 +288,7 @@ export const PlanView2D = ({
       if (selectedLabelRef.current && layerVisibility.roomLabels) {
         const layout = labelLayout(context, selectedLabelRef.current);
         if (layout && labelHit(layout, worldPoint(event), viewport.scale, true)) {
-          onEdit({ kind: "room", item: selectedLabelRef.current });
+          onEdit({ kind: "roomLabel", item: selectedLabelRef.current, effectiveFontSize: layout.fontSize * 1000 });
           return;
         }
       }
@@ -298,6 +310,13 @@ export const PlanView2D = ({
         y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
       };
       const activeTarget = selection.targets[selection.activeIndex];
+      if (activeTarget?.kind === "roomLabel" && layerVisibility.roomLabels) {
+        const layout = labelLayout(context, activeTarget.item);
+        if (layout && labelHit(layout, point, viewport.scale, true)) {
+          if (onContextMenu(activeTarget, event.clientX, event.clientY)) event.preventDefault();
+          return;
+        }
+      }
       const hits = targetsAtPoint(point, walls, rooms, fences, layerVisibility.doors);
       const target = hits.find((candidate) => activeTarget && isSelectionTarget(activeTarget, candidate)) ??
         hits.find((candidate) => candidate.kind === "room" && selection.rooms?.includes(candidate.item));

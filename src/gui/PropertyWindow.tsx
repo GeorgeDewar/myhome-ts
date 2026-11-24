@@ -1,5 +1,6 @@
 import { GripVertical, X } from "lucide-react";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { labelLayout } from "../graphics2d/roomLabel";
 import type { PlanEditor } from "../model/PlanEditor";
 import { applyPropertyDraft, createPropertyDraft, type PropertyDraft, type PropertyErrors } from "./propertyDraft";
 import { selectionTargetNames, type SelectionTarget } from "./selection";
@@ -7,6 +8,15 @@ import "./PropertyWindow.css";
 
 type PropertyWindowProps = { target: SelectionTarget; editPlan: PlanEditor; onClose: () => void };
 type Values = PropertyDraft["values"];
+
+const draftForTarget = (target: SelectionTarget) => {
+  if (target.kind === "roomLabel" && typeof document !== "undefined") {
+    const context = document.createElement("canvas").getContext("2d");
+    const layout = context && labelLayout(context, target.item);
+    if (layout) return createPropertyDraft({ ...target, effectiveFontSize: layout.fontSize * 1000 });
+  }
+  return createPropertyDraft(target);
+};
 
 const DistanceField = ({
   label,
@@ -51,11 +61,11 @@ const DistanceField = ({
 export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProps) => {
   const [position, setPosition] = useState({ x: 288, y: 88 });
   const [editor, setEditor] = useState<{ draft: PropertyDraft; errors: PropertyErrors }>(() => ({
-    draft: createPropertyDraft(target),
+    draft: draftForTarget(target),
     errors: {},
   }));
   if (editor.draft.target.item !== target.item || editor.draft.target.kind !== target.kind) {
-    setEditor({ draft: createPropertyDraft(target), errors: {} });
+    setEditor({ draft: draftForTarget(target), errors: {} });
   }
   const { draft, errors } = editor;
   const dragOriginRef = useRef<{ pointerX: number; pointerY: number; windowX: number; windowY: number } | undefined>(
@@ -107,7 +117,7 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
     } else if (close) {
       onClose();
     } else {
-      setEditor({ draft: createPropertyDraft(target), errors: {} });
+      setEditor({ draft: draftForTarget(target), errors: {} });
     }
   };
 
@@ -129,14 +139,20 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
         }}
       >
         {target.kind === "room" && (
+          <label>
+            Name
+            <input
+              value={draft.values.name ?? ""}
+              onChange={(event) => updateValues({ name: event.target.value })}
+              autoFocus
+            />
+          </label>
+        )}
+        {target.kind === "roomLabel" && (
           <>
             <label>
-              Name
-              <input
-                value={draft.values.name ?? ""}
-                onChange={(event) => updateValues({ name: event.target.value })}
-                autoFocus
-              />
+              Room name
+              <input value={target.item.name} readOnly />
             </label>
             <label>
               Label text (optional)
@@ -144,7 +160,32 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
                 value={draft.values.labelText ?? ""}
                 placeholder="Uses room name"
                 onChange={(event) => updateValues({ labelText: event.target.value })}
+                autoFocus
               />
+            </label>
+            <label>
+              Font size (mm)
+              <input
+                type="number" step="1" min="1"
+                value={draft.values.fontSize ?? ""}
+                placeholder="Automatic"
+                aria-invalid={!!errors.fontSize}
+                aria-describedby={errors.fontSize ? "property-fontSize-error" : undefined}
+                onChange={(event) => updateValues({ fontSize: event.target.value })}
+              />
+              {errors.fontSize && <span className="property-error" id="property-fontSize-error" role="alert">{errors.fontSize}</span>}
+            </label>
+            <label>
+              Rotation (degrees)
+              <input
+                type="number" step="any"
+                value={draft.values.rotation ?? ""}
+                placeholder="0"
+                aria-invalid={!!errors.rotation}
+                aria-describedby={errors.rotation ? "property-rotation-error" : undefined}
+                onChange={(event) => updateValues({ rotation: event.target.value })}
+              />
+              {errors.rotation && <span className="property-error" id="property-rotation-error" role="alert">{errors.rotation}</span>}
             </label>
           </>
         )}
