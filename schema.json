@@ -55,7 +55,7 @@
                   "exclusiveMinimum": 0,
                   "description": "Height of the floor in millimetres, from the unfinished floor surface to the unfinished floor surface above"
                 },
-                "walls": { "type": "array", "items": { "$ref": "#/$defs/room" } },
+                "walls": { "type": "array", "items": { "$ref": "#/$defs/wall" } },
                 "rooms": { "type": "array", "items": { "$ref": "#/$defs/room" } }
               }
             }

@@ -3,6 +3,12 @@ import { describe, expect, it } from "vitest";
 import schema from "../../../schema.json";
 import { Plan } from "../Plan";
 
+const expectValidPlan = (document: unknown) => {
+  const validate = new Ajv2020({ strict: false, allErrors: true }).compile(schema);
+  const valid = validate(document);
+  expect(valid, `Saved plan does not match the schema:\n${JSON.stringify(validate.errors, null, 2)}`).toBe(true);
+};
+
 describe("plan loading validation", () => {
   it("ignores fractional fence and opening positions but retains fractional dimensions", () => {
     const document = {
@@ -54,8 +60,7 @@ describe("plan loading validation", () => {
     expect(plan.loadWarnings[1]).toContain("openings[0]: /distanceAlongWall must be integer");
     expect(plan.loadWarnings[2]).toContain("openings[1]: /distanceFromFloor must be integer");
     expect(plan.loadWarnings.every((warning) => !warning.includes("Unexamined"))).toBe(true);
-    const validate = new Ajv2020({ strict: false }).compile(schema);
-    expect(validate(saved)).toBe(true);
+    expectValidPlan(saved);
     const reloaded = Plan.fromJson(saved);
     expect(reloaded.loadWarnings).toEqual([]);
     expect(reloaded.toJson()).toEqual(saved);
@@ -364,7 +369,7 @@ describe("plan loading validation", () => {
     expect(plan.loadWarnings.find((warning) => warning.includes("extraRef"))).toContain("rooms[0]/walls/0");
     expect(plan.loadWarnings.every((warning) => warning.endsWith("property ignored."))).toBe(true);
     const saved = plan.toJson();
-    expect(new Ajv2020({ strict: false }).compile(schema)(saved)).toBe(true);
+    expectValidPlan(saved);
     expect(Plan.fromJson(saved).loadWarnings).toEqual([]);
   });
 

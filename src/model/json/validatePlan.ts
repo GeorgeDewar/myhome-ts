@@ -22,7 +22,8 @@ type OpeningShell = Omit<JsonOpening, "contents"> & { contents?: unknown[] };
 
 const buildingSchema = schema.properties.buildings.items;
 const levelSchema = buildingSchema.properties.levels.items;
-const wallSchema = levelSchema.properties.walls.items;
+const wallSchema = schema.$defs.wall;
+const roomSchema = schema.$defs.room;
 const openingSchema = wallSchema.properties.openings.items;
 const ajv = new Ajv2020({ strict: false, strictNumbers: true, allErrors: true });
 const shallowSchema = <T extends { properties: object }>(source: T, children: string[]) => {
@@ -36,7 +37,7 @@ const validateFence = ajv.compile<JsonFence>({ ...schema.properties.fences.items
 const validateBuilding = ajv.compile<BuildingShell>(shallowSchema(buildingSchema, ["levels"]));
 const validateLevel = ajv.compile<LevelShell>(shallowSchema(levelSchema, ["walls", "rooms"]));
 const validateWall = ajv.compile<WallShell>(shallowSchema(wallSchema, ["openings"]));
-const validateRoom = ajv.compile<JsonRoom>({ ...levelSchema.properties.rooms.items, $defs: schema.$defs });
+const validateRoom = ajv.compile<JsonRoom>({ ...roomSchema, $defs: schema.$defs });
 const validateOpening = ajv.compile<OpeningShell>(shallowSchema(openingSchema, ["contents"]));
 const openingItemSchemas = openingSchema.properties.contents.items.anyOf;
 const openingItemValidators = {
