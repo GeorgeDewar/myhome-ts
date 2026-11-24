@@ -153,7 +153,7 @@ export const PlanView2D = ({
       drawOpenings(context, walls, viewport.scale, layerVisibility.doors);
       drawSelection(
         context,
-        selectedTargets(selection).filter((target) => isVisibleTarget(target, walls, fences, layerVisibility.doors)),
+        selectedTargets(selection).filter((target) => isVisibleTarget(target, walls, rooms, fences, layerVisibility.doors)),
         selection.targets[selection.activeIndex],
         viewport.scale,
       );

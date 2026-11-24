@@ -58,6 +58,33 @@ describe("room multi-selection", () => {
     expect(selectedTargets(one)).toEqual([{ kind: "room", item: second }]);
     expect(toggleRoomSelection(one, second)).toEqual({ targets: [], activeIndex: -1 });
   });
+
+  it("only highlights selected rooms on the displayed level", () => {
+    const plan = Plan.fromJson({
+      buildings: [
+        { name: "House", levels: [
+          { number: 0, name: "Ground", rooms: [{ name: "Room", walls: [] }] },
+          { number: 1, name: "Upper", rooms: [{ name: "Room", walls: [] }] },
+        ] },
+        { name: "Garage", levels: [
+          { number: 0, name: "Ground", rooms: [{ name: "Room", walls: [] }] },
+        ] },
+      ],
+    });
+    const groundRooms = plan.getRoomsOnLevel(0);
+    const upperRooms = plan.getRoomsOnLevel(1);
+    const selection = {
+      targets: [{ kind: "room" as const, item: upperRooms[0] }],
+      activeIndex: 0,
+      rooms: [...groundRooms, ...upperRooms],
+    };
+    const visibleRooms = (rooms: Room[]) =>
+      selectedTargets(selection).filter((target) => isVisibleTarget(target, [], rooms, [], true));
+
+    expect(visibleRooms(groundRooms).map((target) => target.item)).toEqual(groundRooms);
+    expect(visibleRooms(upperRooms).map((target) => target.item)).toEqual(upperRooms);
+    expect(visibleRooms([])).toEqual([]);
+  });
 });
 
 describe("drawFences", () => {
@@ -143,8 +170,8 @@ describe("drawFences", () => {
       expect(visible).toEqual([walls[1], walls[3]]);
       expect(targetsAtPoint({ x: 2, y: 0 }, visible, [], [], true)).toEqual([]);
       expect(targetsAtPoint({ x: 2, y: 1 }, visible, [], [], true)).toEqual([{ kind: "wall", item: walls[1] }]);
-      expect(isVisibleTarget({ kind: "opening", item: opening }, visible, [], true)).toBe(false);
-      expect(isVisibleTarget({ kind: "wall", item: walls[1] }, visible, [], true)).toBe(true);
+      expect(isVisibleTarget({ kind: "opening", item: opening }, visible, [], [], true)).toBe(false);
+      expect(isVisibleTarget({ kind: "wall", item: walls[1] }, visible, [], [], true)).toBe(true);
     });
 
     it("filters attic walls independently and shows a dual-flagged wall on either layer", () => {
@@ -155,7 +182,7 @@ describe("drawFences", () => {
       expect(visibleWalls(walls, { ...visibility, normalWalls: false, virtualWalls: true })).toEqual([walls[1], walls[3]]);
       expect(visibleWalls(walls, { ...visibility, normalWalls: false, virtualWalls: true, atticWalls: true }))
         .toEqual([walls[1], walls[2], walls[3]]);
-      expect(isVisibleTarget({ kind: "opening", item: atticOpening }, visibleWalls(walls, visibility), [], true)).toBe(false);
+      expect(isVisibleTarget({ kind: "opening", item: atticOpening }, visibleWalls(walls, visibility), [], [], true)).toBe(false);
       expect(targetsAtPoint({ x: 2, y: 2 }, visibleWalls(walls, visibility), [], [], true)).toEqual([]);
       expect(targetsAtPoint({ x: 2, y: 2 }, visibleWalls(walls, { ...visibility, atticWalls: true }), [], [], true)
         .some((target) => target.kind === "wall" && target.item === walls[2])).toBe(true);
@@ -165,7 +192,7 @@ describe("drawFences", () => {
       const fence = Fence.fromJson({ id: "fence", start: [0, 0], end: [1000, 0] });
       expect(targetsAtPoint({ x: 0.5, y: 0 }, [], [], [fence], true)).toEqual([{ kind: "fence", item: fence }]);
       expect(targetsAtPoint({ x: 0.5, y: 0 }, [], [], [], true)).toEqual([]);
-      expect(isVisibleTarget({ kind: "fence", item: fence }, [], [], true)).toBe(false);
+      expect(isVisibleTarget({ kind: "fence", item: fence }, [], [], [], true)).toBe(false);
     });
 
     it("hides both kinds of doors without hiding windows or openings", () => {
@@ -181,8 +208,8 @@ describe("drawFences", () => {
       expect(targets.map((target) => target.kind)).toEqual(["wall", "opening", "window"]);
       const [door, slidingDoor] = opening.contents;
       if (door.type !== "StandardDoor" || slidingDoor.type !== "SlidingDoor") throw new Error("Unexpected door type");
-      expect(isVisibleTarget({ kind: "door", item: door, opening }, [walls[0]], [], false)).toBe(false);
-      expect(isVisibleTarget({ kind: "slidingDoor", item: slidingDoor, opening }, [walls[0]], [], false)).toBe(false);
+      expect(isVisibleTarget({ kind: "door", item: door, opening }, [walls[0]], [], [], false)).toBe(false);
+      expect(isVisibleTarget({ kind: "slidingDoor", item: slidingDoor, opening }, [walls[0]], [], [], false)).toBe(false);
 
       drawOpenings(context as unknown as CanvasRenderingContext2D, [walls[0]], 20, true);
       expect(context.arc).toHaveBeenCalledOnce();

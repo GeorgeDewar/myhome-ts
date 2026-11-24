@@ -291,8 +291,8 @@ export const doubleClickSelection = (before: SelectionState, hits: SelectionStat
   return { targets: [...hits.targets, { kind: "room", item: label.item }], activeIndex: hits.targets.length };
 };
 
-export const isVisibleTarget = (target: SelectionTarget, walls: Wall[], fences: Fence[], showDoors: boolean) => {
-  if (target.kind === "room") return true;
+export const isVisibleTarget = (target: SelectionTarget, walls: Wall[], rooms: Room[], fences: Fence[], showDoors: boolean) => {
+  if (target.kind === "room") return rooms.includes(target.item);
   if (target.kind === "roomLabel") return false;
   if (target.kind === "fence") return fences.includes(target.item);
   if (target.kind === "wall") return walls.includes(target.item);
