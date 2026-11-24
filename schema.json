@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://myhome.dewar.co.nz/myhome.schema.json",
-  "title": "House",
-  "description": "A house",
+  "title": "Property",
+  "description": "A property, including its buildings, fences, and other structures",
   "type": "object",
   "unevaluatedProperties": false,
   "properties": {
@@ -55,153 +55,8 @@
                   "exclusiveMinimum": 0,
                   "description": "Height of the floor in millimetres, from the unfinished floor surface to the unfinished floor surface above"
                 },
-                "walls": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": ["id", "start", "end"],
-                    "unevaluatedProperties": false,
-                    "properties": {
-                      "id": { "type": "string" },
-                      "start": {
-                        "$ref": "#/$defs/position",
-                        "description": "Position of the start of the wall (left side when viewing face A) relative to the floor, in millimetres. The position is midway through the thickness of the wall."
-                      },
-                      "end": {
-                        "$ref": "#/$defs/position",
-                        "description": "Position of the end of the wall (right side when viewing face A) relative to the floor, in millimetres. The position is midway through the thickness of the wall."
-                      },
-                      "width": {
-                        "type": "number",
-                        "exclusiveMinimum": 0,
-                        "description": "Width of the wall in millimetres"
-                      },
-                      "openings": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "required": ["id", "width", "distanceAlongWall"],
-                          "unevaluatedProperties": false,
-                          "properties": {
-                            "id": { "type": "string" },
-                            "shape": {
-                              "type": "string",
-                              "enum": ["rectangle", "halfCircleArch"],
-                              "default": "rectangle"
-                            },
-                            "width": {
-                              "type": "number",
-                              "exclusiveMinimum": 0,
-                              "description": "Width of the door (the opening) in millimetres"
-                            },
-                            "height": {
-                              "type": "number",
-                              "exclusiveMinimum": 0,
-                              "description": "Height of the door (the opening) in millimetres"
-                            },
-                            "distanceAlongWall": {
-                              "type": "integer",
-                              "description": "Position of the center of the door along the wall, in millimetres. The position is measured from the start of the wall."
-                            },
-                            "distanceFromFloor": {
-                              "type": "integer",
-                              "description": "Distance of the bottom of the door from the floor, in millimetres.",
-                              "default": 0
-                            },
-                            "contents": {
-                              "type": "array",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "object",
-                                    "required": ["type", "hingeSide", "swingDirection"],
-                                    "unevaluatedProperties": false,
-                                    "properties": {
-                                      "type": { "const": "StandardDoor" },
-                                      "openAngle": { "type": "number", "minimum": 0, "maximum": 180, "default": 90 },
-                                      "hingeSide": {
-                                        "type": "string",
-                                        "enum": ["left", "right"],
-                                        "description": "Which side of the door is hinged, as viewed from the A-side of the wall the door is installed in"
-                                      },
-                                      "swingDirection": {
-                                        "type": "string",
-                                        "enum": ["in", "out"],
-                                        "description": "Direction the door swings when opening, viewed from the A-side of the wall the door is installed in (in being toward the observer)"
-                                      },
-                                      "thickness": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0,
-                                        "description": "Thickness of the door leaf in millimetres",
-                                        "default": 35
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "type": "object",
-                                    "required": ["type"],
-                                    "unevaluatedProperties": false,
-                                    "properties": {
-                                      "type": { "const": "SlidingDoor" },
-                                      "thickness": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0,
-                                        "description": "Thickness of the door leaf in millimetres",
-                                        "default": 35
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "type": "object",
-                                    "required": ["type"],
-                                    "unevaluatedProperties": false,
-                                    "properties": { "type": { "const": "StandardWindow" } }
-                                  }
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "virtual": {
-                        "type": "boolean",
-                        "description": "If true, it's not really a wall at all but is only used to define an area"
-                      },
-                      "attic": {
-                        "type": "boolean",
-                        "description": "If true, this wall is classified by Home Designer as an attic wall"
-                      }
-                    }
-                  }
-                },
-                "rooms": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": ["name", "walls"],
-                    "unevaluatedProperties": false,
-                    "properties": {
-                      "name": { "type": "string" },
-                      "labelPosition": {
-                        "$ref": "#/$defs/position",
-                        "description": "Position of the room label relative to the floor, in millimetres"
-                      },
-                      "labelFontSize": {
-                        "type": "number",
-                        "description": "Room label character size in millimetres"
-                      },
-                      "walls": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "required": ["ref"],
-                          "unevaluatedProperties": false,
-                          "properties": { "ref": { "type": "string" } }
-                        }
-                      }
-                    }
-                  }
-                }
+                "walls": { "type": "array", "items": { "$ref": "#/$defs/room" } },
+                "rooms": { "type": "array", "items": { "$ref": "#/$defs/room" } }
               }
             }
           }
@@ -216,6 +71,136 @@
       "minItems": 2,
       "maxItems": 2,
       "description": "Position of an object relative to its parent, in millimetres. The first element is the x-coordinate (higher toward the right when viewed on-screen), and the second element is the y-coordinate (higher downwards when viewed on-screen)."
+    },
+    "wall": {
+      "type": "object",
+      "required": ["id", "start", "end"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "start": {
+          "$ref": "#/$defs/position",
+          "description": "Position of the start of the wall (left side when viewing face A) relative to the floor, in millimetres. The position is midway through the thickness of the wall."
+        },
+        "end": {
+          "$ref": "#/$defs/position",
+          "description": "Position of the end of the wall (right side when viewing face A) relative to the floor, in millimetres. The position is midway through the thickness of the wall."
+        },
+        "width": { "type": "number", "exclusiveMinimum": 0, "description": "Width of the wall in millimetres" },
+        "openings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "width", "distanceAlongWall"],
+            "unevaluatedProperties": false,
+            "properties": {
+              "id": { "type": "string" },
+              "shape": { "type": "string", "enum": ["rectangle", "halfCircleArch"], "default": "rectangle" },
+              "width": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "description": "Width of the door (the opening) in millimetres"
+              },
+              "height": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "description": "Height of the door (the opening) in millimetres"
+              },
+              "distanceAlongWall": {
+                "type": "integer",
+                "description": "Position of the center of the door along the wall, in millimetres. The position is measured from the start of the wall."
+              },
+              "distanceFromFloor": {
+                "type": "integer",
+                "description": "Distance of the bottom of the door from the floor, in millimetres.",
+                "default": 0
+              },
+              "contents": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": ["type", "hingeSide", "swingDirection"],
+                      "unevaluatedProperties": false,
+                      "properties": {
+                        "type": { "const": "StandardDoor" },
+                        "openAngle": { "type": "number", "minimum": 0, "maximum": 180, "default": 90 },
+                        "hingeSide": {
+                          "type": "string",
+                          "enum": ["left", "right"],
+                          "description": "Which side of the door is hinged, as viewed from the A-side of the wall the door is installed in"
+                        },
+                        "swingDirection": {
+                          "type": "string",
+                          "enum": ["in", "out"],
+                          "description": "Direction the door swings when opening, viewed from the A-side of the wall the door is installed in (in being toward the observer)"
+                        },
+                        "thickness": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "description": "Thickness of the door leaf in millimetres",
+                          "default": 35
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": ["type"],
+                      "unevaluatedProperties": false,
+                      "properties": {
+                        "type": { "const": "SlidingDoor" },
+                        "thickness": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "description": "Thickness of the door leaf in millimetres",
+                          "default": 35
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": ["type"],
+                      "unevaluatedProperties": false,
+                      "properties": { "type": { "const": "StandardWindow" } }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "virtual": {
+          "type": "boolean",
+          "description": "If true, it's not really a wall at all but is only used to define an area"
+        },
+        "attic": {
+          "type": "boolean",
+          "description": "If true, this wall is classified by Home Designer as an attic wall"
+        }
+      }
+    },
+    "room": {
+      "type": "object",
+      "required": ["name", "walls"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "labelPosition": {
+          "$ref": "#/$defs/position",
+          "description": "Position of the room label relative to the floor, in millimetres"
+        },
+        "labelFontSize": { "type": "number", "description": "Room label character size in millimetres" },
+        "walls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["ref"],
+            "unevaluatedProperties": false,
+            "properties": { "ref": { "type": "string" } }
+          }
+        }
+      }
     }
   }
 }
