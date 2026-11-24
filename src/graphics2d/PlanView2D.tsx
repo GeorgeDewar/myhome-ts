@@ -192,7 +192,12 @@ export const PlanView2D = ({
         if (room && rooms.includes(room)) {
           const layout = labelLayout(context, room);
           const mode = layout && labelHit(layout, point, viewport.scale, selected === room);
-          if (layout && mode && (!event.ctrlKey || mode !== "move")) {
+          const hits = mode && selectionAtPoint(
+            context, point, walls, rooms, fences, layerVisibility.doors, layerVisibility.roomLabels, viewport.scale,
+          );
+          const top = hits && hits.targets[hits.activeIndex];
+          const otherLabelHasPriority = top?.kind === "roomLabel" && top.item !== room;
+          if (layout && mode && !otherLabelHasPriority && (!event.ctrlKey || mode !== "move")) {
             selectedLabelRef.current = room;
             labelDrag = {
               room, mode, start: point, layout, previousSelected: selected,
@@ -299,22 +304,20 @@ export const PlanView2D = ({
       const before = doubleClickStartRef.current ?? selection;
       doubleClickStartRef.current = undefined;
       const priorActive = before.targets[before.activeIndex];
+      const point = worldPoint(event);
+      const hits = selectionAtPoint(
+        context, point, walls, rooms, fences, layerVisibility.doors, layerVisibility.roomLabels, viewport.scale,
+      );
+      const top = hits.targets[hits.activeIndex];
+      const otherLabelHasPriority = top?.kind === "roomLabel" && top.item !== priorActive?.item;
       if (priorActive?.kind === "roomLabel" && layerVisibility.roomLabels) {
         const layout = labelLayout(context, priorActive.item);
-        if (layout && labelHit(layout, worldPoint(event), viewport.scale, true)) {
+        if (layout && !otherLabelHasPriority && labelHit(layout, point, viewport.scale, true)) {
           onSelectionChange({ targets: [priorActive], activeIndex: 0 });
           onEdit({ ...priorActive, effectiveFontSize: layout.fontSize * 1000 });
           return;
         }
       }
-      const bounds = canvas.getBoundingClientRect();
-      const point = {
-        x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
-        y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
-      };
-      const hits = selectionAtPoint(
-        context, point, walls, rooms, fences, layerVisibility.doors, layerVisibility.roomLabels, viewport.scale,
-      );
       const next = doubleClickSelection(before, hits);
       const activeTarget = next.targets[next.activeIndex];
       onSelectionChange(next);

@@ -186,8 +186,7 @@ function App() {
         event.target.closest(".property-window, .object-context-menu, [contenteditable='true']")
       ) return;
       if (drawingWall) return;
-      if (event.key === "Alt" && !event.repeat &&
-          (selection.targets.length > 1 || (selection.targets.length === 1 && selection.activeIndex < 0))) {
+      if (event.key === "Alt" && !event.repeat && selection.targets.length > 1) {
         event.preventDefault();
         setSelection((currentSelection) => ({
           targets: currentSelection.targets,

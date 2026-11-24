@@ -253,19 +253,27 @@ export const selectionAtPoint = (
   scale: number,
 ): SelectionState => {
   const hits = targetsAtPoint(point, walls, rooms, fences, showDoors);
-  const labels: SelectionTarget[] = [];
+  const insideLabels: SelectionTarget[] = [];
+  const outsideLabels: SelectionTarget[] = [];
   if (showLabels) {
     for (const room of rooms) {
       const layout = labelLayout(context, room);
       if (layout && labelHit(layout, point, scale, false) === "move") {
-        labels.push({ kind: "roomLabel", item: room, effectiveFontSize: layout.fontSize * 1000 });
+        const label: SelectionTarget = { kind: "roomLabel", item: room, effectiveFontSize: layout.fontSize * 1000 };
+        const isInsideRoom = hits.some((target) => target.kind === "room" && target.item === room);
+        (isInsideRoom ? insideLabels : outsideLabels).push(label);
       }
     }
   }
-  return { targets: [...labels, ...hits], activeIndex: hits.length ? labels.length + hits.length - 1 : -1 };
+  const targets = [...insideLabels, ...hits, ...outsideLabels];
+  return { targets, activeIndex: targets.length - 1 };
 };
 
 export const doubleClickSelection = (before: SelectionState, hits: SelectionState): SelectionState => {
+  const top = hits.targets[hits.activeIndex];
+  if (top?.kind === "roomLabel" && !hits.targets.some((target) => target.kind === "room" && target.item === top.item)) {
+    return hits;
+  }
   const active = before.targets[before.activeIndex];
   const labels = hits.targets.filter((target) => target.kind === "roomLabel");
   const selectedLabel = labels.find((label) =>

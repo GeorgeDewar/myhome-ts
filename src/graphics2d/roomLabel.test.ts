@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
+import { Fence } from "../model/Fence";
 import { Plan } from "../model/Plan";
+import { Room } from "../model/Room";
+import { Wall } from "../model/Wall";
+import type { JsonWall } from "../model/json/Document";
 import { doubleClickSelection, selectionAtPoint } from "./planView2DHelpers";
 import { drawRoomLabel, labelDragUpdate, labelHandles, labelHit, labelLayout, labelWorldPoint, oppositeLabelCorner } from "./roomLabel";
 
@@ -49,12 +53,45 @@ describe("room labels", () => {
       .targets.map((target) => target.kind)).toEqual(["room"]);
   });
 
-  it("retains a label outside its room for Alt without selecting it on the first click", () => {
+  it("selects an outside label immediately, including on a double-click", () => {
     const { room, canvas } = setup();
     room.label = { position: [6000, 6000], rotation: 45 };
     const selection = selectionAtPoint(canvas, { x: 6, y: 6 }, [...room.walls], [room], [], true, true, 40);
-    expect(selection.targets.map((target) => target.kind)).toEqual(["roomLabel"]);
-    expect(selection.activeIndex).toBe(-1);
+    expect(selection.targets[selection.activeIndex]).toMatchObject({ kind: "roomLabel", item: room });
+    const doubleClick = doubleClickSelection({ targets: [], activeIndex: -1 }, selection);
+    expect(doubleClick.targets[doubleClick.activeIndex]).toMatchObject({ kind: "roomLabel", item: room });
+  });
+
+  it("uses the clicked point when a label crosses the room boundary", () => {
+    const { room, canvas } = setup();
+    room.label = { position: [4000, 2000], fontSize: 600 };
+    const inside = selectionAtPoint(canvas, { x: 3.8, y: 2 }, [...room.walls], [room], [], true, true, 40);
+    const outside = selectionAtPoint(canvas, { x: 4.2, y: 2 }, [...room.walls], [room], [], true, true, 40);
+    expect(inside.targets[inside.activeIndex]).toEqual({ kind: "room", item: room });
+    expect(outside.targets[outside.activeIndex]).toMatchObject({ kind: "roomLabel", item: room });
+    expect(doubleClickSelection({ targets: [], activeIndex: -1 }, inside).targets[inside.activeIndex].kind).toBe("room");
+    const outsideDoubleClick = doubleClickSelection({ targets: [], activeIndex: -1 }, outside);
+    expect(outsideDoubleClick.targets[outsideDoubleClick.activeIndex].kind).toBe("roomLabel");
+  });
+
+  it("prioritizes an outside label over overlapping items, retaining them for Alt cycling", () => {
+    const { room, canvas } = setup();
+    room.label = { position: [6000, 6000] };
+    const fence = Fence.fromJson({ id: "f", start: [5000, 6000], end: [7000, 6000] });
+    const walls: JsonWall[] = [
+      { id: "e", start: [5000, 5000], end: [7000, 5000] },
+      { id: "f", start: [7000, 5000], end: [7000, 7000] },
+      { id: "g", start: [7000, 7000], end: [5000, 7000] },
+      { id: "h", start: [5000, 7000], end: [5000, 5000] },
+    ];
+    const otherWalls = walls.map((wall) => Wall.fromJson(wall));
+    const other = new Room("Other", otherWalls);
+    other.label = { position: [5500, 5500] };
+    const hits = selectionAtPoint(canvas, { x: 6, y: 6 }, [...room.walls, ...otherWalls], [room, other], [fence], true, true, 40);
+    expect(hits.targets.map((target) => target.kind)).toEqual(["room", "fence", "roomLabel"]);
+    expect(hits.targets[hits.activeIndex]).toMatchObject({ kind: "roomLabel", item: room });
+    const doubleClick = doubleClickSelection({ targets: [{ kind: "room", item: other }], activeIndex: 0 }, hits);
+    expect(doubleClick.targets[doubleClick.activeIndex]).toMatchObject({ kind: "roomLabel", item: room });
   });
 
   it("uses the selection before a double-click to choose room or label properties", () => {
@@ -68,14 +105,6 @@ describe("room labels", () => {
     expect(fromLabel.targets[fromLabel.activeIndex].kind).toBe("roomLabel");
     const fromMultiSelection = doubleClickSelection({ targets: [], activeIndex: -1, rooms: [room] }, hits);
     expect(fromMultiSelection.targets[fromMultiSelection.activeIndex].kind).toBe("roomLabel");
-  });
-
-  it("opens the owning room on a cold double-click of a label outside its room", () => {
-    const { room, canvas } = setup();
-    room.label = { position: [6000, 6000] };
-    const hits = selectionAtPoint(canvas, { x: 6, y: 6 }, [...room.walls], [room], [], true, true, 40);
-    const selection = doubleClickSelection({ targets: [], activeIndex: -1 }, hits);
-    expect(selection.targets[selection.activeIndex]).toEqual({ kind: "room", item: room });
   });
 
   it("uses automatic placement and size unless overridden, and measures multiline text", () => {
