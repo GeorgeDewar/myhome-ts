@@ -259,7 +259,7 @@ export const selectionAtPoint = (
     for (const room of rooms) {
       const layout = labelLayout(context, room);
       if (layout && labelHit(layout, point, scale, false) === "move") {
-        const label: SelectionTarget = { kind: "roomLabel", item: room, effectiveFontSize: layout.fontSize * 1000 };
+        const label: SelectionTarget = { kind: "roomLabel", item: room };
         const isInsideRoom = hits.some((target) => target.kind === "room" && target.item === room);
         (isInsideRoom ? insideLabels : outsideLabels).push(label);
       }

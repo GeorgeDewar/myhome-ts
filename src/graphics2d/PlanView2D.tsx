@@ -255,7 +255,7 @@ export const PlanView2D = ({
         const layout = labelLayout(context, room);
         if (index >= 0) onSelectionChange({ ...next, activeIndex: index });
         else if (layout) onSelectionChange({
-          targets: [{ kind: "roomLabel", item: room, effectiveFontSize: layout.fontSize * 1000 }], activeIndex: 0,
+          targets: [{ kind: "roomLabel", item: room }], activeIndex: 0,
         });
         render();
         return;
@@ -314,7 +314,7 @@ export const PlanView2D = ({
         const layout = labelLayout(context, priorActive.item);
         if (layout && !otherLabelHasPriority && labelHit(layout, point, viewport.scale, true)) {
           onSelectionChange({ targets: [priorActive], activeIndex: 0 });
-          onEdit({ ...priorActive, effectiveFontSize: layout.fontSize * 1000 });
+          onEdit(priorActive);
           return;
         }
       }

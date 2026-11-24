@@ -55,12 +55,12 @@ describe("property drafts", () => {
   it("edits and clears multiline label text independently of the room name", () => {
     const { level, editor } = setup();
     const room = level.rooms[0];
-    const draft = createPropertyDraft({ kind: "roomLabel", item: room, effectiveFontSize: 300 });
+    const draft = createPropertyDraft({ kind: "roomLabel", item: room });
     draft.values = { ...draft.values, labelText: "First\nSecond" };
     expect(applyPropertyDraft(draft, editor)).toEqual({});
     expect(room.name).toBe("Room");
     expect(room.toJson().label).toEqual({ text: "First\nSecond" });
-    const reset = createPropertyDraft({ kind: "roomLabel", item: room, effectiveFontSize: 300 });
+    const reset = createPropertyDraft({ kind: "roomLabel", item: room });
     reset.values = { ...reset.values, labelText: "" };
     expect(applyPropertyDraft(reset, editor)).toEqual({});
     expect(room.toJson().label).toBeUndefined();
@@ -69,9 +69,9 @@ describe("property drafts", () => {
   it("edits label size and angle atomically, without saving unchanged automatic values", () => {
     const { level, editor, notify } = setup();
     const room = level.rooms[0];
-    const target = { kind: "roomLabel" as const, item: room, effectiveFontSize: 122.88 };
+    const target = { kind: "roomLabel" as const, item: room };
     const draft = createPropertyDraft(target);
-    expect(draft.values).toEqual({ labelText: "", fontSize: "123", rotation: "0" });
+    expect(draft.values).toEqual({ labelText: "", fontSize: "", rotation: "" });
     expect(applyPropertyDraft(draft, editor)).toEqual({});
     expect(room.label).toBeUndefined();
     expect(notify).not.toHaveBeenCalled();
@@ -83,21 +83,29 @@ describe("property drafts", () => {
     expect(applyPropertyDraft(draft, editor)).toEqual({});
     expect(room.label).toEqual({ text: "New", fontSize: 151, rotation: 35 });
     const reset = createPropertyDraft(target);
+    expect(reset.values).toMatchObject({ fontSize: "151", rotation: "35" });
     reset.values = { ...reset.values, fontSize: "", rotation: "" };
     expect(applyPropertyDraft(reset, editor)).toEqual({});
     expect(room.label).toEqual({ text: "New" });
+    room.label = { text: "New", rotation: 0 };
+    const zeroRotation = createPropertyDraft(target);
+    expect(zeroRotation.values.rotation).toBe("0");
+    expect(applyPropertyDraft(zeroRotation, editor)).toEqual({});
+    expect(room.label.rotation).toBe(0);
   });
 
   it("shows a separate label dialog with a read-only room name", () => {
     const { level, editor } = setup();
     const room = level.rooms[0];
-    const target = { kind: "roomLabel" as const, item: room, effectiveFontSize: 300 };
+    const target = { kind: "roomLabel" as const, item: room };
     const markup = renderToStaticMarkup(createElement(PropertyWindow, { target, editPlan: editor, onClose: () => {} }));
     expect(markup).toContain("Room Label Properties");
     expect(markup).toContain("Room name");
     expect(markup).toContain('readOnly=""');
     expect(markup).toContain("Font size (mm)");
     expect(markup).toContain("Rotation (degrees)");
+    expect(markup).toContain('placeholder="Automatic"');
+    expect(markup).toContain('placeholder="0"');
     const roomMarkup = renderToStaticMarkup(createElement(PropertyWindow, {
       target: { kind: "room", item: room }, editPlan: editor, onClose: () => {},
     }));

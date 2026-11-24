@@ -5,7 +5,7 @@ import type { Wall } from "../model/Wall";
 
 export type SelectionTarget =
   | { kind: "room"; item: Room }
-  | { kind: "roomLabel"; item: Room; effectiveFontSize: number }
+  | { kind: "roomLabel"; item: Room }
   | { kind: "wall"; item: Wall }
   | { kind: "fence"; item: Fence }
   | { kind: "opening"; item: Opening }

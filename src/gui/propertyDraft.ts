@@ -43,8 +43,8 @@ export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
     case "roomLabel":
       values = {
         labelText: target.item.label?.text ?? "",
-        fontSize: String(target.item.label?.fontSize ?? Math.round(target.effectiveFontSize)),
-        rotation: String(target.item.label?.rotation ?? 0),
+        fontSize: target.item.label?.fontSize?.toString() ?? "",
+        rotation: target.item.label?.rotation?.toString() ?? "",
       };
       break;
     case "wall":
