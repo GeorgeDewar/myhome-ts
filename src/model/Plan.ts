@@ -1,11 +1,12 @@
 import { Building } from "./Building";
 import { Fence } from "./Fence";
-import type { JsonPlan } from "./json/Document";
+import type { JsonGeoreference, JsonPlan } from "./json/Document";
 import { validatePlanJson } from "./json/validatePlan";
 
 export class Plan {
   public buildings: Building[];
   public fences: Fence[];
+  public georeference?: JsonGeoreference;
 
   constructor(
     public schema?: string,
@@ -18,6 +19,10 @@ export class Plan {
   static fromJson(input: unknown): Plan {
     const { document, warnings } = validatePlanJson(input);
     const plan = new Plan(document.$schema, warnings);
+    if (document.georeference) {
+      const { latitude, longitude, bearing } = document.georeference;
+      plan.georeference = { latitude, longitude, bearing };
+    }
     plan.buildings = (document.buildings ?? []).map(Building.fromJson);
     plan.fences = (document.fences ?? []).map(Fence.fromJson);
     plan.buildings.forEach((building) => (building.plan = plan));
@@ -27,6 +32,7 @@ export class Plan {
   toJson(): JsonPlan {
     return {
       ...(this.schema === undefined ? {} : { $schema: this.schema }),
+      ...(this.georeference === undefined ? {} : { georeference: { ...this.georeference } }),
       ...(this.fences.length > 0 ? { fences: this.fences.map((fence) => fence.toJson()) } : {}),
       ...(this.buildings.length > 0 ? { buildings: this.buildings.map((building) => building.toJson()) } : {}),
     };

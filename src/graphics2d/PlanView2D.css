@@ -1,4 +1,60 @@
+.plan-view-host {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.basemap-renderer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.basemap-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.basemap-attribution,
+.basemap-north,
+.basemap-error {
+  position: absolute;
+  z-index: 2;
+  padding: 3px 6px;
+  background: #ffffffdd;
+  font-size: 0.7rem;
+}
+
+.basemap-north {
+  top: 0;
+  left: 0;
+  color: #243b53;
+  font-weight: bold;
+}
+
+.basemap-north span {
+  display: inline-block;
+}
+
+.basemap-attribution {
+  right: 0;
+  bottom: 0;
+}
+
+.basemap-error {
+  top: 0;
+  right: 0;
+  color: #a61b1b;
+}
+
 .plan-view-2d {
+  position: relative;
   display: block;
   width: 100%;
   height: 100%;

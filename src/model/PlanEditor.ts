@@ -2,7 +2,7 @@ import { Distance, isValidPositiveDistance, isValidPositionInMillimetres } from 
 import { Point2D } from "./geom/Point2D";
 import { mergeRoomWalls } from "./geom/mergeRoomWalls";
 import { Fence } from "./Fence";
-import type { JsonPosition, JsonRoomLabel } from "./json/Document";
+import type { JsonGeoreference, JsonPosition, JsonRoomLabel } from "./json/Document";
 import type { Level } from "./Level";
 import { Opening, SlidingDoor, StandardDoor, StandardWindow, type OpeningItem } from "./Opening";
 import type { Plan } from "./Plan";
@@ -52,6 +52,19 @@ export class PlanEditor {
     private plan: Plan,
     private onChange: () => void,
   ) {}
+
+  updateGeoreference(reference: JsonGeoreference): EditResult {
+    if (!Number.isFinite(reference.latitude) || Math.abs(reference.latitude) > 85.05112878 ||
+      !Number.isFinite(reference.longitude) || Math.abs(reference.longitude) > 180 ||
+      !Number.isFinite(reference.bearing) || Math.abs(reference.bearing) > 360) {
+      return { ok: false, error: "Enter a valid latitude, longitude and bearing." };
+    }
+    if (JSON.stringify(this.plan.georeference) !== JSON.stringify(reference)) {
+      this.plan.georeference = { ...reference };
+      this.onChange();
+    }
+    return { ok: true };
+  }
 
   private get levels() {
     return this.plan.buildings.flatMap((building) => building.levels);

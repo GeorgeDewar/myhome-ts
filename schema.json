@@ -7,6 +7,17 @@
   "unevaluatedProperties": false,
   "properties": {
     "$schema": { "type": "string" },
+    "georeference": {
+      "type": "object",
+      "description": "Geographic position of the plan origin and clockwise bearing of the plan's upward axis from true north",
+      "required": ["latitude", "longitude", "bearing"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "latitude": { "type": "number", "minimum": -85.05112878, "maximum": 85.05112878 },
+        "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+        "bearing": { "type": "number", "minimum": -360, "maximum": 360 }
+      }
+    },
     "fences": {
       "type": "array",
       "items": {

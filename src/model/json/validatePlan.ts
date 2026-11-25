@@ -6,6 +6,7 @@ import { Point2D } from "../geom/Point2D";
 import type {
   JsonBuilding,
   JsonFence,
+  JsonGeoreference,
   JsonLevel,
   JsonOpening,
   JsonOpeningItem,
@@ -14,7 +15,9 @@ import type {
   JsonWall,
 } from "./Document";
 
-type PlanShell = Omit<JsonPlan, "buildings" | "fences"> & { buildings?: unknown[]; fences?: unknown[] };
+type PlanShell = Omit<JsonPlan, "buildings" | "fences" | "georeference"> & {
+  buildings?: unknown[]; fences?: unknown[]; georeference?: unknown;
+};
 type BuildingShell = Omit<JsonBuilding, "levels"> & { levels: unknown[] };
 type LevelShell = Omit<JsonLevel, "walls" | "rooms"> & { walls?: unknown[]; rooms?: unknown[] };
 type WallShell = Omit<JsonWall, "openings"> & { openings?: unknown[] };
@@ -32,7 +35,11 @@ const shallowSchema = <T extends { properties: object }>(source: T, children: st
   return { ...source, properties, $defs: schema.$defs };
 };
 
-const validatePlan = ajv.compile<PlanShell>(shallowSchema(schema, ["fences", "buildings"]));
+const validatePlan = ajv.compile<PlanShell>({
+  ...shallowSchema(schema, ["fences", "buildings"]),
+  properties: { ...schema.properties, fences: { type: "array" }, buildings: { type: "array" }, georeference: {} },
+});
+const validateGeoreference = ajv.compile<JsonGeoreference>(schema.properties.georeference);
 const validateFence = ajv.compile<JsonFence>({ ...schema.properties.fences.items, $defs: schema.$defs });
 const validateBuilding = ajv.compile<BuildingShell>(shallowSchema(buildingSchema, ["levels"]));
 const validateLevel = ajv.compile<LevelShell>(shallowSchema(levelSchema, ["walls", "rooms"]));
@@ -107,6 +114,9 @@ const duplicate = <T>(seen: Set<T>, value: T, label: string, path: string, warni
 export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings: string[] } => {
   const warnings: string[] = [];
   if (!isValid(validatePlan, input, "plan", warnings)) return { document: {}, warnings };
+  const georeference = input.georeference !== undefined &&
+    isValid(validateGeoreference, input.georeference, "georeference", warnings)
+    ? input.georeference : undefined;
 
   const fences: JsonFence[] = [];
   const fenceIds = new Set<string>();
@@ -206,5 +216,5 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
     buildings.push({ ...buildingValue, levels });
   });
 
-  return { document: { ...input, fences, buildings }, warnings };
+  return { document: { ...input, georeference, fences, buildings }, warnings };
 };

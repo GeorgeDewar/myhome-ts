@@ -5,8 +5,11 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import "./App.css";
 import { PlanContext } from "./context/PlanContext";
 import { PlanView2D, type PlanView2DStatus } from "./graphics2d/PlanView2D";
+import type { BaseMapSettings } from "./graphics2d/BaseMap";
+import { planToGeographic, referenceAt, type Point } from "./graphics2d/georeference";
 import { PlanView3D, type PlanView3DStatus } from "./graphics3d/PlanView3D";
 import { PlanTree } from "./gui/PlanTree";
+import { BaseMapControls } from "./gui/BaseMapControls";
 import type { LayerVisibility } from "./gui/Layers";
 import { CreateWindow, type CreateRequest } from "./gui/CreateWindow";
 import { PropertyWindow } from "./gui/PropertyWindow";
@@ -18,7 +21,7 @@ import {
   type SelectionState,
   type SelectionTarget,
 } from "./gui/selection";
-import type { JsonPlan, JsonPosition } from "./model/json/Document";
+import type { JsonGeoreference, JsonPlan, JsonPosition } from "./model/json/Document";
 import { downloadPlan } from "./model/json/downloadPlan";
 import { Plan } from "./model/Plan";
 import { PlanEditor } from "./model/PlanEditor";
@@ -50,6 +53,12 @@ function App() {
   const [editingTarget, setEditingTarget] = useState<SelectionTarget>();
   const [creating, setCreating] = useState<CreateRequest>();
   const [drawingWall, setDrawingWall] = useState(false);
+  const [baseMapSettings, setBaseMapSettings] = useState<BaseMapSettings>({
+    enabled: false, key: "", type: "street", outsideOpacity: 1, insideOpacity: 0.3,
+  });
+  const [mapDraft, setMapDraft] = useState<JsonGeoreference>();
+  const [mapPivot, setMapPivot] = useState<Point>({ x: 0, y: 0 });
+  const [choosingMapPivot, setChoosingMapPivot] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ target: SelectionTarget; x: number; y: number }>();
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const contextReturnFocusRef = useRef<HTMLElement | null>(null);
@@ -68,6 +77,13 @@ function App() {
   const currentLevel = levels[activeLevelIndex];
   const activeView = initialViews.find((view) => view.id === activeViewId) ?? initialViews[0];
   const activeTarget = selection.targets[selection.activeIndex];
+  const planCentre = () => {
+    const points = [...plan.getWallsOnLevel(activeLevel), ...plan.fences].flatMap((item) => [item.from, item.to]);
+    if (!points.length) return { x: 0, y: 0 };
+    const xs = points.map((point) => point.x.metres);
+    const ys = points.map((point) => point.y.metres);
+    return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 };
+  };
 
   const selectTarget = (target: SelectionTarget, toggleRoom = false) =>
     setSelection((current) =>
@@ -185,7 +201,7 @@ function App() {
         event.target instanceof Element &&
         event.target.closest(".property-window, .object-context-menu, [contenteditable='true']")
       ) return;
-      if (drawingWall) return;
+      if (drawingWall || mapDraft) return;
       if (event.key === "Alt" && !event.repeat && selection.targets.length > 1) {
         event.preventDefault();
         setSelection((currentSelection) => ({
@@ -212,7 +228,7 @@ function App() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeTarget, deleteTarget, drawingWall, selection.activeIndex, selection.targets.length]);
+  }, [activeTarget, deleteTarget, drawingWall, mapDraft, selection.activeIndex, selection.targets.length]);
 
   return (
     <Tooltip.Provider delayDuration={300}>
@@ -231,7 +247,7 @@ function App() {
             <button
               className="toolbar-button"
               type="button"
-              disabled={!currentLevel}
+              disabled={!currentLevel || !!mapDraft}
               aria-pressed={drawingWall}
               onClick={() => {
                 setActiveViewId("plan-2d");
@@ -330,6 +346,45 @@ function App() {
               onSelect={selectTarget}
               onEdit={setEditingTarget}
               onContextMenu={openContextMenu}
+              baseMapControls={<BaseMapControls
+                settings={baseMapSettings}
+                onSettingsChange={setBaseMapSettings}
+                reference={mapDraft ?? plan.georeference}
+                aligning={!!mapDraft}
+                choosingPivot={choosingMapPivot}
+                onStart={(latitude, longitude) => {
+                  const pivot = planCentre();
+                  setMapPivot(pivot);
+                  setMapDraft(referenceAt(pivot, latitude, longitude, 0));
+                  setChoosingMapPivot(false);
+                  setBaseMapSettings((current) => ({ ...current, enabled: true }));
+                  setDrawingWall(false);
+                  setActiveViewId("plan-2d");
+                }}
+                onAdjust={() => {
+                  if (!plan.georeference) return;
+                  setMapPivot(planCentre());
+                  setMapDraft({ ...plan.georeference });
+                  setChoosingMapPivot(false);
+                  setBaseMapSettings((current) => ({ ...current, enabled: true }));
+                  setDrawingWall(false);
+                  setActiveViewId("plan-2d");
+                }}
+                onChoosePivot={() => setChoosingMapPivot(true)}
+                onBearing={(bearing) => {
+                  if (!mapDraft) return;
+                  const location = planToGeographic(mapDraft, mapPivot);
+                  setMapDraft(referenceAt(mapPivot, location.latitude, location.longitude, bearing % 360));
+                }}
+                onApply={() => {
+                  if (!mapDraft) return;
+                  const result = editPlan.updateGeoreference(mapDraft);
+                  if (!result.ok) { window.alert(result.error); return; }
+                  setMapDraft(undefined);
+                  setChoosingMapPivot(false);
+                }}
+                onCancel={() => { setMapDraft(undefined); setChoosingMapPivot(false); }}
+              />}
             />
 
             <Tabs.Root className="view-host" value={activeView.id} onValueChange={(id) => {
@@ -357,6 +412,13 @@ function App() {
                   onDrawWall={drawWall}
                   editPlan={editPlan}
                   version={planVersion}
+                  baseMap={baseMapSettings.enabled && baseMapSettings.key && (mapDraft ?? plan.georeference)
+                    ? { settings: baseMapSettings, reference: (mapDraft ?? plan.georeference)!, status: twoDStatus } : undefined}
+                  alignment={mapDraft ? {
+                    reference: mapDraft, pivot: mapPivot, choosingPivot: choosingMapPivot,
+                    onReferenceChange: setMapDraft,
+                    onPivotChange: (pivot) => { setMapPivot(pivot); setChoosingMapPivot(false); },
+                  } : undefined}
                 />
               </Tabs.Content>
               <Tabs.Content className="view-panel" value="plan-3d">

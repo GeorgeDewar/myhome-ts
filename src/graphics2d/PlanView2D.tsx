@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef } from "react";
+import { useContext, useEffect, useLayoutEffect, useRef } from "react";
 import { PlanContext } from "../context/PlanContext";
 import type { LayerVisibility } from "../gui/Layers";
 import {
@@ -19,12 +19,22 @@ import {
   drawRoomLabel, labelDragUpdate, labelHit, labelLayout, oppositeLabelCorner, type LabelLayout,
 } from "./roomLabel";
 import type { JsonRoomLabel } from "../model/json/Document";
+import type { JsonGeoreference } from "../model/json/Document";
+import { BaseMap, type BaseMapSettings } from "./BaseMap";
+import { planToGeographic, referenceAt } from "./georeference";
 import "./PlanView2D.css";
 
 type Point = { x: number; y: number };
 type Viewport = { offsetX: number; offsetY: number; scale: number };
 
 export type PlanView2DStatus = { cursor: Point; offset: Point; scale: number };
+export type MapAlignment = {
+  reference: JsonGeoreference;
+  pivot: Point;
+  choosingPivot: boolean;
+  onReferenceChange: (reference: JsonGeoreference) => void;
+  onPivotChange: (pivot: Point) => void;
+};
 
 export const PlanView2D = ({
   level,
@@ -39,6 +49,8 @@ export const PlanView2D = ({
   onDrawWall,
   editPlan,
   version,
+  baseMap,
+  alignment,
 }: {
   level: number;
   layerVisibility: LayerVisibility;
@@ -52,6 +64,8 @@ export const PlanView2D = ({
   onDrawWall: (start: JsonPosition, end: JsonPosition) => boolean;
   editPlan: PlanEditor;
   version: number;
+  baseMap?: { settings: BaseMapSettings; reference: JsonGeoreference; status: PlanView2DStatus };
+  alignment?: MapAlignment;
 }) => {
   const plan = useContext(PlanContext);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -60,6 +74,11 @@ export const PlanView2D = ({
   const wallStartRef = useRef<JsonPosition>(undefined);
   const selectedLabelRef = useRef<Room>(undefined);
   const doubleClickStartRef = useRef<SelectionState>(undefined);
+  const alignmentRef = useRef(alignment);
+  const renderRef = useRef<() => void>(() => undefined);
+  useLayoutEffect(() => { alignmentRef.current = alignment; }, [alignment]);
+
+  useEffect(() => { renderRef.current(); }, [alignment]);
 
   useEffect(() => {
     if (!drawingWall) wallStartRef.current = undefined;
@@ -81,6 +100,7 @@ export const PlanView2D = ({
     let dragOrigin: Point | undefined;
     let dragStart: Point | undefined;
     let hasPanned = false;
+    let mapDragReference: JsonGeoreference | undefined;
     let labelDrag: {
       room: Room;
       mode: "move" | "resize" | "rotate";
@@ -175,7 +195,21 @@ export const PlanView2D = ({
         context.stroke();
         context.setLineDash([]);
       }
+      const currentAlignment = alignmentRef.current;
+      if (currentAlignment) {
+        const { pivot } = currentAlignment;
+        context.strokeStyle = "#d64545";
+        context.lineWidth = 2 / viewport.scale;
+        context.beginPath();
+        context.arc(pivot.x, pivot.y, 7 / viewport.scale, 0, Math.PI * 2);
+        context.moveTo(pivot.x - 12 / viewport.scale, pivot.y);
+        context.lineTo(pivot.x + 12 / viewport.scale, pivot.y);
+        context.moveTo(pivot.x, pivot.y - 12 / viewport.scale);
+        context.lineTo(pivot.x, pivot.y + 12 / viewport.scale);
+        context.stroke();
+      }
     };
+    renderRef.current = render;
 
     const resizeObserver = new ResizeObserver(() => {
       fitToPlan();
@@ -187,6 +221,14 @@ export const PlanView2D = ({
     const pointerDown = (event: PointerEvent) => {
       if (event.button !== 0) return;
       canvas.focus();
+      if (alignmentRef.current) {
+        dragOrigin = { x: event.clientX, y: event.clientY };
+        dragStart = dragOrigin;
+        mapDragReference = alignmentRef.current.reference;
+        hasPanned = false;
+        canvas.setPointerCapture(event.pointerId);
+        return;
+      }
       if (!drawingWall && layerVisibility.roomLabels && !event.metaKey) {
         const point = worldPoint(event);
         const selected = selectedLabelRef.current;
@@ -218,6 +260,21 @@ export const PlanView2D = ({
     };
     const pointerMove = (event: PointerEvent) => {
       cursor = worldPoint(event);
+      const currentAlignment = alignmentRef.current;
+      if (currentAlignment && dragStart && mapDragReference) {
+        const dx = (event.clientX - dragStart.x) / viewport.scale;
+        const dy = (event.clientY - dragStart.y) / viewport.scale;
+        if (Math.hypot(dx, dy) * viewport.scale > 3) hasPanned = true;
+        if (hasPanned && !currentAlignment.choosingPivot) {
+          const location = planToGeographic(mapDragReference, {
+            x: currentAlignment.pivot.x - dx, y: currentAlignment.pivot.y - dy,
+          });
+          currentAlignment.onReferenceChange(referenceAt(currentAlignment.pivot, location.latitude, location.longitude,
+            mapDragReference.bearing));
+        }
+        reportStatus();
+        return;
+      }
       if (labelDrag) {
         if (labelDrag.update || Math.hypot(cursor.x - labelDrag.start.x, cursor.y - labelDrag.start.y) * viewport.scale > 2) {
           labelDrag.update = labelDragUpdate(labelDrag.layout, labelDrag.mode, labelDrag.start, cursor, {
@@ -250,6 +307,22 @@ export const PlanView2D = ({
       reportStatus();
     };
     const pointerUp = (event: PointerEvent) => {
+      const currentAlignment = alignmentRef.current;
+      if (currentAlignment && dragStart) {
+        if (currentAlignment.choosingPivot && !hasPanned) {
+          const point = worldPoint(event);
+          const endpoints = [...allWalls, ...plan.fences].flatMap((item) => [toPoint(item.from), toPoint(item.to)]);
+          const nearest = endpoints.reduce<Point | undefined>((best, candidate) =>
+            Math.hypot(candidate.x - point.x, candidate.y - point.y) <= 10 / viewport.scale &&
+            (!best || Math.hypot(candidate.x - point.x, candidate.y - point.y) < Math.hypot(best.x - point.x, best.y - point.y))
+              ? candidate : best, undefined);
+          currentAlignment.onPivotChange(nearest ?? point);
+        }
+        dragOrigin = undefined;
+        dragStart = undefined;
+        mapDragReference = undefined;
+        return;
+      }
       if (labelDrag) {
         const { room, update } = labelDrag;
         labelDrag = undefined;
@@ -303,13 +376,16 @@ export const PlanView2D = ({
       dragOrigin = undefined;
     };
     const pointerCancel = () => {
+      if (alignmentRef.current && mapDragReference) alignmentRef.current.onReferenceChange(mapDragReference);
       dragOrigin = undefined;
+      dragStart = undefined;
+      mapDragReference = undefined;
       if (labelDrag) selectedLabelRef.current = labelDrag.previousSelected;
       labelDrag = undefined;
       render();
     };
     const doubleClick = (event: MouseEvent) => {
-      if (drawingWall) return;
+      if (drawingWall || alignmentRef.current) return;
       const before = doubleClickStartRef.current ?? selection;
       doubleClickStartRef.current = undefined;
       const priorActive = before.targets[before.activeIndex];
@@ -333,7 +409,7 @@ export const PlanView2D = ({
       if (activeTarget) onEdit(activeTarget);
     };
     const contextMenu = (event: MouseEvent) => {
-      if (drawingWall) return;
+      if (drawingWall || alignmentRef.current) return;
       const bounds = canvas.getBoundingClientRect();
       const point = {
         x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
@@ -357,7 +433,10 @@ export const PlanView2D = ({
     const wheel = (event: WheelEvent) => {
       event.preventDefault();
       const bounds = canvas.getBoundingClientRect();
-      const point = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+      const pivot = alignmentRef.current?.pivot;
+      const point = pivot
+        ? { x: pivot.x * viewport.scale + viewport.offsetX, y: pivot.y * viewport.scale + viewport.offsetY }
+        : { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
       const zoomFactor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
       const nextScale = Math.min(200, Math.max(0.1, viewport.scale * zoomFactor));
       const worldPoint = {
@@ -384,6 +463,7 @@ export const PlanView2D = ({
     render();
     reportStatus();
     return () => {
+      renderRef.current = () => undefined;
       resizeObserver.disconnect();
       canvas.removeEventListener("mousedown", mouseDown);
       canvas.removeEventListener("pointerdown", pointerDown);
@@ -396,5 +476,8 @@ export const PlanView2D = ({
     };
   }, [drawingWall, editPlan, layerVisibility, level, onContextMenu, onDrawWall, onEdit, onSelectionChange, onStatusChange, onToggleRoom, plan, selection, version]);
 
-  return <canvas className={`plan-view-2d${drawingWall ? " is-drawing" : ""}`} ref={canvasRef} tabIndex={0} />;
+  return <div className="plan-view-host">
+    {baseMap && <BaseMap {...baseMap} rooms={plan?.getRoomsOnLevel(level) ?? []} version={version} level={level} />}
+    <canvas className={`plan-view-2d${drawingWall ? " is-drawing" : ""}`} ref={canvasRef} tabIndex={0} />
+  </div>;
 };

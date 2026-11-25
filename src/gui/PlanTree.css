@@ -35,6 +35,30 @@
   margin: 0;
 }
 
+.basemap-controls {
+  display: grid;
+  gap: 6px;
+  padding: 0 16px 10px;
+  color: #334e68;
+  font-size: 0.8rem;
+}
+.basemap-controls .panel-heading {
+  padding: 10px 0 4px;
+}
+.basemap-controls label:not(.basemap-enabled) {
+  display: grid;
+  gap: 3px;
+}
+.basemap-controls input,
+.basemap-controls select,
+.basemap-controls button {
+  min-width: 0;
+  max-width: 100%;
+}
+.basemap-controls p {
+  margin: 2px 0;
+}
+
 .tree-row {
   display: flex;
   align-items: center;

@@ -83,6 +83,19 @@ Rooms have names and the name is shown as a label inside the room.
 
 Underneath the plan, a 1mx1m grid is shown.
 
+#### Base maps
+
+It should be possible to display georeferenced base map layers under the plan, to provide additional context. Key requirements:
+- WebMercatorQuad projection is used
+- Choice of standard street map OR aerial imagery
+- Property boundaries (can be always on when the base map is on)
+- Building outlines (can be always on when the base map is on)
+- Address numbers (can be always on when the base map is on)
+
+There should be a toggle to select the map type (standard or aerial imagery), and then two separate "layers", one for outside the building and one for inside. Both should have an opacity slider.
+
+The map should always be the bottom-most layer, i.e. the plan is drawn on top.
+
 ### 3D view
 
 A 3D view can be created using the camera tool. Additionally, one is created by default, looking at the whole property from a suitable distance. All levels are shown at once in the 3D view.

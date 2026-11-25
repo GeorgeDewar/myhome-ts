@@ -1,4 +1,4 @@
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import type { Plan } from "../model/Plan";
 import { Layers, type LayerVisibility } from "./Layers";
 import { selectionTargetForOpeningItem, selectionTargetNames, isSelectionTarget, type SelectionTarget } from "./selection";
@@ -15,6 +15,7 @@ type PlanTreeProps = {
   onSelect: (target: SelectionTarget, toggleRoom?: boolean) => void;
   onEdit: (target: SelectionTarget) => void;
   onContextMenu: (target: SelectionTarget, x: number, y: number) => boolean;
+  baseMapControls?: ReactNode;
 };
 
 export const PlanTree = ({
@@ -28,6 +29,7 @@ export const PlanTree = ({
   onSelect,
   onEdit,
   onContextMenu,
+  baseMapControls,
 }: PlanTreeProps) => {
   const rowClassName = (target?: SelectionTarget) =>
     `tree-row${target && selectedTargets.some((selectedTarget) => isSelectionTarget(selectedTarget, target)) ? " is-selected" : ""}${target && activeTarget && isSelectionTarget(activeTarget, target) ? " is-active" : ""}`;
@@ -46,6 +48,7 @@ export const PlanTree = ({
   return (
     <aside className="plan-tree" aria-label="Plan hierarchy">
       <Layers visibility={layerVisibility} onChange={onLayerVisibilityChange} />
+      {baseMapControls}
       <div className="panel-heading">Plan</div>
       <nav>
         <details className="tree-group tree-category">
