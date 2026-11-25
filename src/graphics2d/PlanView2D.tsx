@@ -21,6 +21,7 @@ import {
 import type { JsonRoomLabel } from "../model/json/Document";
 import type { JsonGeoreference } from "../model/json/Document";
 import { BaseMap, type BaseMapSettings } from "./BaseMap";
+import { Compass } from "./Compass";
 import { planToGeographic, referenceAt } from "./georeference";
 import "./PlanView2D.css";
 
@@ -515,5 +516,6 @@ export const PlanView2D = ({
   return <div className="plan-view-host">
     {baseMap && <BaseMap {...baseMap} rooms={plan?.getRoomsOnLevel(level) ?? []} version={version} level={level} />}
     <canvas className={`plan-view-2d${drawingWall ? " is-drawing" : ""}`} ref={canvasRef} tabIndex={0} />
+    {layerVisibility.compass && <Compass bearing={alignment?.reference.bearing ?? plan?.georeference?.bearing} />}
   </div>;
 };

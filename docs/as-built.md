@@ -22,6 +22,8 @@ The optional LINZ basemap uses WebMercatorQuad, with street-map and aerial-image
 
 The optional `georeference` in plan JSON stores the latitude and longitude of the plan origin and the clockwise bearing of the plan's upward axis from true north, from 0 degrees inclusive to 360 degrees exclusive; the alignment anchor is temporary. Plan coordinates remain in local metres, with ellipsoidal ground-scale correction applied to the Web Mercator map at the origin. Basemap visibility is stored locally; style and opacity are session settings. Separate opacity controls apply inside the union of the displayed level's room polygons and outside it; areas without rooms count as outside. Map data may be inaccurate and is not a survey. LINZ attribution is shown with the basemap.
 
+The 2D plan shows a compass when a georeference is available and the Compass layer is enabled, including during alignment and when the basemap is hidden.
+
 Selected objects can be deleted with Delete or their context menu. Deleting a wall also deletes its openings and any rooms that reference it; deleting an opening deletes its contents. Deletion goes through `PlanEditor` and notifies the views.
 
 Ctrl-click (Cmd-click on macOS) adds or removes rooms from the selection in the plan, 3D view or hierarchy. Right-clicking a selected room offers Merge rooms when the selected rooms form a connected, non-overlapping area representable by one wall boundary. The merged room keeps the right-clicked room's name; shared walls and their openings remain in the plan. Delete still removes only the active object.
@@ -30,7 +32,7 @@ The Add menu creates walls and fences from millimetre endpoints, openings on a s
 
 Draw wall also creates a wall by clicking two points in the 2D plan; coordinates are snapped to integer millimetres. Escape cancels the tool.
 
-The Layers panel controls visibility in the 2D plan only. Fences, normal walls, room labels and doors are visible by default; virtual and attic walls are hidden by default and shown with a dashed gray outline when enabled. A wall marked both virtual and attic is visible when either layer is enabled. Doors and windows are hidden when their wall is hidden. Hidden objects remain available in the hierarchy. Layer visibility settings are stored locally, not in the plan.
+The Layers panel controls visibility in the 2D plan only. Fences, normal walls, room labels, doors and the compass are visible by default; virtual and attic walls are hidden by default and shown with a dashed gray outline when enabled. A wall marked both virtual and attic is visible when either layer is enabled. Doors and windows are hidden when their wall is hidden. Hidden objects remain available in the hierarchy. Layer visibility settings are stored locally, not in the plan.
 
 Positions use integer millimetres in JSON and floating-point metres in memory. This includes wall and fence endpoints and opening offsets; widths and other dimensions may be fractional. Position edits must be integers that round-trip accurately through the in-memory representation.
 

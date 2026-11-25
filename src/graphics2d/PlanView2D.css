@@ -22,7 +22,6 @@
 }
 
 .basemap-attribution,
-.basemap-north,
 .basemap-error {
   position: absolute;
   z-index: 2;
@@ -31,15 +30,16 @@
   font-size: 0.7rem;
 }
 
-.basemap-north {
-  top: 0;
-  left: 0;
-  color: #243b53;
+.plan-compass {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  width: 72px;
+  height: 72px;
+  font-size: 10px;
   font-weight: bold;
-}
-
-.basemap-north span {
-  display: inline-block;
+  pointer-events: none;
 }
 
 .basemap-attribution {

@@ -219,9 +219,6 @@ export const BaseMap = ({
     <>
       <div className="basemap-renderer" ref={mapContainer} aria-hidden="true" />
       <canvas className="basemap-canvas" ref={canvasRef} aria-hidden="true" />
-      <div className="basemap-north" aria-label="North direction">
-        <span style={{ transform: `rotate(${-reference.bearing}deg)` }}>↑</span> N
-      </div>
       <div className="basemap-attribution">
         ©{" "}
         <a href="https://www.linz.govt.nz/linz-copyright" target="_blank" rel="noreferrer">

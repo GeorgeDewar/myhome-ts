@@ -5,6 +5,7 @@ const layers = [
   { id: "atticWalls", label: "Walls, attic" },
   { id: "roomLabels", label: "Room labels" },
   { id: "doors", label: "Doors" },
+  { id: "compass", label: "Compass" },
 ] as const;
 
 export type LayerVisibility = Record<(typeof layers)[number]["id"], boolean>;

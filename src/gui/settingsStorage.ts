@@ -9,14 +9,17 @@ export const defaultLayerVisibility: LayerVisibility = {
   atticWalls: false,
   roomLabels: true,
   doors: true,
+  compass: true,
 };
 
 export type StoredSettings = { apiKey: string; layerVisibility: LayerVisibility; basemapEnabled: boolean };
 
-const isLayerVisibility = (value: unknown): value is LayerVisibility => {
+const isLayerVisibility = (value: unknown): value is Omit<LayerVisibility, "compass"> & { compass?: boolean } => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const layers = value as Record<string, unknown>;
-  return Object.keys(defaultLayerVisibility).every((key) => typeof layers[key] === "boolean");
+  return Object.keys(defaultLayerVisibility).every(
+    (key) => typeof layers[key] === "boolean" || (key === "compass" && !Object.hasOwn(layers, key)),
+  );
 };
 
 export const loadSettings = (): StoredSettings => {
@@ -40,7 +43,7 @@ export const loadSettings = (): StoredSettings => {
       apiKey: typeof settings.apiKey === "string" ? settings.apiKey : defaults.apiKey,
       basemapEnabled: typeof settings.basemapEnabled === "boolean" ? settings.basemapEnabled : defaults.basemapEnabled,
       layerVisibility: isLayerVisibility(settings.layerVisibility)
-        ? settings.layerVisibility
+        ? { ...settings.layerVisibility, compass: settings.layerVisibility.compass ?? defaults.layerVisibility.compass }
         : defaults.layerVisibility,
     };
   } catch (error) {

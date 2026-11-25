@@ -18,12 +18,31 @@ describe("local settings", () => {
     const settings = {
       apiKey: "test-key",
       basemapEnabled: true,
-      layerVisibility: { ...defaultLayerVisibility, fences: false, virtualWalls: true },
+      layerVisibility: { ...defaultLayerVisibility, fences: false, virtualWalls: true, compass: false },
     };
     saveSettings(settings);
     expect(loadSettings()).toEqual(settings);
     saveSettings({ ...settings, apiKey: "" });
     expect(loadSettings().apiKey).toBe("");
+  });
+
+  it("preserves existing visibility choices when saved settings predate the compass layer", () => {
+    const { compass: _compass, ...oldLayers } = defaultLayerVisibility;
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: () =>
+          JSON.stringify({
+            apiKey: "test-key",
+            basemapEnabled: true,
+            layerVisibility: { ...oldLayers, fences: false, virtualWalls: true },
+          }),
+      },
+    });
+    expect(loadSettings()).toEqual({
+      apiKey: "test-key",
+      basemapEnabled: true,
+      layerVisibility: { ...defaultLayerVisibility, fences: false, virtualWalls: true },
+    });
   });
 
   it("keeps valid settings when another stored setting is invalid", () => {

@@ -10,7 +10,23 @@ import {
   drawFences, drawOpenings, isVisibleTarget, mapRotationHandle, rotateMapFromDrag, targetsAtPoint, visibleWalls,
 } from "./planView2DHelpers";
 import { planToGeographic, referenceAt } from "./georeference";
+import { Compass } from "./Compass";
 import { slidingDoorLeaves } from "./renderPolygons";
+
+describe("plan compass", () => {
+  it("is absent without a bearing and shows all cardinal directions at zero", () => {
+    expect(renderToStaticMarkup(createElement(Compass, {}))).toBe("");
+    const markup = renderToStaticMarkup(createElement(Compass, { bearing: 0 }));
+    expect(markup).toContain('rotate(0)');
+    for (const direction of ["N", "E", "S", "W"]) expect(markup).toContain(`>${direction}</text>`);
+  });
+
+  it("rotates the directions opposite to the bearing while keeping labels upright", () => {
+    const markup = renderToStaticMarkup(createElement(Compass, { bearing: 90 }));
+    expect(markup).toContain('rotate(-90)');
+    expect(markup).toContain('rotate(90 0 -27)');
+  });
+});
 
 describe("basemap rotation handle", () => {
   it("keeps its distance from the pivot in screen pixels and follows the bearing", () => {
@@ -143,7 +159,7 @@ describe("drawFences", () => {
 
   describe("2D layers", () => {
     const visibility: LayerVisibility = {
-      fences: true, normalWalls: true, virtualWalls: false, atticWalls: false, roomLabels: true, doors: true,
+      fences: true, normalWalls: true, virtualWalls: false, atticWalls: false, roomLabels: true, doors: true, compass: true,
     };
     const setup = () => {
       const plan = Plan.fromJson({
@@ -188,7 +204,7 @@ describe("drawFences", () => {
       );
       expect(markup).toContain('<input type="checkbox"/>Walls, virtual');
       expect(markup).toContain('<input type="checkbox"/>Walls, attic');
-      for (const label of ["Fences", "Walls, normal", "Room labels", "Doors"]) {
+      for (const label of ["Fences", "Walls, normal", "Room labels", "Doors", "Compass"]) {
         expect(markup).toContain(`<input type="checkbox" checked=""/>${label}`);
       }
     });
