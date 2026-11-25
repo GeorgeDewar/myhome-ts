@@ -82,6 +82,7 @@ export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
       values = { thickness: String(target.item.leafThickness.toJson()) };
       break;
     case "window":
+    case "post":
       values = {};
       break;
   }
@@ -217,6 +218,7 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
       break;
     }
     case "window":
+    case "post":
       break;
   }
   return errors;

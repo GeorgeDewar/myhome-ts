@@ -5,7 +5,13 @@ import { applyPropertyDraft, createPropertyDraft, type PropertyDraft, type Prope
 import { selectionTargetNames, type SelectionTarget } from "./selection";
 import "./PropertyWindow.css";
 
-type PropertyWindowProps = { target: SelectionTarget; editPlan: PlanEditor; onClose: () => void };
+type PropertyWindowProps = {
+  target: SelectionTarget;
+  editPlan: PlanEditor;
+  onClose: () => void;
+  embedded?: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
+};
 type Values = PropertyDraft["values"];
 
 const DistanceField = ({
@@ -48,7 +54,7 @@ const DistanceField = ({
   </label>
 );
 
-export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProps) => {
+export const PropertyWindow = ({ target, editPlan, onClose, embedded = false, onDirtyChange }: PropertyWindowProps) => {
   const [position, setPosition] = useState({ x: 288, y: 88 });
   const [editor, setEditor] = useState<{ draft: PropertyDraft; errors: PropertyErrors }>(() => ({
     draft: createPropertyDraft(target),
@@ -94,6 +100,10 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
   useEffect(() => () => dragCleanupRef.current(), []);
 
   const updateValues = (values: Partial<Values>) => {
+    const nextValues = { ...draft.values, ...values };
+    onDirtyChange?.(Object.keys(nextValues).some((key) =>
+      nextValues[key as keyof Values] !== draft.initialValues[key as keyof Values],
+    ));
     setEditor((current) => ({
       draft: { ...current.draft, values: { ...current.draft.values, ...values } },
       errors: Object.fromEntries(Object.entries(current.errors).filter(([field]) => !(field in values))),
@@ -105,20 +115,23 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
     if (Object.keys(errors).length > 0) {
       setEditor({ draft, errors });
     } else if (close) {
+      onDirtyChange?.(false);
       onClose();
     } else {
       setEditor({ draft: createPropertyDraft(target), errors: {} });
+      onDirtyChange?.(false);
     }
   };
 
   return (
-    <section className="property-window" style={{ left: position.x, top: position.y }} aria-label={title}>
-      <header className="property-window-titlebar" onMouseDown={startDrag}>
-        <GripVertical size={16} aria-hidden="true" />
+    <section className={`property-window${embedded ? " property-window-embedded" : ""}`}
+      style={embedded ? undefined : { left: position.x, top: position.y }} aria-label={title}>
+      <header className="property-window-titlebar" onMouseDown={embedded ? undefined : startDrag}>
+        {!embedded && <GripVertical size={16} aria-hidden="true" />}
         <span>{title}</span>
-        <button type="button" className="property-window-close" aria-label="Close properties" onClick={onClose}>
+        {!embedded && <button type="button" className="property-window-close" aria-label="Close properties" onClick={onClose}>
           <X size={16} />
-        </button>
+        </button>}
       </header>
       <form
         className="property-window-body"
@@ -386,12 +399,13 @@ export const PropertyWindow = ({ target, editPlan, onClose }: PropertyWindowProp
             </label>
           </>
         )}
-        {(target.kind === "window" || target.kind === "slidingDoor") && (
+        {(target.kind === "window" || target.kind === "slidingDoor" || target.kind === "post") && (
           <label>
             Opening
             <input value={target.opening.id} readOnly />
           </label>
         )}
+        {(target.kind === "window" || target.kind === "post") && <p>No other properties are available yet.</p>}
         {(target.kind === "door" || target.kind === "slidingDoor") && (
           <DistanceField
             label="Leaf thickness (mm)"

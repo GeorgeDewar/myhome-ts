@@ -44,19 +44,19 @@ describe("room labels", () => {
   it("prioritizes the room while retaining a label hit for Alt cycling", () => {
     const { room, canvas } = setup();
     const point = { x: 2, y: 2 };
-    const selection = selectionAtPoint(canvas, point, [...room.walls], [room], [], true, true, 40);
+    const selection = selectionAtPoint(canvas, point, [...room.walls], [room], [], true, 40);
     expect(selection.targets.map((target) => target.kind)).toEqual(["roomLabel", "room"]);
     expect(selection.targets[selection.activeIndex]).toEqual({ kind: "room", item: room });
-    const hidden = selectionAtPoint(canvas, point, [...room.walls], [room], [], true, false, 40);
+    const hidden = selectionAtPoint(canvas, point, [...room.walls], [room], [], false, 40);
     expect(hidden.targets.map((target) => target.kind)).toEqual(["room"]);
-    expect(selectionAtPoint(canvas, { x: 1, y: 1 }, [...room.walls], [room], [], true, true, 40)
+    expect(selectionAtPoint(canvas, { x: 1, y: 1 }, [...room.walls], [room], [], true, 40)
       .targets.map((target) => target.kind)).toEqual(["room"]);
   });
 
   it("selects an outside label immediately, including on a double-click", () => {
     const { room, canvas } = setup();
     room.label = { position: [6000, 6000], rotation: 45 };
-    const selection = selectionAtPoint(canvas, { x: 6, y: 6 }, [...room.walls], [room], [], true, true, 40);
+    const selection = selectionAtPoint(canvas, { x: 6, y: 6 }, [...room.walls], [room], [], true, 40);
     expect(selection.targets[selection.activeIndex]).toMatchObject({ kind: "roomLabel", item: room });
     const doubleClick = doubleClickSelection({ targets: [], activeIndex: -1 }, selection);
     expect(doubleClick.targets[doubleClick.activeIndex]).toMatchObject({ kind: "roomLabel", item: room });
@@ -65,8 +65,8 @@ describe("room labels", () => {
   it("uses the clicked point when a label crosses the room boundary", () => {
     const { room, canvas } = setup();
     room.label = { position: [4000, 2000], fontSize: 600 };
-    const inside = selectionAtPoint(canvas, { x: 3.8, y: 2 }, [...room.walls], [room], [], true, true, 40);
-    const outside = selectionAtPoint(canvas, { x: 4.2, y: 2 }, [...room.walls], [room], [], true, true, 40);
+    const inside = selectionAtPoint(canvas, { x: 3.8, y: 2 }, [...room.walls], [room], [], true, 40);
+    const outside = selectionAtPoint(canvas, { x: 4.2, y: 2 }, [...room.walls], [room], [], true, 40);
     expect(inside.targets[inside.activeIndex]).toEqual({ kind: "room", item: room });
     expect(outside.targets[outside.activeIndex]).toMatchObject({ kind: "roomLabel", item: room });
     expect(doubleClickSelection({ targets: [], activeIndex: -1 }, inside).targets[inside.activeIndex].kind).toBe("room");
@@ -87,7 +87,7 @@ describe("room labels", () => {
     const otherWalls = walls.map((wall) => Wall.fromJson(wall));
     const other = new Room("Other", otherWalls);
     other.label = { position: [5500, 5500] };
-    const hits = selectionAtPoint(canvas, { x: 6, y: 6 }, [...room.walls, ...otherWalls], [room, other], [fence], true, true, 40);
+    const hits = selectionAtPoint(canvas, { x: 6, y: 6 }, [...room.walls, ...otherWalls], [room, other], [fence], true, 40);
     expect(hits.targets.map((target) => target.kind)).toEqual(["room", "fence", "roomLabel"]);
     expect(hits.targets[hits.activeIndex]).toMatchObject({ kind: "roomLabel", item: room });
     const doubleClick = doubleClickSelection({ targets: [{ kind: "room", item: other }], activeIndex: 0 }, hits);
@@ -96,7 +96,7 @@ describe("room labels", () => {
 
   it("uses the selection before a double-click to choose room or label properties", () => {
     const { room, canvas } = setup();
-    const hits = selectionAtPoint(canvas, { x: 2, y: 2 }, [...room.walls], [room], [], true, true, 40);
+    const hits = selectionAtPoint(canvas, { x: 2, y: 2 }, [...room.walls], [room], [], true, 40);
     const cold = doubleClickSelection({ targets: [], activeIndex: -1 }, hits);
     expect(cold.targets[cold.activeIndex]).toEqual({ kind: "room", item: room });
     const fromRoom = doubleClickSelection({ targets: [{ kind: "room", item: room }], activeIndex: 0 }, hits);

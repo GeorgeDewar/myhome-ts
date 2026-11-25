@@ -1,12 +1,13 @@
 import { difference, union } from "polygon-clipping";
 import type { LayerVisibility } from "../gui/Layers";
-import { isSelectionTarget, selectionTargetForOpeningItem, type SelectionState, type SelectionTarget } from "../gui/selection";
+import { isSelectionTarget, type SelectionState, type SelectionTarget } from "../gui/selection";
 import type { Fence } from "../model/Fence";
-import type { Opening, SlidingDoor, StandardDoor } from "../model/Opening";
+import type { Opening, OpeningItem, SlidingDoor, StandardDoor } from "../model/Opening";
 import type { Room } from "../model/Room";
 import type { Wall } from "../model/Wall";
 import type { JsonGeoreference } from "../model/json/Document";
 import { doorSweep } from "../model/geom/doorSweep";
+import { itemRectangle } from "../model/geom/openingArrangement";
 import { roomPolygon } from "../model/geom/roomPolygon";
 import { planToGeographic, referenceAt } from "./georeference";
 import { drawMultiPolygon, slidingDoorLeaves, toPoint, toPolygon } from "./renderPolygons";
@@ -31,18 +32,21 @@ export const rotateMapFromDrag = (reference: JsonGeoreference, pivot: Point, sta
   return referenceAt(pivot, location.latitude, location.longitude, bearing);
 };
 
-const openingPoints = (wall: Wall, opening: Opening) => {
+const openingPoints = (wall: Wall, opening: Opening, item?: OpeningItem) => {
   const from = toPoint(wall.from);
   const to = toPoint(wall.to);
   const length = Math.hypot(to.x - from.x, to.y - from.y);
   const direction = { x: (to.x - from.x) / length, y: (to.y - from.y) / length };
   const normal = { x: -direction.y, y: direction.x };
   const halfWidth = opening.width.metres / 2;
+  const rectangle = item && itemRectangle(opening, item);
+  const offset = (rectangle?.x ?? 0) / 1000;
+  const width = rectangle ? rectangle.width / 1000 : opening.width.metres;
   const start = {
-    x: from.x + direction.x * (opening.distanceAlongWall.metres - halfWidth),
-    y: from.y + direction.y * (opening.distanceAlongWall.metres - halfWidth),
+    x: from.x + direction.x * (opening.distanceAlongWall.metres - halfWidth + offset),
+    y: from.y + direction.y * (opening.distanceAlongWall.metres - halfWidth + offset),
   };
-  const end = { x: start.x + direction.x * opening.width.metres, y: start.y + direction.y * opening.width.metres };
+  const end = { x: start.x + direction.x * width, y: start.y + direction.y * width };
   return { direction, end, normal, start };
 };
 
@@ -133,8 +137,8 @@ export const drawFences = (context: CanvasRenderingContext2D, fences: Fence[], s
   context.stroke();
 };
 
-const drawWindow = (context: CanvasRenderingContext2D, wall: Wall, opening: Opening, scale: number) => {
-  const { end, normal, start } = openingPoints(wall, opening);
+const drawWindow = (context: CanvasRenderingContext2D, wall: Wall, opening: Opening, item: OpeningItem, scale: number) => {
+  const { end, normal, start } = openingPoints(wall, opening, item);
   const halfWallWidth = wall.width.metres / 2;
   context.strokeStyle = "#1f2933";
   context.lineWidth = 1 / scale;
@@ -153,7 +157,8 @@ const drawDoor = (
   door: StandardDoor,
   scale: number,
 ) => {
-  const { direction, end, normal, start } = openingPoints(wall, opening);
+  const { direction, end, normal, start } = openingPoints(wall, opening, door);
+  const width = itemRectangle(opening, door).width / 1000;
   const isLeftHinged = door.hingeSide === "left";
   const hingeEdge = isLeftHinged ? start : end;
   const outward = door.swingDirection === "out";
@@ -166,8 +171,8 @@ const drawDoor = (
     y: closedDirection.x * Math.sin(sweep) + closedDirection.y * Math.cos(sweep),
   };
   const leafEnd = {
-    x: hinge.x + rotatedDirection.x * opening.width.metres,
-    y: hinge.y + rotatedDirection.y * opening.width.metres,
+    x: hinge.x + rotatedDirection.x * width,
+    y: hinge.y + rotatedDirection.y * width,
   };
   const leafNormal = { x: -rotatedDirection.y, y: rotatedDirection.x };
   const leafSide = { x: -leafNormal.x * door.leafThickness.metres, y: -leafNormal.y * door.leafThickness.metres };
@@ -183,7 +188,7 @@ const drawDoor = (
   ]);
   context.stroke();
   context.beginPath();
-  context.arc(hinge.x, hinge.y, opening.width.metres, startAngle, startAngle + sweep, sweep < 0);
+  context.arc(hinge.x, hinge.y, width, startAngle, startAngle + sweep, sweep < 0);
   context.stroke();
 };
 
@@ -194,7 +199,7 @@ const drawSlidingDoor = (
   door: SlidingDoor,
   scale: number,
 ) => {
-  const { start, end, normal } = openingPoints(wall, opening);
+  const { start, end, normal } = openingPoints(wall, opening, door);
   context.strokeStyle = "#1f2933";
   context.lineWidth = 1 / scale;
   for (const leaf of slidingDoorLeaves(start, end, normal, door.leafThickness.metres)) {
@@ -209,7 +214,22 @@ export const drawOpenings = (context: CanvasRenderingContext2D, walls: Wall[], s
       opening.contents.forEach((content) => {
         if (showDoors && content.type === "StandardDoor") drawDoor(context, wall, opening, content, scale);
         if (showDoors && content.type === "SlidingDoor") drawSlidingDoor(context, wall, opening, content, scale);
-        if (content.type === "StandardWindow") drawWindow(context, wall, opening, scale);
+        if (content.type === "StandardWindow") drawWindow(context, wall, opening, content, scale);
+        if (content.type === "Post") {
+          const { start, end, normal } = openingPoints(wall, opening, content);
+          const half = wall.width.metres / 2;
+          drawPolygon(context, [
+            { x: start.x + normal.x * half, y: start.y + normal.y * half },
+            { x: end.x + normal.x * half, y: end.y + normal.y * half },
+            { x: end.x - normal.x * half, y: end.y - normal.y * half },
+            { x: start.x - normal.x * half, y: start.y - normal.y * half },
+          ]);
+          context.fillStyle = "#8b5a2b";
+          context.fill();
+          context.strokeStyle = "#1f2933";
+          context.lineWidth = 1 / scale;
+          context.stroke();
+        }
       });
     }
   }
@@ -231,7 +251,7 @@ const isInsidePolygon = (point: Point, polygon: Point[]) => {
 };
 
 export const targetsAtPoint = (
-  point: Point, walls: Wall[], rooms: Room[], fences: Fence[], showDoors: boolean,
+  point: Point, walls: Wall[], rooms: Room[], fences: Fence[],
 ): SelectionTarget[] => {
   const targets: SelectionTarget[] = [];
   rooms.forEach((room) => {
@@ -244,11 +264,6 @@ export const targetsAtPoint = (
     wall.openings.forEach((opening) => {
       if (!isInsidePolygon(point, openingPolygon(wall, opening))) return;
       targets.push({ kind: "opening", item: opening });
-      opening.contents.forEach((content) => {
-        if (showDoors || content.type === "StandardWindow") {
-          targets.push(selectionTargetForOpeningItem(content, opening));
-        }
-      });
     });
   });
   fences.forEach((fence) => {
@@ -263,11 +278,10 @@ export const selectionAtPoint = (
   walls: Wall[],
   rooms: Room[],
   fences: Fence[],
-  showDoors: boolean,
   showLabels: boolean,
   scale: number,
 ): SelectionState => {
-  const hits = targetsAtPoint(point, walls, rooms, fences, showDoors);
+  const hits = targetsAtPoint(point, walls, rooms, fences);
   const insideLabels: SelectionTarget[] = [];
   const outsideLabels: SelectionTarget[] = [];
   if (showLabels) {

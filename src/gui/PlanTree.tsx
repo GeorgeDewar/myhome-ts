@@ -12,7 +12,7 @@ type PlanTreeProps = {
   selectedTargets: SelectionTarget[];
   activeTarget?: SelectionTarget;
   onLevelSelect: (level: number) => void;
-  onSelect: (target: SelectionTarget, toggleRoom?: boolean) => void;
+  onSelect: (target: SelectionTarget, toggle?: boolean) => void;
   onEdit: (target: SelectionTarget) => void;
   onContextMenu: (target: SelectionTarget, x: number, y: number) => boolean;
   baseMapControls?: ReactNode;
@@ -33,7 +33,7 @@ export const PlanTree = ({
 }: PlanTreeProps) => {
   const rowClassName = (target?: SelectionTarget) =>
     `tree-row${target && selectedTargets.some((selectedTarget) => isSelectionTarget(selectedTarget, target)) ? " is-selected" : ""}${target && activeTarget && isSelectionTarget(activeTarget, target) ? " is-active" : ""}`;
-  const select = (target: SelectionTarget, toggleRoom = false) => onSelect(target, toggleRoom);
+  const select = (target: SelectionTarget, toggle = false) => onSelect(target, toggle);
   const edit = (target: SelectionTarget) => {
     select(target);
     onEdit(target);
@@ -100,7 +100,7 @@ export const PlanTree = ({
                         <details className="tree-group tree-opening" key={opening.id}>
                           <summary
                             className={rowClassName({ kind: "opening", item: opening })}
-                            onClick={() => select({ kind: "opening", item: opening })}
+                            onClick={(event) => select({ kind: "opening", item: opening }, event.ctrlKey || event.metaKey)}
                             onDoubleClick={() => edit({ kind: "opening", item: opening })}
                             onContextMenu={(event) => contextMenu(event, { kind: "opening", item: opening })}
                           >

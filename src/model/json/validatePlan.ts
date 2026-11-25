@@ -3,6 +3,7 @@ import type { ErrorObject, ValidateFunction } from "ajv";
 import schema from "../../../schema.json";
 import { isValidPositiveDistance, isValidPositionInMillimetres } from "../geom/Distance";
 import { Point2D } from "../geom/Point2D";
+import { DEFAULT_OPENING_HEIGHT_METRES } from "../Opening";
 import type {
   JsonBuilding,
   JsonFence,
@@ -51,6 +52,7 @@ const openingItemValidators = {
   StandardDoor: ajv.compile<JsonOpeningItem>(openingItemSchemas[0]),
   SlidingDoor: ajv.compile<JsonOpeningItem>(openingItemSchemas[1]),
   StandardWindow: ajv.compile<JsonOpeningItem>(openingItemSchemas[2]),
+  Post: ajv.compile<JsonOpeningItem>(openingItemSchemas[3]),
 };
 
 const describeError = (error: ErrorObject | undefined) => {
@@ -177,7 +179,7 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
           (openingValue.contents ?? []).forEach((item, itemIndex) => {
             const itemPath = `${openingPath}.contents[${itemIndex}]`;
             const type = item !== null && typeof item === "object" && "type" in item ? item.type : undefined;
-            if (type !== "StandardDoor" && type !== "SlidingDoor" && type !== "StandardWindow") {
+            if (type !== "StandardDoor" && type !== "SlidingDoor" && type !== "StandardWindow" && type !== "Post") {
               const reason =
                 typeof type === "string"
                   ? `unknown opening item type '${type}'`
@@ -186,8 +188,21 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
               return;
             }
             if (!isValid(openingItemValidators[type], item, itemPath, warnings)) return;
-            if (item.type !== "StandardWindow" && !validDimensions({ thickness: item.thickness }, itemPath, warnings))
+            if (!validDimensions({ width: item.width, height: item.height,
+              ...((item.type === "StandardDoor" || item.type === "SlidingDoor") ? { thickness: item.thickness } : {}) },
+            itemPath, warnings))
               return;
+            if ((item.x !== undefined && !isValidPositionInMillimetres(item.x)) ||
+              (item.y !== undefined && !isValidPositionInMillimetres(item.y))) {
+              warnings.push(`${itemPath}: position cannot be accurately represented in integer millimetres; ignored.`);
+              return;
+            }
+            const height = openingValue.height ?? DEFAULT_OPENING_HEIGHT_METRES * 1000;
+            if ((item.x ?? 0) + (item.width ?? openingValue.width) > openingValue.width ||
+                (item.y ?? 0) + (item.height ?? height) > height) {
+              warnings.push(`${itemPath}: item extends outside the opening; ignored.`);
+              return;
+            }
             contents.push(item);
           });
           openings.push({ ...openingValue, contents });

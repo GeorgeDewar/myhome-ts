@@ -4,6 +4,8 @@ import { roomPolygon } from "./geom/roomPolygon";
 import { Plan } from "./Plan";
 import { PlanEditor } from "./PlanEditor";
 import { Room } from "./Room";
+import { Opening } from "./Opening";
+import type { JsonOpening } from "./json/Document";
 
 const setup = () => {
   const plan = Plan.fromJson({
@@ -39,6 +41,25 @@ const setup = () => {
   return { plan, level, notify, editor: new PlanEditor(plan, notify) };
 };
 
+const unmergedFamilyPlan = () => {
+  const plan = Plan.fromJson(testPlan);
+  const wall = plan.buildings[0].levels[0].walls.find((item) => item.id === "wall30")!;
+  const json: JsonOpening[] = [
+    { id: "door16", distanceAlongWall: 1795, width: 900, height: 2100, distanceFromFloor: 0,
+      contents: [{ type: "StandardDoor", hingeSide: "left", swingDirection: "out" }] },
+    { id: "door17", distanceAlongWall: 2676, width: 842, height: 2100, distanceFromFloor: 0,
+      contents: [{ type: "StandardDoor", hingeSide: "right", swingDirection: "out" }] },
+    { id: "window22", distanceAlongWall: 1110, width: 450, height: 2000, distanceFromFloor: 0,
+      contents: [{ type: "StandardWindow" }] },
+    { id: "window23", distanceAlongWall: 3332, width: 450, height: 2000, distanceFromFloor: 0,
+      contents: [{ type: "StandardWindow" }] },
+  ];
+  const originals = json.map((item) => Opening.fromJson(item));
+  for (const opening of originals) opening.wall = wall;
+  wall.openings = [...originals, ...wall.openings.filter((opening) => opening.id !== "window23")];
+  return plan;
+};
+
 describe("merging rooms", () => {
   it("merges adjacent rooms, retaining the chosen name, shared wall and opening", () => {
     const { plan, level, notify, editor } = setup();
@@ -57,6 +78,69 @@ describe("merging rooms", () => {
     const reloaded = Plan.fromJson(plan.toJson());
     expect(reloaded.loadWarnings).toEqual([]);
     expect(roomPolygon(reloaded.buildings[0].levels[0].rooms[0])).toEqual(roomPolygon(second));
+  });
+
+  describe("merging openings", () => {
+    it("merges the family-room openings into a bounding rectangle and preserves their contents in wall order", () => {
+      const plan = unmergedFamilyPlan();
+      const wall = plan.buildings[0].levels[0].walls.find((item) => item.id === "wall30")!;
+      const selected = ["door16", "door17", "window22", "window23"].map((id) =>
+        wall.openings.find((opening) => opening.id === id)!,
+      );
+      const retained = selected[1];
+      const remaining = wall.openings.filter((opening) => !selected.includes(opening));
+      const notify = vi.fn();
+      const editor = new PlanEditor(plan, notify);
+      expect(editor.canMergeOpenings(selected)).toBe(true);
+      expect(editor.mergeOpenings(selected, retained)).toEqual({ ok: true });
+      expect(retained.toJson()).toMatchObject({
+        id: "door17", distanceAlongWall: 2221, width: 2672, height: 2100, distanceFromFloor: 0,
+      });
+      expect(retained.contents.map((item) => item.type)).toEqual([
+        "StandardWindow", "StandardDoor", "StandardDoor", "StandardWindow",
+      ]);
+      expect(wall.openings).toEqual(expect.arrayContaining([retained, ...remaining]));
+      expect(wall.openings).toHaveLength(remaining.length + 1);
+      expect(selected[0].wall).toBeUndefined();
+      expect(notify).toHaveBeenCalledOnce();
+      const reloaded = Plan.fromJson(plan.toJson());
+      expect(reloaded.loadWarnings).toEqual([]);
+      expect(reloaded.buildings[0].levels[0].walls.find((item) => item.id === "wall30")!
+        .openings.find((opening) => opening.id === "door17")!.toJson()).toEqual(retained.toJson());
+    });
+
+    it("encloses fractional centre bounds, using the existing default height and a rectangle", () => {
+      const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
+        id: "w", start: [0, 0], end: [5000, 0], openings: [
+          { id: "a", distanceAlongWall: 500, width: 1000, shape: "halfCircleArch" },
+          { id: "b", distanceAlongWall: 2001, width: 1000, height: 1000, distanceFromFloor: 500 },
+        ],
+      }] }] }] });
+      const [a, b] = plan.buildings[0].levels[0].walls[0].openings;
+      const editor = new PlanEditor(plan, () => {});
+      expect(editor.mergeOpenings([a, b], a)).toEqual({ ok: true });
+      expect(a.toJson()).toMatchObject({ distanceAlongWall: 1251, width: 2502, height: 2100, distanceFromFloor: 0 });
+      expect(a.shape).toBeUndefined();
+    });
+
+    it("rejects foreign, duplicate, stale and obstructed selections without changes", () => {
+      const plan = unmergedFamilyPlan();
+      const level = plan.buildings[0].levels[0];
+      const wall = level.walls.find((item) => item.id === "wall30")!;
+      const [a, b, between] = wall.openings;
+      const otherWall = level.walls.find((item) => item !== wall && item.openings.length)!;
+      const notify = vi.fn();
+      const editor = new PlanEditor(plan, notify);
+      const before = plan.toJson();
+      expect(editor.canMergeOpenings([a, a])).toBe(false);
+      expect(editor.canMergeOpenings([a, otherWall.openings[0]])).toBe(false);
+      expect(editor.canMergeOpenings([between, b])).toBe(false);
+      expect(editor.mergeOpenings([a, b], otherWall.openings[0]).ok).toBe(false);
+      expect(plan.toJson()).toEqual(before);
+      expect(notify).not.toHaveBeenCalled();
+      wall.openings = wall.openings.filter((opening) => opening !== b);
+      expect(editor.canMergeOpenings([a, b])).toBe(false);
+    });
   });
 
   it("merges a connected group, but rejects disconnected, overlapping and stale selections", () => {

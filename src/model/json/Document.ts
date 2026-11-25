@@ -40,9 +40,10 @@ export type JsonOpening = {
   contents?: JsonOpeningItem[];
 };
 
-export type JsonOpeningItem = JsonStandardDoor | JsonSlidingDoor | JsonStandardWindow;
+export type JsonItemGeometry = { x?: number; y?: number; width?: number; height?: number };
+export type JsonOpeningItem = JsonStandardDoor | JsonSlidingDoor | JsonStandardWindow | JsonPost;
 
-export type JsonStandardDoor = {
+export type JsonStandardDoor = JsonItemGeometry & {
   type: "StandardDoor";
   openAngle?: number;
   hingeSide: "left" | "right";
@@ -50,9 +51,10 @@ export type JsonStandardDoor = {
   thickness?: number;
 };
 
-export type JsonStandardWindow = { type: "StandardWindow" };
+export type JsonStandardWindow = JsonItemGeometry & { type: "StandardWindow" };
+export type JsonPost = JsonItemGeometry & { type: "Post" };
 
-export type JsonSlidingDoor = { type: "SlidingDoor"; thickness?: number };
+export type JsonSlidingDoor = JsonItemGeometry & { type: "SlidingDoor"; thickness?: number };
 
 export type JsonWallRef = { ref: JsonWall["id"] };
 

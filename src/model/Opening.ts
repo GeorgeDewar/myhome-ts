@@ -1,12 +1,36 @@
 import { Distance } from "./geom/Distance";
-import type { JsonOpening, JsonOpeningItem } from "./json/Document";
+import type { JsonItemGeometry, JsonOpening, JsonOpeningItem } from "./json/Document";
 import type { Wall } from "./Wall";
 
-export type OpeningItem = StandardDoor | SlidingDoor | StandardWindow;
+export type OpeningItem = StandardDoor | SlidingDoor | StandardWindow | Post;
 
 const DEFAULT_DOOR_THICKNESS_METRES = 0.035;
+export const DEFAULT_OPENING_HEIGHT_METRES = 2.1;
 
-export class StandardDoor {
+class ItemGeometry {
+  x?: Distance;
+  y?: Distance;
+  width?: Distance;
+  height?: Distance;
+
+  loadGeometry(json: JsonItemGeometry) {
+    this.x = json.x === undefined ? undefined : Distance.fromJson(json.x);
+    this.y = json.y === undefined ? undefined : Distance.fromJson(json.y);
+    this.width = json.width === undefined ? undefined : Distance.fromJson(json.width);
+    this.height = json.height === undefined ? undefined : Distance.fromJson(json.height);
+  }
+
+  geometryJson(): JsonItemGeometry {
+    return {
+      ...(this.x === undefined ? {} : { x: this.x.toPositionJson() }),
+      ...(this.y === undefined ? {} : { y: this.y.toPositionJson() }),
+      ...(this.width === undefined ? {} : { width: this.width.toJson() }),
+      ...(this.height === undefined ? {} : { height: this.height.toJson() }),
+    };
+  }
+}
+
+export class StandardDoor extends ItemGeometry {
   readonly type = "StandardDoor" as const;
 
   constructor(
@@ -14,7 +38,7 @@ export class StandardDoor {
     public swingDirection: "in" | "out",
     public thickness?: Distance,
     public openAngle?: number,
-  ) {}
+  ) { super(); }
 
   get leafThickness() {
     return this.thickness ?? new Distance(DEFAULT_DOOR_THICKNESS_METRES);
@@ -25,17 +49,20 @@ export class StandardDoor {
   }
 
   static fromJson(json: Extract<JsonOpeningItem, { type: "StandardDoor" }>) {
-    return new StandardDoor(
+    const item = new StandardDoor(
       json.hingeSide,
       json.swingDirection,
       json.thickness === undefined ? undefined : Distance.fromJson(json.thickness),
       json.openAngle,
     );
+    item.loadGeometry(json);
+    return item;
   }
 
   toJson(): Extract<JsonOpeningItem, { type: "StandardDoor" }> {
     return {
       type: this.type,
+      ...this.geometryJson(),
       ...(this.openAngle === undefined ? {} : { openAngle: this.openAngle }),
       hingeSide: this.hingeSide,
       swingDirection: this.swingDirection,
@@ -44,33 +71,51 @@ export class StandardDoor {
   }
 }
 
-export class StandardWindow {
+export class StandardWindow extends ItemGeometry {
   readonly type = "StandardWindow" as const;
 
-  static fromJson() {
-    return new StandardWindow();
+  static fromJson(json: Extract<JsonOpeningItem, { type: "StandardWindow" }>) {
+    const item = new StandardWindow();
+    item.loadGeometry(json);
+    return item;
   }
 
   toJson(): Extract<JsonOpeningItem, { type: "StandardWindow" }> {
-    return { type: this.type };
+    return { type: this.type, ...this.geometryJson() };
   }
 }
 
-export class SlidingDoor {
+export class Post extends ItemGeometry {
+  readonly type = "Post" as const;
+
+  static fromJson(json: Extract<JsonOpeningItem, { type: "Post" }>) {
+    const item = new Post();
+    item.loadGeometry(json);
+    return item;
+  }
+
+  toJson(): Extract<JsonOpeningItem, { type: "Post" }> {
+    return { type: this.type, ...this.geometryJson() };
+  }
+}
+
+export class SlidingDoor extends ItemGeometry {
   readonly type = "SlidingDoor" as const;
 
-  constructor(public thickness?: Distance) {}
+  constructor(public thickness?: Distance) { super(); }
 
   get leafThickness() {
     return this.thickness ?? new Distance(DEFAULT_DOOR_THICKNESS_METRES);
   }
 
   static fromJson(json: Extract<JsonOpeningItem, { type: "SlidingDoor" }>) {
-    return new SlidingDoor(json.thickness === undefined ? undefined : Distance.fromJson(json.thickness));
+    const item = new SlidingDoor(json.thickness === undefined ? undefined : Distance.fromJson(json.thickness));
+    item.loadGeometry(json);
+    return item;
   }
 
   toJson(): Extract<JsonOpeningItem, { type: "SlidingDoor" }> {
-    return { type: this.type, ...(this.thickness ? { thickness: this.thickness.toJson() } : {}) };
+    return { type: this.type, ...this.geometryJson(), ...(this.thickness ? { thickness: this.thickness.toJson() } : {}) };
   }
 }
 
@@ -105,7 +150,9 @@ export class Opening {
         case "SlidingDoor":
           return SlidingDoor.fromJson(content);
         case "StandardWindow":
-          return StandardWindow.fromJson();
+          return StandardWindow.fromJson(content);
+        case "Post":
+          return Post.fromJson(content);
         default:
           throw new Error(`Unknown opening item type: ${JSON.stringify(content)}`);
       }

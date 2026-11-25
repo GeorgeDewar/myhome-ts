@@ -117,12 +117,13 @@ export const CreateWindow = ({
               value={itemType}
               onChange={(event) => {
                 const type = event.target.value;
-                if (type === "StandardDoor" || type === "SlidingDoor" || type === "StandardWindow") setItemType(type);
+                if (type === "StandardDoor" || type === "SlidingDoor" || type === "StandardWindow" || type === "Post") setItemType(type);
               }}
             >
               <option value="StandardDoor">Standard Door</option>
               <option value="SlidingDoor">Sliding Door</option>
               <option value="StandardWindow">Standard Window</option>
+              <option value="Post">Post</option>
             </select>
           </label>
         )}

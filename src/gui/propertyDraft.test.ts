@@ -5,6 +5,7 @@ import { Plan } from "../model/Plan";
 import { PlanEditor } from "../model/PlanEditor";
 import { applyPropertyDraft, createPropertyDraft } from "./propertyDraft";
 import { PropertyWindow } from "./PropertyWindow";
+import { OpeningEditor } from "./OpeningEditor";
 
 const setup = () => {
   const plan = Plan.fromJson({
@@ -50,6 +51,29 @@ const setup = () => {
   const notify = vi.fn();
   return { plan, level, wall, opening, door, slidingDoor, window, notify, editor: new PlanEditor(plan, notify) };
 };
+
+describe("opening editor", () => {
+  it("shows the opening outline and its items with opening properties", () => {
+    const { opening, editor } = setup();
+    const markup = renderToStaticMarkup(createElement(OpeningEditor, { opening, editPlan: editor, onClose: () => {} }));
+    expect(markup).toContain("Opening outline");
+    expect(markup).toContain("Warning: opening items overlap.");
+    expect(markup).toContain("1. Standard Door");
+    expect(markup).toContain("2. Sliding Door");
+    expect(markup).toContain("3. Standard Window");
+    expect(markup).toContain("Opening Properties");
+  });
+
+  it("opens a selected item's properties in the same editor", () => {
+    const { opening, door, editor } = setup();
+    const markup = renderToStaticMarkup(createElement(OpeningEditor, {
+      opening, initialItem: door, editPlan: editor, onClose: () => {},
+    }));
+    expect(markup).toContain("Standard Door Properties");
+    expect(markup).toContain("Hinge side");
+    expect(markup).toContain("Swing direction");
+  });
+});
 
 describe("property drafts", () => {
   it("edits and clears multiline label text independently of the room name", () => {

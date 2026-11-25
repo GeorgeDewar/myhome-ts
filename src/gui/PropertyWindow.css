@@ -113,3 +113,16 @@
   max-height: calc(100vh - 100px);
   overflow-y: auto;
 }
+
+.property-window-embedded {
+  position: static;
+  width: 100%;
+  max-height: none;
+  border: 0;
+  box-shadow: none;
+}
+
+.property-window-embedded .property-window-titlebar,
+.property-window-embedded .property-window-titlebar:active {
+  cursor: default;
+}

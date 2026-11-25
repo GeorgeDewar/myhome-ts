@@ -1,4 +1,4 @@
-import type { Opening, OpeningItem, SlidingDoor, StandardDoor, StandardWindow } from "../model/Opening";
+import type { Opening, OpeningItem, Post, SlidingDoor, StandardDoor, StandardWindow } from "../model/Opening";
 import type { Fence } from "../model/Fence";
 import type { Room } from "../model/Room";
 import type { Wall } from "../model/Wall";
@@ -11,9 +11,10 @@ export type SelectionTarget =
   | { kind: "opening"; item: Opening }
   | { kind: "door"; item: StandardDoor; opening: Opening }
   | { kind: "slidingDoor"; item: SlidingDoor; opening: Opening }
-  | { kind: "window"; item: StandardWindow; opening: Opening };
+  | { kind: "window"; item: StandardWindow; opening: Opening }
+  | { kind: "post"; item: Post; opening: Opening };
 
-export type SelectionState = { targets: SelectionTarget[]; activeIndex: number; rooms?: Room[] };
+export type SelectionState = { targets: SelectionTarget[]; activeIndex: number; rooms?: Room[]; openings?: Opening[] };
 
 export const selectionTargetNames: Record<SelectionTarget["kind"], string> = {
   room: "Room",
@@ -24,6 +25,7 @@ export const selectionTargetNames: Record<SelectionTarget["kind"], string> = {
   door: "Standard Door",
   slidingDoor: "Sliding Door",
   window: "Standard Window",
+  post: "Post",
 };
 
 export const selectionTargetForOpeningItem = (item: OpeningItem, opening: Opening): SelectionTarget => {
@@ -34,6 +36,8 @@ export const selectionTargetForOpeningItem = (item: OpeningItem, opening: Openin
       return { kind: "slidingDoor", item, opening };
     case "StandardWindow":
       return { kind: "window", item, opening };
+    case "Post":
+      return { kind: "post", item, opening };
   }
 };
 
@@ -41,7 +45,8 @@ export const isSelectionTarget = (target: SelectionTarget, candidate: SelectionT
   target.kind === candidate.kind && target.item === candidate.item;
 
 export const selectedTargets = (selection: SelectionState): SelectionTarget[] =>
-  selection.rooms ? selection.rooms.map((item) => ({ kind: "room", item })) : selection.targets;
+  selection.rooms ? selection.rooms.map((item) => ({ kind: "room", item }))
+    : selection.openings ? selection.openings.map((item) => ({ kind: "opening", item })) : selection.targets;
 
 export const toggleRoomSelection = (selection: SelectionState, room: Room): SelectionState => {
   const active = selection.targets[selection.activeIndex];
@@ -53,5 +58,18 @@ export const toggleRoomSelection = (selection: SelectionState, room: Room): Sele
     targets: [{ kind: "room", item: selected }],
     activeIndex: 0,
     ...(next.length > 1 ? { rooms: next } : {}),
+  };
+};
+
+export const toggleOpeningSelection = (selection: SelectionState, opening: Opening): SelectionState => {
+  const active = selection.targets[selection.activeIndex];
+  const openings = selection.openings ?? (active?.kind === "opening" ? [active.item] : []);
+  const next = openings.includes(opening) ? openings.filter((item) => item !== opening) : [...openings, opening];
+  const selected = next.at(-1);
+  if (!selected) return { targets: [], activeIndex: -1 };
+  return {
+    targets: [{ kind: "opening", item: selected }],
+    activeIndex: 0,
+    ...(next.length > 1 ? { openings: next } : {}),
   };
 };

@@ -4,6 +4,7 @@ import { PointerLockControls } from "three/examples/jsm/controls/PointerLockCont
 import { PlanContext } from "../context/PlanContext";
 import { isSelectionTarget, type SelectionState, type SelectionTarget } from "../gui/selection";
 import type { Room } from "../model/Room";
+import type { Opening } from "../model/Opening";
 import { createPlanGeometry, disposePlanGeometry, highlightSelection } from "./planGeometry";
 
 export type PlanView3DStatus = {
@@ -16,6 +17,7 @@ export const PlanView3D = ({
   selection,
   onSelectionChange,
   onToggleRoom,
+  onToggleOpening,
   onEdit,
   onContextMenu,
   version,
@@ -24,6 +26,7 @@ export const PlanView3D = ({
   selection: SelectionState;
   onSelectionChange: (selection: SelectionState) => void;
   onToggleRoom: (room: Room) => void;
+  onToggleOpening: (opening: Opening) => void;
   onEdit: (target: SelectionTarget) => void;
   onContextMenu: (target: SelectionTarget, x: number, y: number) => boolean;
   version: number;
@@ -80,6 +83,10 @@ export const PlanView3D = ({
         const target = targetsAt(event)[0];
         if (event.ctrlKey || event.metaKey) {
           if (target?.kind === "room") onToggleRoom(target.item);
+          else if (target?.kind === "opening") onToggleOpening(target.item);
+          else if (target?.kind === "door" || target?.kind === "slidingDoor" || target?.kind === "window" || target?.kind === "post") {
+            onToggleOpening(target.opening);
+          }
           return;
         }
         onSelectionChange(target ? { targets: [target], activeIndex: 0 } : { targets: [], activeIndex: -1 });
@@ -94,8 +101,16 @@ export const PlanView3D = ({
       const current = selectionRef.current;
       const active = current.targets[current.activeIndex];
       const hits = targetsAt(event);
+      const selectedItem = hits.find((candidate) =>
+        (candidate.kind === "door" || candidate.kind === "slidingDoor" || candidate.kind === "window" || candidate.kind === "post") &&
+        ((active?.kind === "opening" && active.item === candidate.opening) ||
+          current.openings?.includes(candidate.opening)),
+      );
       const target = hits.find((candidate) => active && isSelectionTarget(active, candidate)) ??
-        hits.find((candidate) => candidate.kind === "room" && current.rooms?.includes(candidate.item));
+        hits.find((candidate) => candidate.kind === "room" && current.rooms?.includes(candidate.item)) ??
+        hits.find((candidate) => candidate.kind === "opening" && current.openings?.includes(candidate.item)) ??
+        (selectedItem && (selectedItem.kind === "door" || selectedItem.kind === "slidingDoor" || selectedItem.kind === "window" || selectedItem.kind === "post")
+          ? { kind: "opening" as const, item: selectedItem.opening } : undefined);
       if (target) {
         if (contextMenuRef.current(target, event.clientX, event.clientY)) event.preventDefault();
       }
@@ -213,7 +228,7 @@ export const PlanView3D = ({
       hasFittedRef.current = false;
       renderer.dispose();
     };
-  }, [onEdit, onSelectionChange, onStatusChange, onToggleRoom]);
+  }, [onEdit, onSelectionChange, onStatusChange, onToggleRoom, onToggleOpening]);
 
   useEffect(() => {
     const group = planGroupRef.current;

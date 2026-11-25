@@ -4,7 +4,8 @@ import { mergeRoomWalls } from "./geom/mergeRoomWalls";
 import { Fence } from "./Fence";
 import type { JsonGeoreference, JsonPosition, JsonRoomLabel } from "./json/Document";
 import type { Level } from "./Level";
-import { Opening, SlidingDoor, StandardDoor, StandardWindow, type OpeningItem } from "./Opening";
+import { DEFAULT_OPENING_HEIGHT_METRES, Opening, Post, SlidingDoor, StandardDoor, StandardWindow, type OpeningItem } from "./Opening";
+import { itemRectangle, openingSize, type ItemRectangle } from "./geom/openingArrangement";
 import type { Plan } from "./Plan";
 import type { Room } from "./Room";
 import { Wall } from "./Wall";
@@ -31,6 +32,23 @@ type AddResult<T> = { ok: true; item: T } | { ok: false; error: string };
 const positiveDistanceError = (value: number, label: string) => {
   if (!Number.isFinite(value) || value <= 0) return `${label} must be a positive, finite number of millimetres.`;
   if (!isValidPositiveDistance(value)) return `${label} is too small to save.`;
+};
+
+const openingItemGeometryError = (opening: Opening, geometry: ItemRectangle): EditResult<keyof ItemRectangle> => {
+  for (const field of ["x", "y"] as const) {
+    if (!isValidPositionInMillimetres(geometry[field]) || geometry[field] < 0) {
+      return { ok: false, field, error: "Enter a non-negative integer number of millimetres." };
+    }
+  }
+  for (const field of ["width", "height"] as const) {
+    const error = positiveDistanceError(geometry[field], `Item ${field}`);
+    if (error) return { ok: false, field, error };
+  }
+  const size = openingSize(opening);
+  if (geometry.x + geometry.width > size.width || geometry.y + geometry.height > size.height) {
+    return { ok: false, error: "The item must fit within the opening." };
+  }
+  return { ok: true };
 };
 
 const lineError = (start: JsonPosition, end: JsonPosition) => {
@@ -163,8 +181,12 @@ export class PlanEditor {
     return { ok: true, item: opening };
   }
 
-  addOpeningItem(opening: Opening, type: OpeningItem["type"]): AddResult<OpeningItem> {
+  addOpeningItem(opening: Opening, type: OpeningItem["type"], geometry?: ItemRectangle): AddResult<OpeningItem> {
     if (!this.ownsOpening(opening)) return { ok: false, error: "This opening is no longer in the plan." };
+    if (geometry) {
+      const result = openingItemGeometryError(opening, geometry);
+      if (!result.ok) return result;
+    }
     let item: OpeningItem;
     switch (type) {
       case "StandardDoor":
@@ -176,12 +198,50 @@ export class PlanEditor {
       case "StandardWindow":
         item = new StandardWindow();
         break;
+      case "Post":
+        item = new Post();
+        break;
       default:
         return { ok: false, error: "Select a valid opening item type." };
+    }
+    if (geometry) {
+      const defaults = itemRectangle(opening, item);
+      for (const field of ["x", "y", "width", "height"] as const) {
+        if (geometry[field] !== defaults[field]) item[field] = Distance.fromJson(geometry[field]);
+      }
+    } else {
+      const rightEdge = opening.contents.reduce((right, existing) => {
+        const rectangle = itemRectangle(opening, existing);
+        return Math.max(right, rectangle.x + rectangle.width);
+      }, 0);
+      const x = Math.ceil(rightEdge);
+      const openingWidth = openingSize(opening).width;
+      const width = openingWidth - x;
+      if (x > 0 && isValidPositionInMillimetres(x) && isValidPositiveDistance(width) &&
+        x + Distance.fromJson(width).toJson() <= openingWidth) {
+        item.x = Distance.fromJson(x);
+        item.width = Distance.fromJson(width);
+      }
     }
     opening.contents.push(item);
     this.onChange();
     return { ok: true, item };
+  }
+
+  updateOpeningItemGeometry(opening: Opening, item: OpeningItem, geometry: ItemRectangle): EditResult<keyof ItemRectangle> {
+    if (!this.ownsOpening(opening) || !opening.contents.includes(item)) {
+      return { ok: false, error: "This opening item is no longer in the plan." };
+    }
+    const result = openingItemGeometryError(opening, geometry);
+    if (!result.ok) return result;
+    const current = itemRectangle(opening, item);
+    for (const field of ["x", "y", "width", "height"] as const) {
+      if (geometry[field] !== current[field]) item[field] = Distance.fromJson(geometry[field]);
+    }
+    if (Object.keys(current).some((field) => current[field as keyof ItemRectangle] !== geometry[field as keyof ItemRectangle])) {
+      this.onChange();
+    }
+    return { ok: true };
   }
 
   deleteFence(fence: Fence): EditResult {
@@ -278,6 +338,66 @@ export class PlanEditor {
     level.rooms = level.rooms.filter((room) => {
       if (room === retainedRoom || !rooms.includes(room)) return true;
       room.level = undefined;
+      return false;
+    });
+    this.onChange();
+    return { ok: true };
+  }
+
+  private mergedOpeningBounds(openings: readonly Opening[]) {
+    if (openings.length < 2 || new Set(openings).size !== openings.length) return;
+    const wall = this.levels.flatMap((level) => level.walls)
+      .find((candidate) => openings.every((opening) => candidate.openings.includes(opening) && opening.wall === candidate));
+    if (!wall) return;
+    const bounds = (opening: Opening) => {
+      const centre = opening.distanceAlongWall.toJson();
+      const bottom = opening.distanceFromFloor?.toJson() ?? 0;
+      return {
+        left: centre - opening.width.toJson() / 2,
+        right: centre + opening.width.toJson() / 2,
+        bottom,
+        top: bottom + (opening.height?.toJson() ?? DEFAULT_OPENING_HEIGHT_METRES * 1000),
+      };
+    };
+    const selected = openings.map(bounds);
+    const left = Math.min(...selected.map((item) => item.left));
+    const right = Math.max(...selected.map((item) => item.right));
+    const bottom = Math.min(...selected.map((item) => item.bottom));
+    const top = Math.max(...selected.map((item) => item.top));
+    const centre = Math.round((left + right) / 2);
+    const width = 2 * Math.max(centre - left, right - centre);
+    const height = top - bottom;
+    if (!isValidPositionInMillimetres(centre) || !isValidPositionInMillimetres(bottom) ||
+      !isValidPositiveDistance(width) || !isValidPositiveDistance(height)) return;
+    if (wall.openings.some((opening) => {
+      if (openings.includes(opening)) return false;
+      const other = bounds(opening);
+      return other.left < centre + width / 2 && other.right > centre - width / 2 &&
+        other.bottom < top && other.top > bottom;
+    })) return;
+    return { wall, centre, width, bottom, height };
+  }
+
+  canMergeOpenings(openings: readonly Opening[]) {
+    return this.mergedOpeningBounds(openings) !== undefined;
+  }
+
+  mergeOpenings(openings: readonly Opening[], retainedOpening: Opening): EditResult {
+    if (!openings.includes(retainedOpening)) return { ok: false, error: "Select the opening to keep." };
+    const merged = this.mergedOpeningBounds(openings);
+    if (!merged) return { ok: false, error: "These openings cannot be merged." };
+    const ordered = [...openings].sort((a, b) => a.distanceAlongWall.metres - b.distanceAlongWall.metres);
+    const contents = ordered.flatMap((opening) => opening.contents);
+    retainedOpening.distanceAlongWall = Distance.fromJson(merged.centre);
+    retainedOpening.width = Distance.fromJson(merged.width);
+    retainedOpening.distanceFromFloor = Distance.fromJson(merged.bottom);
+    retainedOpening.height = Distance.fromJson(merged.height);
+    retainedOpening.shape = undefined;
+    retainedOpening.contents = contents;
+    merged.wall.openings = merged.wall.openings.filter((opening) => {
+      if (opening === retainedOpening || !openings.includes(opening)) return true;
+      opening.wall = undefined;
+      opening.contents = [];
       return false;
     });
     this.onChange();
@@ -430,6 +550,17 @@ export class PlanEditor {
         field: "distanceFromFloor",
         error: "Position must be an accurately representable integer number of millimetres.",
       };
+    }
+
+    const width = update.width ?? opening.width.toJson();
+    const height = update.height === undefined
+      ? opening.height?.toJson() ?? DEFAULT_OPENING_HEIGHT_METRES * 1000
+      : update.height ?? DEFAULT_OPENING_HEIGHT_METRES * 1000;
+    for (const item of opening.contents) {
+      if ((item.x?.toJson() ?? 0) + (item.width?.toJson() ?? width) > width ||
+          (item.y?.toJson() ?? 0) + (item.height?.toJson() ?? height) > height) {
+        return { ok: false, error: "Opening items must fit within the opening." };
+      }
     }
 
     let changed = false;

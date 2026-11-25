@@ -14,11 +14,13 @@ import type { LayerVisibility } from "./gui/Layers";
 import { loadSettings, saveSettings } from "./gui/settingsStorage";
 import { CreateWindow, type CreateRequest } from "./gui/CreateWindow";
 import { PropertyWindow } from "./gui/PropertyWindow";
+import { OpeningEditor } from "./gui/OpeningEditor";
 import {
   isSelectionTarget,
   selectedTargets,
   selectionTargetNames,
   toggleRoomSelection,
+  toggleOpeningSelection,
   type SelectionState,
   type SelectionTarget,
 } from "./gui/selection";
@@ -27,6 +29,7 @@ import { downloadPlan } from "./model/json/downloadPlan";
 import { Plan } from "./model/Plan";
 import { PlanEditor } from "./model/PlanEditor";
 import type { Room } from "./model/Room";
+import type { Opening } from "./model/Opening";
 import testPlan from "./testData/McKeefry.json";
 
 type ViewDescriptor = { id: string; kind: "2d" | "3d"; level: number };
@@ -83,14 +86,19 @@ function App() {
     return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 };
   };
 
-  const selectTarget = (target: SelectionTarget, toggleRoom = false) =>
+  const selectTarget = (target: SelectionTarget, toggle = false) =>
     setSelection((current) =>
-      toggleRoom && target.kind === "room"
+      toggle && target.kind === "room"
         ? toggleRoomSelection(current, target.item)
+        : toggle && target.kind === "opening"
+          ? toggleOpeningSelection(current, target.item)
         : { targets: [target], activeIndex: 0 },
     );
   const toggleRoom = useCallback((room: Room) => {
     setSelection((current) => toggleRoomSelection(current, room));
+  }, [setSelection]);
+  const toggleOpening = useCallback((opening: Opening) => {
+    setSelection((current) => toggleOpeningSelection(current, opening));
   }, [setSelection]);
 
   const drawWall = useCallback((start: JsonPosition, end: JsonPosition) => {
@@ -112,7 +120,8 @@ function App() {
     (target: SelectionTarget, x: number, y: number) => {
       const index = selection.targets.findIndex((selected) => isSelectionTarget(selected, target));
       const selectedRoom = target.kind === "room" && selection.rooms?.includes(target.item);
-      if (index < 0 && !selectedRoom) return false;
+      const selectedOpening = target.kind === "opening" && selection.openings?.includes(target.item);
+      if (index < 0 && !selectedRoom && !selectedOpening) return false;
       contextReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setSelection((current) =>
         index < 0 ? { ...current, targets: [target], activeIndex: 0 } : { ...current, activeIndex: index },
@@ -120,7 +129,7 @@ function App() {
       setContextMenu({ target, x, y });
       return true;
     },
-    [selection.targets, selection.rooms, setSelection, setContextMenu],
+    [selection.targets, selection.rooms, selection.openings, setSelection, setContextMenu],
   );
 
   const deleteTarget = useCallback(
@@ -197,7 +206,7 @@ function App() {
       ) return;
       if (
         event.target instanceof Element &&
-        event.target.closest(".property-window, .object-context-menu, [contenteditable='true']")
+        event.target.closest(".property-window, .opening-editor, .object-context-menu, [contenteditable='true']")
       ) return;
       if (drawingWall || mapDraft) return;
       if (event.key === "Alt" && !event.repeat && selection.targets.length > 1) {
@@ -265,7 +274,7 @@ function App() {
                       level: currentLevel,
                       wall: activeTarget?.kind === "wall" ? activeTarget.item : undefined,
                       opening: activeTarget?.kind === "opening" ? activeTarget.item :
-                        activeTarget?.kind === "door" || activeTarget?.kind === "slidingDoor" || activeTarget?.kind === "window" ? activeTarget.opening : undefined,
+                        activeTarget?.kind === "door" || activeTarget?.kind === "slidingDoor" || activeTarget?.kind === "window" || activeTarget?.kind === "post" ? activeTarget.opening : undefined,
                     });
                   }
                 }}
@@ -274,7 +283,7 @@ function App() {
                 <option value="wall" disabled={!currentLevel}>Wall</option>
                 <option value="fence">Fence</option>
                 <option value="opening" disabled={activeTarget?.kind !== "wall"}>Opening (select a wall)</option>
-                <option value="item" disabled={!activeTarget || !["opening", "door", "slidingDoor", "window"].includes(activeTarget.kind)}>Opening item (select an opening)</option>
+                <option value="item" disabled={!activeTarget || !["opening", "door", "slidingDoor", "window", "post"].includes(activeTarget.kind)}>Opening item (select an opening)</option>
             </select>
             <div className="toolbar-divider" />
             <div className="level-control" aria-label="Active level">
@@ -404,6 +413,7 @@ function App() {
                   selection={selection}
                   onSelectionChange={setSelection}
                   onToggleRoom={toggleRoom}
+                  onToggleOpening={toggleOpening}
                   onEdit={setEditingTarget}
                   onContextMenu={openContextMenu}
                   drawingWall={drawingWall}
@@ -425,6 +435,7 @@ function App() {
                   selection={selection}
                   onSelectionChange={setSelection}
                   onToggleRoom={toggleRoom}
+                  onToggleOpening={toggleOpening}
                   onEdit={setEditingTarget}
                   onContextMenu={openContextMenu}
                   version={planVersion}
@@ -519,9 +530,40 @@ function App() {
                   Merge rooms
                 </button>
               )}
+              {contextMenu.target.kind === "opening" && selection.openings && editPlan.canMergeOpenings(selection.openings) && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    if (contextMenu.target.kind !== "opening" || !selection.openings) return;
+                    if (!window.confirm(
+                      "Merge these openings into one rectangle? Their separate dimensions will be lost, and their items will overlap until arranged in the opening editor.",
+                    )) return;
+                    const opening = contextMenu.target.item;
+                    const result = editPlan.mergeOpenings(selection.openings, opening);
+                    setContextMenu(undefined);
+                    if (!result.ok) {
+                      window.alert(result.error);
+                      return;
+                    }
+                    setSelection({ targets: [{ kind: "opening", item: opening }], activeIndex: 0 });
+                    setEditingTarget(undefined);
+                  }}
+                >
+                  Merge openings
+                </button>
+              )}
             </div>
           )}
-          {editingTarget && (
+          {editingTarget && (editingTarget.kind === "opening" || editingTarget.kind === "door" ||
+            editingTarget.kind === "slidingDoor" || editingTarget.kind === "window" || editingTarget.kind === "post") ? (
+            <OpeningEditor
+              opening={editingTarget.kind === "opening" ? editingTarget.item : editingTarget.opening}
+              initialItem={editingTarget.kind === "opening" ? undefined : editingTarget.item}
+              editPlan={editPlan}
+              onClose={() => setEditingTarget(undefined)}
+            />
+          ) : editingTarget && (
             <PropertyWindow
               target={editingTarget}
               editPlan={editPlan}

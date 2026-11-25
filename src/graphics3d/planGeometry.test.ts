@@ -12,6 +12,26 @@ const meshesFor = (group: THREE.Group, item: object) => {
 };
 
 describe("3D plan geometry", () => {
+  it("positions opening items from the top left and gives posts wall depth", () => {
+    const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
+      id: "wall", start: [0, 0], end: [4000, 0], width: 100, openings: [{
+        id: "opening", width: 2000, height: 2000, distanceAlongWall: 2000,
+        contents: [{ type: "Post", x: 500, y: 250, width: 200, height: 1000 }],
+      }],
+    }] }] }] });
+    const post = plan.buildings[0].levels[0].walls[0].openings[0].contents[0];
+    const group = createPlanGeometry(plan);
+    group.updateMatrixWorld(true);
+    const mesh = meshesFor(group, post)[0];
+    const bounds = new THREE.Box3().setFromObject(mesh);
+    expect(bounds.min.x).toBeCloseTo(1.5);
+    expect(bounds.max.x).toBeCloseTo(1.7);
+    expect(bounds.min.y).toBeCloseTo(0.75);
+    expect(bounds.max.y).toBeCloseTo(1.75);
+    expect(bounds.max.z - bounds.min.z).toBeCloseTo(0.1);
+    disposePlanGeometry(group);
+  });
+
   it("stacks every level using total heights and anchors level zero at ground", () => {
     const plan = Plan.fromJson({
       buildings: [

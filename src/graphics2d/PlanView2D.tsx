@@ -10,6 +10,7 @@ import {
 import type { JsonPosition } from "../model/json/Document";
 import type { PlanEditor } from "../model/PlanEditor";
 import type { Room } from "../model/Room";
+import type { Opening } from "../model/Opening";
 import {
   doubleClickSelection, drawFences, drawGrid, drawOpenings, drawSelection, drawWalls,
   isVisibleTarget, mapRotationHandle, rotateMapFromDrag, selectionAtPoint, targetsAtPoint, visibleWalls,
@@ -44,6 +45,7 @@ export const PlanView2D = ({
   selection,
   onSelectionChange,
   onToggleRoom,
+  onToggleOpening,
   onEdit,
   onContextMenu,
   drawingWall,
@@ -59,6 +61,7 @@ export const PlanView2D = ({
   selection: SelectionState;
   onSelectionChange: (selection: SelectionState) => void;
   onToggleRoom: (room: Room) => void;
+  onToggleOpening: (opening: Opening) => void;
   onEdit: (target: SelectionTarget) => void;
   onContextMenu: (target: SelectionTarget, x: number, y: number) => boolean;
   drawingWall: boolean;
@@ -258,7 +261,7 @@ export const PlanView2D = ({
           const layout = labelLayout(context, room);
           const mode = layout && labelHit(layout, point, viewport.scale, selected === room);
           const hits = mode && selectionAtPoint(
-            context, point, walls, rooms, fences, layerVisibility.doors, layerVisibility.roomLabels, viewport.scale,
+            context, point, walls, rooms, fences, layerVisibility.roomLabels, viewport.scale,
           );
           const top = hits && hits.targets[hits.activeIndex];
           const otherLabelHasPriority = top?.kind === "roomLabel" && top.item !== room;
@@ -365,7 +368,7 @@ export const PlanView2D = ({
           if (!result.ok) window.alert(result.error);
         }
         const next = selectionAtPoint(
-          context, worldPoint(event), walls, rooms, fences, layerVisibility.doors, layerVisibility.roomLabels, viewport.scale,
+          context, worldPoint(event), walls, rooms, fences, layerVisibility.roomLabels, viewport.scale,
         );
         const index = next.targets.findIndex((target) => target.kind === "roomLabel" && target.item === room);
         const layout = labelLayout(context, room);
@@ -394,13 +397,15 @@ export const PlanView2D = ({
             return;
           }
           const next = selectionAtPoint(
-            context, point, walls, rooms, fences, layerVisibility.doors, layerVisibility.roomLabels, viewport.scale,
+            context, point, walls, rooms, fences, layerVisibility.roomLabels, viewport.scale,
           );
           const targets = next.targets;
           selectedLabelRef.current = undefined;
           if (event.ctrlKey || event.metaKey) {
+            const opening = targets.findLast((target) => target.kind === "opening");
             const room = targets.findLast((target) => target.kind === "room");
-            if (room?.kind === "room") onToggleRoom(room.item);
+            if (opening?.kind === "opening") onToggleOpening(opening.item);
+            else if (room?.kind === "room") onToggleRoom(room.item);
             dragOrigin = undefined;
             return;
           }
@@ -427,7 +432,7 @@ export const PlanView2D = ({
       const priorActive = before.targets[before.activeIndex];
       const point = worldPoint(event);
       const hits = selectionAtPoint(
-        context, point, walls, rooms, fences, layerVisibility.doors, layerVisibility.roomLabels, viewport.scale,
+        context, point, walls, rooms, fences, layerVisibility.roomLabels, viewport.scale,
       );
       const top = hits.targets[hits.activeIndex];
       const otherLabelHasPriority = top?.kind === "roomLabel" && top.item !== priorActive?.item;
@@ -459,9 +464,10 @@ export const PlanView2D = ({
           return;
         }
       }
-      const hits = targetsAtPoint(point, walls, rooms, fences, layerVisibility.doors);
+      const hits = targetsAtPoint(point, walls, rooms, fences);
       const target = hits.find((candidate) => activeTarget && isSelectionTarget(activeTarget, candidate)) ??
-        hits.find((candidate) => candidate.kind === "room" && selection.rooms?.includes(candidate.item));
+        hits.find((candidate) => candidate.kind === "room" && selection.rooms?.includes(candidate.item)) ??
+        hits.find((candidate) => candidate.kind === "opening" && selection.openings?.includes(candidate.item));
       if (target) {
         if (onContextMenu(target, event.clientX, event.clientY)) event.preventDefault();
       }
@@ -511,7 +517,7 @@ export const PlanView2D = ({
       canvas.removeEventListener("wheel", wheel);
       canvas.style.cursor = "";
     };
-  }, [drawingWall, editPlan, layerVisibility, level, onContextMenu, onDrawWall, onEdit, onSelectionChange, onStatusChange, onToggleRoom, plan, selection, version]);
+  }, [drawingWall, editPlan, layerVisibility, level, onContextMenu, onDrawWall, onEdit, onSelectionChange, onStatusChange, onToggleRoom, onToggleOpening, plan, selection, version]);
 
   return <div className="plan-view-host">
     {baseMap && <BaseMap {...baseMap} rooms={plan?.getRoomsOnLevel(level) ?? []} version={version} level={level} />}

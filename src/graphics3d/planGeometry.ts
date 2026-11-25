@@ -8,14 +8,14 @@ import {
 } from "../gui/selection";
 import { roomPolygon } from "../model/geom/roomPolygon";
 import { doorSweep } from "../model/geom/doorSweep";
+import { itemRectangle } from "../model/geom/openingArrangement";
 import type { Level } from "../model/Level";
-import type { Opening } from "../model/Opening";
+import { DEFAULT_OPENING_HEIGHT_METRES, type Opening } from "../model/Opening";
 import type { Plan } from "../model/Plan";
 import type { Wall } from "../model/Wall";
 
 const DEFAULT_LEVEL_HEIGHT = 2.4;
 const DEFAULT_FENCE_HEIGHT = 1.8;
-const DEFAULT_OPENING_HEIGHT = 2.1;
 
 const box = (
   parent: THREE.Group,
@@ -53,7 +53,7 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
     const bottom = Math.max(0, opening.distanceFromFloor?.metres ?? 0);
     const top = Math.min(
       height,
-      (opening.distanceFromFloor?.metres ?? 0) + (opening.height?.metres ?? DEFAULT_OPENING_HEIGHT),
+      (opening.distanceFromFloor?.metres ?? 0) + (opening.height?.metres ?? DEFAULT_OPENING_HEIGHT_METRES),
     );
     const left = Math.max(0, opening.distanceAlongWall.metres - opening.width.metres / 2);
     const right = Math.min(length, opening.distanceAlongWall.metres + opening.width.metres / 2);
@@ -107,21 +107,29 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
     openingSurface.userData.target = { kind: "opening", item: opening } satisfies SelectionTarget;
     group.add(openingSurface);
     for (const item of opening.contents) {
-      const width = right - left;
-      const itemHeight = top - bottom;
+      const rect = itemRectangle(opening, item);
+      const openingLeft = opening.distanceAlongWall.metres - opening.width.metres / 2;
+      const openingTop = (opening.distanceFromFloor?.metres ?? 0) + (opening.height?.metres ?? DEFAULT_OPENING_HEIGHT_METRES);
+      const itemLeft = Math.max(left, openingLeft + rect.x / 1000);
+      const itemRight = Math.min(right, openingLeft + (rect.x + rect.width) / 1000);
+      const itemTop = Math.min(top, openingTop - rect.y / 1000);
+      const itemBottom = Math.max(bottom, openingTop - (rect.y + rect.height) / 1000);
+      const width = itemRight - itemLeft;
+      const itemHeight = itemTop - itemBottom;
+      if (width <= 0 || itemHeight <= 0) continue;
       if (item.type === "SlidingDoor") {
         const leafWidth = width * 0.55;
         box(
           group,
           [leafWidth, itemHeight, item.leafThickness.metres],
-          [left + leafWidth / 2, (bottom + top) / 2, -item.leafThickness.metres / 2],
+          [itemLeft + leafWidth / 2, (itemBottom + itemTop) / 2, -item.leafThickness.metres / 2],
           0xa57952,
           selectionTargetForOpeningItem(item, opening),
         );
         box(
           group,
           [leafWidth, itemHeight, item.leafThickness.metres],
-          [right - leafWidth / 2, (bottom + top) / 2, item.leafThickness.metres / 2],
+          [itemRight - leafWidth / 2, (itemBottom + itemTop) / 2, item.leafThickness.metres / 2],
           0xa57952,
           selectionTargetForOpeningItem(item, opening),
         );
@@ -132,12 +140,12 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
         const dx = direction * Math.cos(sweep);
         const dz = direction * Math.sin(sweep);
         const thickness = item.leafThickness.metres;
-        const hinge = leftHinged ? left : right;
+        const hinge = leftHinged ? itemLeft : itemRight;
         const hingeDepth = (item.swingDirection === "out" ? -1 : 1) * wall.width.metres / 2;
         const mesh = box(
           group,
           [width, itemHeight, thickness],
-          [hinge + dx * width / 2 + dz * thickness / 2, (bottom + top) / 2, hingeDepth + dz * width / 2 - dx * thickness / 2],
+          [hinge + dx * width / 2 + dz * thickness / 2, (itemBottom + itemTop) / 2, hingeDepth + dz * width / 2 - dx * thickness / 2],
           0xa57952,
           selectionTargetForOpeningItem(item, opening),
         );
@@ -145,9 +153,9 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
       } else {
         box(
           group,
-          [width, itemHeight, 0.02],
-          [(left + right) / 2, (bottom + top) / 2, 0],
-          0x9ac4d5,
+          [width, itemHeight, item.type === "Post" ? wall.width.metres : 0.02],
+          [(itemLeft + itemRight) / 2, (itemBottom + itemTop) / 2, 0],
+          item.type === "Post" ? 0xa57952 : 0x9ac4d5,
           selectionTargetForOpeningItem(item, opening),
         );
       }

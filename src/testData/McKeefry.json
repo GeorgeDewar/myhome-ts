@@ -376,36 +376,20 @@
               "end": [18155, 6480],
               "openings": [
                 {
-                  "id": "door16",
-                  "distanceAlongWall": 1795,
-                  "width": 900,
-                  "height": 2100,
-                  "distanceFromFloor": 0,
-                  "contents": [{ "type": "StandardDoor", "hingeSide": "left", "swingDirection": "out" }]
-                },
-                {
-                  "id": "door17",
-                  "distanceAlongWall": 2676,
-                  "width": 842,
-                  "height": 2100,
-                  "distanceFromFloor": 0,
-                  "contents": [{ "type": "StandardDoor", "hingeSide": "right", "swingDirection": "out" }]
-                },
-                {
-                  "id": "window22",
-                  "distanceAlongWall": 1110,
-                  "width": 450,
-                  "height": 2000,
-                  "distanceFromFloor": 0,
-                  "contents": [{ "type": "StandardWindow" }]
-                },
-                {
                   "id": "window23",
-                  "distanceAlongWall": 3332,
-                  "width": 450,
-                  "height": 2000,
+                  "distanceAlongWall": 2221,
+                  "width": 3040,
+                  "height": 1965,
                   "distanceFromFloor": 0,
-                  "contents": [{ "type": "StandardWindow" }]
+                  "contents": [
+                    { "type": "StandardWindow", "width": 722, "height": 653 },
+                    { "type": "Post", "x": 722, "width": 55 },
+                    { "type": "StandardDoor", "x": 777, "width": 747, "hingeSide": "left", "swingDirection": "out" },
+                    { "type": "StandardDoor", "x": 1524, "width": 730, "hingeSide": "right", "swingDirection": "out" },
+                    { "type": "Post", "x": 2254, "width": 55 },
+                    { "type": "StandardWindow", "y": 653, "width": 722, "height": 654 },
+                    { "type": "StandardWindow", "y": 1307, "width": 722, "height": 658 }
+                  ]
                 },
                 {
                   "id": "window24",
