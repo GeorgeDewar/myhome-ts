@@ -11,6 +11,7 @@ import { PlanView3D, type PlanView3DStatus } from "./graphics3d/PlanView3D";
 import { PlanTree } from "./gui/PlanTree";
 import { BaseMapControls } from "./gui/BaseMapControls";
 import type { LayerVisibility } from "./gui/Layers";
+import { loadSettings, saveSettings } from "./gui/settingsStorage";
 import { CreateWindow, type CreateRequest } from "./gui/CreateWindow";
 import { PropertyWindow } from "./gui/PropertyWindow";
 import {
@@ -42,20 +43,17 @@ function App() {
   const [activeLevel, setActiveLevel] = useState(levels[0]?.number ?? 0);
   const [activeViewId, setActiveViewId] = useState(initialViews[0].id);
   const [selection, setSelection] = useState<SelectionState>({ targets: [], activeIndex: -1 });
-  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
-    fences: true,
-    normalWalls: true,
-    virtualWalls: false,
-    atticWalls: false,
-    roomLabels: true,
-    doors: true,
-  });
+  const [storedSettings] = useState(loadSettings);
+  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>(storedSettings.layerVisibility);
   const [editingTarget, setEditingTarget] = useState<SelectionTarget>();
   const [creating, setCreating] = useState<CreateRequest>();
   const [drawingWall, setDrawingWall] = useState(false);
   const [baseMapSettings, setBaseMapSettings] = useState<BaseMapSettings>({
-    enabled: false, key: "", type: "street", outsideOpacity: 1, insideOpacity: 0.3,
+    enabled: storedSettings.basemapEnabled, key: storedSettings.apiKey, type: "street", outsideOpacity: 1, insideOpacity: 0.3,
   });
+  useEffect(() => {
+    saveSettings({ apiKey: baseMapSettings.key, basemapEnabled: baseMapSettings.enabled, layerVisibility });
+  }, [baseMapSettings.key, baseMapSettings.enabled, layerVisibility]);
   const [mapDraft, setMapDraft] = useState<JsonGeoreference>();
   const [mapPivot, setMapPivot] = useState<Point>({ x: 0, y: 0 });
   const [choosingMapPivot, setChoosingMapPivot] = useState(false);
