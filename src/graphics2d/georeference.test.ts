@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { mapScales, planToGeographic, referenceAt } from "./georeference";
 import { Plan } from "../model/Plan";
+import { PlanEditor } from "../model/PlanEditor";
 
 describe("georeferencing", () => {
   it("uses ellipsoidal ground scales at the site", () => {
@@ -17,6 +18,35 @@ describe("georeferencing", () => {
     expect(planToGeographic(rotated, point).latitude).toBeCloseTo(-41.178, 9);
     expect(planToGeographic(rotated, point).longitude).toBeCloseTo(174.82, 9);
     expect(rotated.longitude).not.toBeCloseTo(original.longitude, 6);
+  });
+
+  it.each([
+    [-90, 270],
+    [360, 0],
+    [-360, 0],
+    [725, 5],
+    [359.999, 359.999],
+  ])("normalizes bearing %s to %s while preserving the pivot", (bearing, expected) => {
+    const point = { x: 25.123, y: -15.456 };
+    const reference = referenceAt(point, -41.178, 174.82, bearing);
+    expect(reference.bearing).toBe(expected);
+    expect(planToGeographic(reference, point).latitude).toBeCloseTo(-41.178, 9);
+    expect(planToGeographic(reference, point).longitude).toBeCloseTo(174.82, 9);
+  });
+
+  it.each([
+    [-0.1, false],
+    [0, true],
+    [359.999, true],
+    [360, false],
+  ])("enforces the saved bearing range for %s", (bearing, valid) => {
+    const reference = { latitude: -41.178, longitude: 174.82, bearing };
+    const loaded = Plan.fromJson({ georeference: reference });
+    expect(loaded.georeference).toEqual(valid ? reference : undefined);
+    expect(loaded.loadWarnings).toHaveLength(valid ? 0 : 1);
+    const plan = new Plan();
+    expect(new PlanEditor(plan, () => {}).updateGeoreference(reference).ok).toBe(valid);
+    expect(plan.georeference).toEqual(valid ? reference : undefined);
   });
 
   it("saves georeferencing and ignores invalid georeferencing without losing the plan", () => {

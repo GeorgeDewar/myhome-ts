@@ -15,7 +15,7 @@
       "properties": {
         "latitude": { "type": "number", "minimum": -85.05112878, "maximum": 85.05112878 },
         "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
-        "bearing": { "type": "number", "minimum": -360, "maximum": 360 }
+        "bearing": { "type": "number", "minimum": 0, "exclusiveMaximum": 360 }
       }
     },
     "fences": {

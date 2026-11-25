@@ -374,7 +374,7 @@ function App() {
                 onBearing={(bearing) => {
                   if (!mapDraft) return;
                   const location = planToGeographic(mapDraft, mapPivot);
-                  setMapDraft(referenceAt(mapPivot, location.latitude, location.longitude, bearing % 360));
+                  setMapDraft(referenceAt(mapPivot, location.latitude, location.longitude, bearing));
                 }}
                 onApply={() => {
                   if (!mapDraft) return;

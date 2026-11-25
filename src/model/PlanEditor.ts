@@ -56,7 +56,7 @@ export class PlanEditor {
   updateGeoreference(reference: JsonGeoreference): EditResult {
     if (!Number.isFinite(reference.latitude) || Math.abs(reference.latitude) > 85.05112878 ||
       !Number.isFinite(reference.longitude) || Math.abs(reference.longitude) > 180 ||
-      !Number.isFinite(reference.bearing) || Math.abs(reference.bearing) > 360) {
+      !Number.isFinite(reference.bearing) || reference.bearing < 0 || reference.bearing >= 360) {
       return { ok: false, error: "Enter a valid latitude, longitude and bearing." };
     }
     if (JSON.stringify(this.plan.georeference) !== JSON.stringify(reference)) {

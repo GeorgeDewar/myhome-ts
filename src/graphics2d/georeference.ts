@@ -37,11 +37,13 @@ export const planToGeographic = (reference: JsonGeoreference, point: Point) => {
 };
 
 export const referenceAt = (point: Point, latitude: number, longitude: number, bearing: number): JsonGeoreference => {
+  const remainder = bearing % 360;
+  const normalizedBearing = remainder < 0 ? (remainder + 360) % 360 : remainder === 0 ? 0 : remainder;
   const target = projected(latitude, longitude);
   let origin = target;
   for (let i = 0; i < 4; i++) {
-    const delta = offset(point, bearing, geographic(origin).latitude);
+    const delta = offset(point, normalizedBearing, geographic(origin).latitude);
     origin = { x: target.x - delta.x, y: target.y - delta.y };
   }
-  return { ...geographic(origin), bearing };
+  return { ...geographic(origin), bearing: normalizedBearing };
 };
