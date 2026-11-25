@@ -12,7 +12,7 @@ import type { PlanEditor } from "../model/PlanEditor";
 import type { Room } from "../model/Room";
 import {
   doubleClickSelection, drawFences, drawGrid, drawOpenings, drawSelection, drawWalls,
-  isVisibleTarget, selectionAtPoint, targetsAtPoint, visibleWalls,
+  isVisibleTarget, mapRotationHandle, rotateMapFromDrag, selectionAtPoint, targetsAtPoint, visibleWalls,
 } from "./planView2DHelpers";
 import { toPoint } from "./renderPolygons";
 import {
@@ -101,6 +101,7 @@ export const PlanView2D = ({
     let dragStart: Point | undefined;
     let hasPanned = false;
     let mapDragReference: JsonGeoreference | undefined;
+    let mapRotationDrag: { pivot: Point; start: Point } | undefined;
     let labelDrag: {
       room: Room;
       mode: "move" | "resize" | "rotate";
@@ -207,6 +208,18 @@ export const PlanView2D = ({
         context.moveTo(pivot.x, pivot.y - 12 / viewport.scale);
         context.lineTo(pivot.x, pivot.y + 12 / viewport.scale);
         context.stroke();
+        if (!currentAlignment.choosingPivot) {
+          const handle = mapRotationHandle(pivot, currentAlignment.reference.bearing, viewport.scale);
+          context.beginPath();
+          context.moveTo(pivot.x, pivot.y);
+          context.lineTo(handle.x, handle.y);
+          context.stroke();
+          context.beginPath();
+          context.arc(handle.x, handle.y, 6 / viewport.scale, 0, Math.PI * 2);
+          context.fillStyle = "#fff";
+          context.fill();
+          context.stroke();
+        }
       }
     };
     renderRef.current = render;
@@ -222,9 +235,16 @@ export const PlanView2D = ({
       if (event.button !== 0) return;
       canvas.focus();
       if (alignmentRef.current) {
+        const { pivot, reference, choosingPivot } = alignmentRef.current;
+        const point = worldPoint(event);
+        const handle = mapRotationHandle(pivot, reference.bearing, viewport.scale);
+        if (!choosingPivot && Math.hypot(point.x - handle.x, point.y - handle.y) * viewport.scale <= 10) {
+          mapRotationDrag = { pivot, start: point };
+          canvas.style.cursor = "grabbing";
+        }
         dragOrigin = { x: event.clientX, y: event.clientY };
         dragStart = dragOrigin;
-        mapDragReference = alignmentRef.current.reference;
+        mapDragReference = reference;
         hasPanned = false;
         canvas.setPointerCapture(event.pointerId);
         return;
@@ -265,7 +285,13 @@ export const PlanView2D = ({
         const dx = (event.clientX - dragStart.x) / viewport.scale;
         const dy = (event.clientY - dragStart.y) / viewport.scale;
         if (Math.hypot(dx, dy) * viewport.scale > 3) hasPanned = true;
-        if (hasPanned && !currentAlignment.choosingPivot) {
+        if (hasPanned && mapRotationDrag) {
+          if (Math.hypot(cursor.x - mapRotationDrag.pivot.x, cursor.y - mapRotationDrag.pivot.y) * viewport.scale > 3) {
+            currentAlignment.onReferenceChange(rotateMapFromDrag(
+              mapDragReference, mapRotationDrag.pivot, mapRotationDrag.start, cursor,
+            ));
+          }
+        } else if (hasPanned && !currentAlignment.choosingPivot) {
           const location = planToGeographic(mapDragReference, {
             x: currentAlignment.pivot.x - dx, y: currentAlignment.pivot.y - dy,
           });
@@ -274,6 +300,11 @@ export const PlanView2D = ({
         }
         reportStatus();
         return;
+      }
+      if (currentAlignment && !dragStart) {
+        const handle = mapRotationHandle(currentAlignment.pivot, currentAlignment.reference.bearing, viewport.scale);
+        canvas.style.cursor = !currentAlignment.choosingPivot &&
+          Math.hypot(cursor.x - handle.x, cursor.y - handle.y) * viewport.scale <= 10 ? "crosshair" : "";
       }
       if (labelDrag) {
         if (labelDrag.update || Math.hypot(cursor.x - labelDrag.start.x, cursor.y - labelDrag.start.y) * viewport.scale > 2) {
@@ -321,6 +352,8 @@ export const PlanView2D = ({
         dragOrigin = undefined;
         dragStart = undefined;
         mapDragReference = undefined;
+        mapRotationDrag = undefined;
+        canvas.style.cursor = "";
         return;
       }
       if (labelDrag) {
@@ -380,6 +413,8 @@ export const PlanView2D = ({
       dragOrigin = undefined;
       dragStart = undefined;
       mapDragReference = undefined;
+      mapRotationDrag = undefined;
+      canvas.style.cursor = "";
       if (labelDrag) selectedLabelRef.current = labelDrag.previousSelected;
       labelDrag = undefined;
       render();
@@ -473,6 +508,7 @@ export const PlanView2D = ({
       canvas.removeEventListener("dblclick", doubleClick);
       canvas.removeEventListener("contextmenu", contextMenu);
       canvas.removeEventListener("wheel", wheel);
+      canvas.style.cursor = "";
     };
   }, [drawingWall, editPlan, layerVisibility, level, onContextMenu, onDrawWall, onEdit, onSelectionChange, onStatusChange, onToggleRoom, plan, selection, version]);
 

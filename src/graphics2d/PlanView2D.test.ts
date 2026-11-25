@@ -6,8 +6,37 @@ import { selectedTargets, toggleRoomSelection } from "../gui/selection";
 import { Fence } from "../model/Fence";
 import { Plan } from "../model/Plan";
 import { Room } from "../model/Room";
-import { drawFences, drawOpenings, isVisibleTarget, targetsAtPoint, visibleWalls } from "./planView2DHelpers";
+import {
+  drawFences, drawOpenings, isVisibleTarget, mapRotationHandle, rotateMapFromDrag, targetsAtPoint, visibleWalls,
+} from "./planView2DHelpers";
+import { planToGeographic, referenceAt } from "./georeference";
 import { slidingDoorLeaves } from "./renderPolygons";
+
+describe("basemap rotation handle", () => {
+  it("keeps its distance from the pivot in screen pixels and follows the bearing", () => {
+    const pivot = { x: 10, y: 20 };
+    expect(mapRotationHandle(pivot, 0, 21)).toEqual({ x: 10, y: 18 });
+    const handle = mapRotationHandle(pivot, 90, 42);
+    expect(handle.x).toBeCloseTo(9);
+    expect(handle.y).toBeCloseTo(20);
+  });
+
+  it("rotates the map in the drag direction around a fixed geographic pivot", () => {
+    const pivot = { x: 10, y: 20 };
+    const reference = referenceAt(pivot, -41.178, 174.82, 0);
+    const rotated = rotateMapFromDrag(reference, pivot, { x: 10, y: 18 }, { x: 12, y: 20 });
+    expect(rotated.bearing).toBe(270);
+    expect(planToGeographic(rotated, pivot).latitude).toBeCloseTo(-41.178, 9);
+    expect(planToGeographic(rotated, pivot).longitude).toBeCloseTo(174.82, 9);
+  });
+
+  it("wraps drag angles across the bearing boundary", () => {
+    const pivot = { x: 0, y: 0 };
+    const reference = referenceAt(pivot, -41.178, 174.82, 350);
+    const rotated = rotateMapFromDrag(reference, pivot, { x: 0, y: -1 }, { x: -1, y: 0 });
+    expect(rotated.bearing).toBe(80);
+  });
+});
 
 it.each([
   ["left", "in", 0], ["left", "in", 45], ["left", "in", 90], ["left", "in", 180],

@@ -151,7 +151,7 @@ export const BaseMapControls = ({
       )}
       {aligning && reference && (
         <>
-          <p>Drag the map under the plan. Zoom and rotation stay centred on the anchor.</p>
+          <p>Drag the map under the plan, or drag the anchor handle to rotate it. Zoom and rotation stay centred on the anchor.</p>
           <button type="button" onClick={onChoosePivot} aria-pressed={choosingPivot}>
             Choose anchor on plan
           </button>

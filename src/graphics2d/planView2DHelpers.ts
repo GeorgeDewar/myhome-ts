@@ -5,8 +5,10 @@ import type { Fence } from "../model/Fence";
 import type { Opening, SlidingDoor, StandardDoor } from "../model/Opening";
 import type { Room } from "../model/Room";
 import type { Wall } from "../model/Wall";
+import type { JsonGeoreference } from "../model/json/Document";
 import { doorSweep } from "../model/geom/doorSweep";
 import { roomPolygon } from "../model/geom/roomPolygon";
+import { planToGeographic, referenceAt } from "./georeference";
 import { drawMultiPolygon, slidingDoorLeaves, toPoint, toPolygon } from "./renderPolygons";
 import { labelHit, labelLayout } from "./roomLabel";
 
@@ -15,6 +17,19 @@ type Viewport = { offsetX: number; offsetY: number; scale: number };
 
 const GRID_SIZE_METRES = 1;
 const GRID_COLOR = "#d9e2ec";
+
+export const mapRotationHandle = (pivot: Point, bearing: number, scale: number): Point => {
+  const angle = bearing * Math.PI / 180;
+  return { x: pivot.x - 42 * Math.sin(angle) / scale, y: pivot.y - 42 * Math.cos(angle) / scale };
+};
+
+export const rotateMapFromDrag = (reference: JsonGeoreference, pivot: Point, start: Point, current: Point) => {
+  const startAngle = Math.atan2(start.y - pivot.y, start.x - pivot.x);
+  const currentAngle = Math.atan2(current.y - pivot.y, current.x - pivot.x);
+  const bearing = Math.round((reference.bearing - (currentAngle - startAngle) * 180 / Math.PI) * 10) / 10;
+  const location = planToGeographic(reference, pivot);
+  return referenceAt(pivot, location.latitude, location.longitude, bearing);
+};
 
 const openingPoints = (wall: Wall, opening: Opening) => {
   const from = toPoint(wall.from);
