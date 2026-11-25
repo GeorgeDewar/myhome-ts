@@ -168,7 +168,10 @@ export class Opening {
       width: this.width.toJson(),
       ...(this.height ? { height: this.height.toJson() } : {}),
       ...(this.distanceFromFloor ? { distanceFromFloor: this.distanceFromFloor.toPositionJson() } : {}),
-      ...(this.contents.length > 0 ? { contents: this.contents.map((content) => content.toJson()) } : {}),
+      ...(this.contents.length > 0 ? {
+        contents: this.contents.map((content) => content.toJson()).sort((a, b) =>
+          (a.x ?? 0) - (b.x ?? 0) || (a.y ?? 0) - (b.y ?? 0)),
+      } : {}),
     };
   }
 }

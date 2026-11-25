@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Opening, OpeningItem } from "../model/Opening";
-import { arrangementWarnings, itemRectangle, largestEmptyRectangle, openingSize, type ItemRectangle } from "../model/geom/openingArrangement";
+import { arrangementWarnings, emptySpaceMarkers, itemRectangle, largestEmptyRectangle, openingSize, type ItemRectangle } from "../model/geom/openingArrangement";
 import type { PlanEditor } from "../model/PlanEditor";
 import { PropertyWindow } from "./PropertyWindow";
 import { selectionTargetForOpeningItem, selectionTargetNames, type SelectionTarget } from "./selection";
@@ -52,6 +52,16 @@ export const OpeningEditor = ({
   const warnings = arrangementWarnings(width, height, rectangles);
   const gap = gapPoint && opening.shape !== "halfCircleArch"
     ? largestEmptyRectangle(width, height, rectangles, gapPoint) : undefined;
+  const markers = opening.shape === "halfCircleArch" ? [] : emptySpaceMarkers(width, height, rectangles);
+  const chooseSpace = (point: { x: number; y: number }) => {
+    if (!largestEmptyRectangle(width, height, rectangles, point)) {
+      setGapPoint(undefined);
+      setMessage("There is no usable empty rectangle at that position.");
+      return;
+    }
+    setMessage("");
+    setGapPoint(point);
+  };
   const archHeight = Math.min(width / 2, height);
   const outline =
     opening.shape === "halfCircleArch"
@@ -93,13 +103,7 @@ export const OpeningEditor = ({
                 return;
               }
               const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(transform.inverse());
-              if (!largestEmptyRectangle(width, height, rectangles, point)) {
-                setGapPoint(undefined);
-                setMessage("There is no usable empty rectangle at that position.");
-                return;
-              }
-              setMessage("");
-              setGapPoint({ x: point.x, y: point.y });
+              chooseSpace({ x: point.x, y: point.y });
             }}
           >
             <path d={outline} fill="#f0f4f8" stroke="#486581" strokeWidth="2" vectorEffect="non-scaling-stroke" />
@@ -116,13 +120,25 @@ export const OpeningEditor = ({
             })}
             {gap && <rect {...gap} fill="#2680c2" fillOpacity="0.3" stroke="#2680c2"
               strokeWidth="2" strokeDasharray="5 3" vectorEffect="non-scaling-stroke" pointerEvents="none" />}
+            {markers.map((marker, index) => <g key={index} role="button" tabIndex={0}
+              aria-label={`Add item in empty space ${index + 1}`}
+              onClick={(event) => { event.stopPropagation(); chooseSpace(marker); }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  chooseSpace(marker);
+                }
+              }}>
+              <text x={marker.x} y={marker.y} textAnchor="middle" dominantBaseline="central"
+                fontSize={marker.size} fill="#2680c2">+</text>
+            </g>)}
           </svg>
           <p>Outline uses saved dimensions{opening.height === undefined ? " and the default display height" : ""}.</p>
           <p>Positions are measured from the top-left of the opening. Select an item in the diagram or list.</p>
           {opening.shape !== "halfCircleArch" && <p>Click empty space to add an item there.</p>}
           {warnings.overlap && <p role="status">Warning: opening items overlap.</p>}
           {opening.shape === "halfCircleArch"
-            ? <p role="status">Gap checking is unavailable for arched openings; item bounds are checked against the rectangular outline only.</p>
+            ? <p role="status">Adding items and gap checking are unavailable for arched openings; item bounds are checked against the rectangular outline only.</p>
             : warnings.gap && <p role="status">Warning: the opening contains gaps.</p>}
           <div className="opening-editor-items" aria-label="Opening items">
             <button
@@ -157,16 +173,6 @@ export const OpeningEditor = ({
               }}>Add {type === "StandardWindow" ? "window" : type === "StandardDoor" ? "door" : type === "SlidingDoor" ? "sliding door" : "post"} here</button>)}
             <button type="button" onClick={() => setGapPoint(undefined)}>Cancel</button>
           </div>}
-          {(["StandardWindow", "StandardDoor", "SlidingDoor", "Post"] as const).map((type) => <button key={type} type="button" onClick={() => {
-            if ((dirty || geometryDirty) && !window.confirm("Discard unapplied changes?")) return;
-            const result = editPlan.addOpeningItem(opening, type);
-            if (!result.ok) { setMessage(result.error); return; }
-            setDirty(false);
-            setGeometryDirty(false);
-            setMessage("");
-            setGapPoint(undefined);
-            setSelected(selectionTargetForOpeningItem(result.item, opening));
-          }}>Add {type === "StandardWindow" ? "window" : type === "StandardDoor" ? "door" : type === "SlidingDoor" ? "sliding door" : "post"}</button>)}
           {selected.kind !== "opening" && "opening" in selected && <button type="button" onClick={() => {
             if ((dirty || geometryDirty) && !window.confirm("Discard unapplied changes?")) return;
             const result = editPlan.deleteOpeningItem(selected.item);

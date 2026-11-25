@@ -18,6 +18,7 @@ describe("Plan", () => {
         for (const wall of level.walls ?? []) {
           for (const opening of wall.openings ?? []) {
             if (opening.contents?.length === 0) delete opening.contents;
+            opening.contents?.sort((a, b) => (a.x ?? 0) - (b.x ?? 0) || (a.y ?? 0) - (b.y ?? 0));
             if (opening.shape === "rectangle") delete opening.shape;
           }
         }
@@ -29,6 +30,30 @@ describe("Plan", () => {
     const plan = Plan.fromJson(document);
     expect(plan.loadWarnings).toEqual([]);
     expect(plan.toJson()).toEqual(expected);
+    expect(Plan.fromJson(plan.toJson()).loadWarnings).toEqual([]);
+  });
+
+  it("exports opening items by x then y without changing their in-memory order", () => {
+    const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
+      id: "wall", start: [0, 0], end: [4000, 0], openings: [{
+        id: "opening", width: 2000, height: 2000, distanceAlongWall: 2000,
+        contents: [
+          { type: "Post", x: 500, y: 0, width: 100, height: 100 },
+          { type: "StandardWindow", x: 0, y: 700, width: 100, height: 100 },
+          { type: "SlidingDoor", x: 0, y: 100, width: 100, height: 100 },
+          { type: "StandardWindow", width: 100, height: 100 },
+          { type: "Post", width: 100, height: 100 },
+        ],
+      }],
+    }] }] }] });
+    const opening = plan.buildings[0].levels[0].walls[0].openings[0];
+    const original = [...opening.contents];
+    const saved = plan.toJson().buildings![0].levels[0].walls![0].openings![0].contents!;
+    expect(saved.map((item) => [item.type, item.x ?? 0, item.y ?? 0])).toEqual([
+      ["StandardWindow", 0, 0], ["Post", 0, 0], ["SlidingDoor", 0, 100],
+      ["StandardWindow", 0, 700], ["Post", 500, 0],
+    ]);
+    expect(opening.contents).toEqual(original);
     expect(Plan.fromJson(plan.toJson()).loadWarnings).toEqual([]);
   });
 

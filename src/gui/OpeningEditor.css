@@ -100,7 +100,9 @@
   margin: 0 6px 6px 0;
 }
 
-.opening-editor-diagram rect {
+.opening-editor-diagram rect,
+.opening-editor-diagram g[role="button"],
+.opening-editor-diagram path {
   cursor: pointer;
 }
 

@@ -383,12 +383,15 @@
                   "distanceFromFloor": 0,
                   "contents": [
                     { "type": "StandardWindow", "width": 722, "height": 653 },
+                    { "type": "StandardWindow", "y": 654, "width": 722, "height": 650 },
+                    { "type": "StandardWindow", "y": 1305, "width": 722, "height": 660 },
                     { "type": "Post", "x": 722, "width": 55 },
                     { "type": "StandardDoor", "x": 777, "width": 747, "hingeSide": "left", "swingDirection": "out" },
                     { "type": "StandardDoor", "x": 1524, "width": 730, "hingeSide": "right", "swingDirection": "out" },
                     { "type": "Post", "x": 2254, "width": 55 },
-                    { "type": "StandardWindow", "y": 653, "width": 722, "height": 654 },
-                    { "type": "StandardWindow", "y": 1307, "width": 722, "height": 658 }
+                    { "type": "StandardWindow", "x": 2309, "width": 731, "height": 653 },
+                    { "type": "StandardWindow", "x": 2309, "y": 654, "width": 731, "height": 650 },
+                    { "type": "StandardWindow", "x": 2309, "y": 1305, "width": 731, "height": 660 }
                   ]
                 },
                 {

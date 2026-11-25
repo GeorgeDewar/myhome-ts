@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { Plan } from "../Plan";
 import { PlanEditor } from "../PlanEditor";
-import { arrangementWarnings, itemRectangle, largestEmptyRectangle } from "./openingArrangement";
+import { arrangementWarnings, emptySpaceMarkers, itemRectangle, largestEmptyRectangle } from "./openingArrangement";
 
 const setup = () => {
   const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
@@ -16,6 +16,19 @@ const setup = () => {
 };
 
 describe("opening arrangements", () => {
+  it("shows markers in usable gaps, including below items, and none when full", () => {
+    const items = [
+      { x: 0, y: 0, width: 300, height: 400 },
+      { x: 300, y: 0, width: 200, height: 1000 },
+    ];
+    const markers = emptySpaceMarkers(500, 1000, items);
+    expect(markers).toHaveLength(1);
+    expect(markers[0]).toMatchObject({ x: 150, y: 700 });
+    expect(largestEmptyRectangle(500, 1000, items, markers[0])).toEqual({ x: 0, y: 400, width: 300, height: 600 });
+    expect(emptySpaceMarkers(500, 1000, [{ x: 0, y: 0, width: 500, height: 1000 }])).toEqual([]);
+    expect(emptySpaceMarkers(500, 1000, [])).toHaveLength(1);
+  });
+
   it("finds the largest empty rectangle containing the click, not just a grid cell", () => {
     const items = [{ x: 0, y: 0, width: 60, height: 40 }];
     expect(largestEmptyRectangle(100, 100, items, { x: 70, y: 60 }))

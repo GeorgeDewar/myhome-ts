@@ -1,16 +1,14 @@
 import { useState } from "react";
 import type { Level } from "../model/Level";
-import type { Opening, OpeningItem } from "../model/Opening";
 import type { PlanEditor } from "../model/PlanEditor";
 import type { Wall } from "../model/Wall";
-import { selectionTargetForOpeningItem, type SelectionTarget } from "./selection";
+import type { SelectionTarget } from "./selection";
 import "./PropertyWindow.css";
 
 export type CreateRequest = {
-  kind: "wall" | "fence" | "opening" | "item";
+  kind: "wall" | "fence" | "opening";
   level?: Level;
   wall?: Wall;
-  opening?: Opening;
 };
 
 export const CreateWindow = ({
@@ -34,7 +32,6 @@ export const CreateWindow = ({
     height: "",
     floor: "",
   });
-  const [itemType, setItemType] = useState<OpeningItem["type"]>("StandardDoor");
   const [error, setError] = useState("");
 
   const number = (text: string) => (text.trim() === "" ? NaN : Number(text));
@@ -62,7 +59,7 @@ export const CreateWindow = ({
         const added = editor.addFence(start, end);
         result = added.ok ? { ok: true, target: { kind: "fence", item: added.item } } : added;
       }
-    } else if (request.kind === "opening") {
+    } else {
       if (!request.wall) return setError("Select a wall first.");
       const added = editor.addOpening(
         request.wall,
@@ -72,16 +69,12 @@ export const CreateWindow = ({
         values.floor.trim() ? number(values.floor) : undefined,
       );
       result = added.ok ? { ok: true, target: { kind: "opening", item: added.item } } : added;
-    } else {
-      if (!request.opening) return setError("Select an opening first.");
-      const added = editor.addOpeningItem(request.opening, itemType);
-      result = added.ok ? { ok: true, target: selectionTargetForOpeningItem(added.item, request.opening) } : added;
     }
     if (result.ok) onCreated(result.target);
     else setError(result.error);
   };
 
-  const title = `Add ${request.kind === "item" ? "opening item" : request.kind}`;
+  const title = `Add ${request.kind}`;
   return (
     <section className="property-window create-window" style={{ left: 288, top: 88 }} aria-label={title}>
       <header className="property-window-titlebar">{title}</header>
@@ -109,23 +102,6 @@ export const CreateWindow = ({
             {field("height", "Height (mm, optional)")}
             {field("floor", "Distance from floor (mm, optional)")}
           </>
-        )}
-        {request.kind === "item" && (
-          <label>
-            Type
-            <select
-              value={itemType}
-              onChange={(event) => {
-                const type = event.target.value;
-                if (type === "StandardDoor" || type === "SlidingDoor" || type === "StandardWindow" || type === "Post") setItemType(type);
-              }}
-            >
-              <option value="StandardDoor">Standard Door</option>
-              <option value="SlidingDoor">Sliding Door</option>
-              <option value="StandardWindow">Standard Window</option>
-              <option value="Post">Post</option>
-            </select>
-          </label>
         )}
         {error && (
           <div className="property-error" role="alert">

@@ -268,13 +268,11 @@ function App() {
                 value=""
                 onChange={(event) => {
                   const kind = event.target.value;
-                  if (kind === "wall" || kind === "fence" || kind === "opening" || kind === "item") {
+                  if (kind === "wall" || kind === "fence" || kind === "opening") {
                     setCreating({
                       kind,
                       level: currentLevel,
                       wall: activeTarget?.kind === "wall" ? activeTarget.item : undefined,
-                      opening: activeTarget?.kind === "opening" ? activeTarget.item :
-                        activeTarget?.kind === "door" || activeTarget?.kind === "slidingDoor" || activeTarget?.kind === "window" || activeTarget?.kind === "post" ? activeTarget.opening : undefined,
                     });
                   }
                 }}
@@ -283,7 +281,6 @@ function App() {
                 <option value="wall" disabled={!currentLevel}>Wall</option>
                 <option value="fence">Fence</option>
                 <option value="opening" disabled={activeTarget?.kind !== "wall"}>Opening (select a wall)</option>
-                <option value="item" disabled={!activeTarget || !["opening", "door", "slidingDoor", "window", "post"].includes(activeTarget.kind)}>Opening item (select an opening)</option>
             </select>
             <div className="toolbar-divider" />
             <div className="level-control" aria-label="Active level">
