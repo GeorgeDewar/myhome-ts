@@ -366,7 +366,7 @@
                   "width": 2387,
                   "height": 1012,
                   "distanceFromFloor": 988,
-                  "contents": [{ "type": "Window", "windowType": "awning" }]
+                  "contents": [{ "type": "Window", "windowType": "direct" }]
                 }
               ]
             },

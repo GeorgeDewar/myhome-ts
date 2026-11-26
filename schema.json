@@ -185,15 +185,21 @@
                         "type": { "const": "Window" },
                         "windowType": {
                           "type": "string",
-                          "enum": ["awning", "fixed"],
-                          "description": "Type of the sash window"
+                          "enum": ["awning", "fixed", "direct"],
+                          "description": "Type of window"
                         },
                         "x": { "type": "integer", "minimum": 0 },
                         "y": { "type": "integer", "minimum": 0 },
                         "width": { "type": "number", "exclusiveMinimum": 0 },
                         "height": { "type": "number", "exclusiveMinimum": 0 },
                         "sash": { "$ref": "#/$defs/sash" }
-                      }
+                      },
+                      "allOf": [
+                        {
+                          "if": { "properties": { "windowType": { "const": "direct" } }, "required": ["windowType"] },
+                          "then": { "not": { "required": ["sash"] } }
+                        }
+                      ]
                     },
                     {
                       "type": "object",

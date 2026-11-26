@@ -54,7 +54,7 @@ export type JsonStandardDoor = JsonItemGeometry & {
 export type JsonSash = { widthTop?: number; widthRight?: number; widthBottom?: number; widthLeft?: number; depth?: number };
 export type JsonWindow = JsonItemGeometry & {
   type: "Window";
-  windowType: "awning" | "fixed";
+  windowType: WindowType;
   sash?: JsonSash;
 };
 export type JsonPost = JsonItemGeometry & { type: "Post" };
@@ -68,3 +68,5 @@ export type JsonRoomLabel = { text?: string; position?: JsonPosition; rotation?:
 export type JsonRoom = { name: string; walls: JsonWallRef[]; label?: JsonRoomLabel };
 
 export type JsonPosition = [number, number];
+import type { WindowType } from "../windowTypes";
+

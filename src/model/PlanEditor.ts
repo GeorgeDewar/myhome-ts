@@ -9,6 +9,7 @@ import { itemRectangle, openingSize, type ItemRectangle } from "./geom/openingAr
 import type { Plan } from "./Plan";
 import type { Room } from "./Room";
 import { Wall } from "./Wall";
+import { isWindowType, windowTypes } from "./windowTypes";
 
 type WallUpdate = { width?: number; start?: JsonPosition; end?: JsonPosition; virtual?: boolean; attic?: boolean };
 type RoomUpdate = { name?: string; label?: { [K in keyof JsonRoomLabel]?: JsonRoomLabel[K] | null } };
@@ -643,8 +644,13 @@ export class PlanEditor {
 
   updateWindow(window: Window, update: WindowUpdate): EditResult<"windowType" | SashField> {
     if (!this.ownsOpeningItem(window)) return { ok: false, error: "This window is no longer in the plan." };
-    if (update.windowType !== undefined && update.windowType !== "awning" && update.windowType !== "fixed") {
+    if (update.windowType !== undefined && !isWindowType(update.windowType)) {
       return { ok: false, field: "windowType", error: "Select a valid window type." };
+    }
+    const windowType = update.windowType ?? window.windowType;
+    if (!windowTypes[windowType].sashRequired &&
+      sashFields.some((field) => update.sash?.[field] != null)) {
+      return { ok: false, error: "Direct glazing cannot have a sash." };
     }
     for (const field of sashFields) {
       const value = update.sash?.[field];
@@ -656,6 +662,10 @@ export class PlanEditor {
     let changed = false;
     if (update.windowType !== undefined && update.windowType !== window.windowType) {
       window.windowType = update.windowType;
+      changed = true;
+    }
+    if (!windowTypes[windowType].sashRequired && window.sash !== undefined) {
+      window.sash = undefined;
       changed = true;
     }
     for (const field of sashFields) {

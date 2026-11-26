@@ -10,6 +10,23 @@ const expectValidPlan = (document: unknown) => {
 };
 
 describe("plan loading validation", () => {
+  it("loads direct glazing without a sash and rejects a direct window with a sash", () => {
+    const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
+      id: "wall", start: [0, 0], end: [3000, 0], openings: [{
+        id: "opening", width: 900, distanceAlongWall: 1000, contents: [
+          { type: "Window", windowType: "direct" },
+          { type: "Window", windowType: "direct", sash: { depth: 35 } },
+        ],
+      }],
+    }] }] }] });
+    expect(plan.loadWarnings).toHaveLength(1);
+    const saved = plan.toJson();
+    expect(saved.buildings![0].levels[0].walls![0].openings![0].contents)
+      .toEqual([{ type: "Window", windowType: "direct" }]);
+    expectValidPlan(saved);
+    expect(Plan.fromJson(saved).loadWarnings).toEqual([]);
+  });
+
   it("round-trips sash windows and rejects invalid sash properties", () => {
     const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
       id: "wall", start: [0, 0], end: [3000, 0], openings: [{

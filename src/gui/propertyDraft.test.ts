@@ -243,6 +243,21 @@ describe("property drafts", () => {
     expect(notify).toHaveBeenCalledTimes(2);
   });
 
+  it("switches to direct glazing without saving hidden sash overrides", () => {
+    const { opening, window, editor } = setup();
+    expect(editor.updateWindow(window, { sash: { depth: 45 } }).ok).toBe(true);
+    const draft = createPropertyDraft({ kind: "window", item: window, opening });
+    draft.values = { ...draft.values, windowType: "direct", depth: "invalid" };
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
+    expect(window.toJson()).toEqual({ type: "Window", windowType: "direct" });
+    expect(editor.updateWindow(window, { sash: { depth: 30 } }).ok).toBe(false);
+    const markup = renderToStaticMarkup(createElement(PropertyWindow, {
+      target: { kind: "window", item: window, opening }, editPlan: editor, onClose: () => {},
+    }));
+    expect(markup).toContain("Direct");
+    expect(markup).not.toContain("Sash depth");
+  });
+
   it("applies room and sliding-door changes, and leaves windows unchanged", () => {
     const { level, opening, slidingDoor, window, editor, notify } = setup();
     const room = level.rooms[0];

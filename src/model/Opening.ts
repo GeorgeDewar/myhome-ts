@@ -1,6 +1,7 @@
 import { Distance } from "./geom/Distance";
 import type { JsonItemGeometry, JsonOpening, JsonOpeningItem, JsonSash } from "./json/Document";
 import type { Wall } from "./Wall";
+import type { WindowType } from "./windowTypes";
 
 export type OpeningItem = StandardDoor | SlidingDoor | Window | Post;
 
@@ -77,7 +78,7 @@ export class Window extends ItemGeometry {
   readonly type = "Window" as const;
   sash?: Partial<Record<SashField, Distance>>;
 
-  constructor(public windowType: "awning" | "fixed") { super(); }
+  constructor(public windowType: WindowType) { super(); }
 
   static fromJson(json: Extract<JsonOpeningItem, { type: "Window" }>) {
     const item = new Window(json.windowType);

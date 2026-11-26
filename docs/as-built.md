@@ -12,7 +12,7 @@ Walls can also be marked virtual or attic.
 
 Standard door properties include an open angle from 0 to 180 degrees, defaulting to 90. The optional `openAngle` is saved on the door.
 
-Sash windows have an awning or fixed type; newly added windows are awning by default. Their optional sash top, right, bottom and left widths and depth are editable in millimetres. Each defaults to 35mm when unset; clearing a field removes its override. These properties are saved but do not yet change the window rendering.
+Windows can be awning, fixed or direct-glazed; newly added windows are awning by default. Awning and fixed windows have a sash whose optional top, right, bottom and left widths and depth are editable in millimetres. Each defaults to 35mm when unset; clearing a field removes its override. Direct glazing has no sash: applying this type prompts before discarding existing sash overrides. A direct window with a sash is invalid when loading. These properties are saved but do not yet change the window rendering.
 
 Room walls are stored as ordered wall objects; JSON references are derived from those objects when saving. Each reference must contain a `ref` to a wall on the same level.
 

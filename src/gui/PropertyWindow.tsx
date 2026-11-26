@@ -1,6 +1,8 @@
 import { GripVertical, X } from "lucide-react";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import type { PlanEditor } from "../model/PlanEditor";
+import { sashFields } from "../model/Opening";
+import { isWindowType, windowTypes } from "../model/windowTypes";
 import { applyPropertyDraft, createPropertyDraft, type PropertyDraft, type PropertyErrors } from "./propertyDraft";
 import { selectionTargetNames, type SelectionTarget } from "./selection";
 import "./PropertyWindow.css";
@@ -115,6 +117,10 @@ export const PropertyWindow = ({ target, editPlan, onClose, embedded = false, on
   };
 
   const apply = (close: boolean) => {
+    if (target.kind === "window" && draft.values.windowType === "direct" &&
+      draft.initialValues.windowType !== "direct" &&
+      (target.item.sash !== undefined || sashFields.some((field) => (draft.values[field] ?? "").trim() !== "")) &&
+      !window.confirm("Switching to direct glazing will discard sash properties. Continue?")) return;
     const errors = applyPropertyDraft(draft, editPlan);
     if (Object.keys(errors).length > 0) {
       setEditor({ draft, errors });
@@ -411,23 +417,29 @@ export const PropertyWindow = ({ target, editPlan, onClose, embedded = false, on
         )}
         {target.kind === "window" && (
           <>
-            <label>
-              Window type
-              <select value={draft.values.windowType} aria-invalid={!!errors.windowType}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  if (value === "awning" || value === "fixed") updateValues({ windowType: value });
-                }}>
-                <option value="awning">Awning</option>
-                <option value="fixed">Fixed</option>
-              </select>
-              {errors.windowType && <span className="property-error" role="alert">{errors.windowType}</span>}
-            </label>
+            <div>
+              <label>
+                Window type
+                <select value={draft.values.windowType} aria-invalid={!!errors.windowType}
+                  aria-describedby="window-type-description"
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (isWindowType(value)) updateValues({ windowType: value });
+                  }}>
+                  {Object.keys(windowTypes).map((type) =>
+                    <option key={type} value={type}>{type[0].toUpperCase() + type.slice(1)}</option>)}
+                </select>
+                {errors.windowType && <span className="property-error" role="alert">{errors.windowType}</span>}
+              </label>
+              <p id="window-type-description" className="property-description">{windowTypes[draft.values.windowType ?? target.item.windowType].description}</p>
+            </div>
+            {windowTypes[draft.values.windowType ?? target.item.windowType].sashRequired && <>
             <DistanceField label="Sash top width (mm, optional)" field="widthTop" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
             <DistanceField label="Sash right width (mm, optional)" field="widthRight" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
             <DistanceField label="Sash bottom width (mm, optional)" field="widthBottom" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
             <DistanceField label="Sash left width (mm, optional)" field="widthLeft" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
             <DistanceField label="Sash depth (mm, optional)" field="depth" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
+            </>}
           </>
         )}
         {target.kind === "post" && <p>No other properties are available yet.</p>}

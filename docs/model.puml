@@ -10,9 +10,12 @@ Post --|> OpeningItem
 
 ' Window types
 class Window {}
-class DirectGlazedPane {}
-Window --|> Window
-DirectGlazedPane --|> Window
+class AwningWindow {}
+class FixedWindow {}
+class DirectGlazedWindow {}
+AwningWindow --|> Window
+FixedWindow --|> Window
+DirectGlazedWindow --|> Window
 
 ' Door types
 class StandardDoor {}

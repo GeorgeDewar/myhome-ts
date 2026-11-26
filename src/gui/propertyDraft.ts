@@ -1,5 +1,6 @@
 import type { PlanEditor } from "../model/PlanEditor";
 import { sashFields } from "../model/Opening";
+import { windowTypes } from "../model/windowTypes";
 import type { JsonOpening, JsonWindow } from "../model/json/Document";
 import type { SelectionTarget } from "./selection";
 
@@ -231,7 +232,9 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
       break;
     }
     case "window": {
-      const sash = Object.fromEntries(sashFields.map((field) => [field, optionalDistance(field)]));
+      const windowType = values.windowType ?? target.item.windowType;
+      const sash = windowTypes[windowType].sashRequired
+        ? Object.fromEntries(sashFields.map((field) => [field, optionalDistance(field)])) : undefined;
       if (Object.keys(errors).length === 0) report(editPlan.updateWindow(target.item, {
         windowType: values.windowType !== initialValues.windowType ? values.windowType : undefined,
         sash,
