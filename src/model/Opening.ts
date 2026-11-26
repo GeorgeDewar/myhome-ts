@@ -7,6 +7,7 @@ export type OpeningItem = StandardDoor | SlidingDoor | Window | Post;
 
 const DEFAULT_DOOR_THICKNESS_METRES = 0.035;
 export const DEFAULT_OPENING_HEIGHT_METRES = 2.1;
+export const DEFAULT_SASH_DIMENSION_MM = 35;
 export const sashFields = ["widthTop", "widthRight", "widthBottom", "widthLeft", "depth"] as const;
 export type SashField = keyof JsonSash;
 

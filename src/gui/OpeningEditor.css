@@ -23,9 +23,16 @@
   padding: 8px 12px;
   color: white;
   background: #243b53;
+  cursor: grab;
+  user-select: none;
+}
+
+.opening-editor-header:active {
+  cursor: grabbing;
 }
 
 .opening-editor-header h2 {
+  flex: 1;
   margin: 0;
   font-size: 0.9rem;
 }

@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import type { Opening, OpeningItem } from "../model/Opening";
+import { GripVertical } from "lucide-react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { DEFAULT_SASH_DIMENSION_MM, type Opening, type OpeningItem } from "../model/Opening";
 import { arrangementWarnings, emptySpaceMarkers, itemRectangle, largestEmptyRectangle, openingSize, type ItemRectangle } from "../model/geom/openingArrangement";
 import type { PlanEditor } from "../model/PlanEditor";
+import { windowTypes } from "../model/windowTypes";
 import { PropertyWindow } from "./PropertyWindow";
 import { selectionTargetForOpeningItem, selectionTargetNames, type SelectionTarget } from "./selection";
 import "./OpeningEditor.css";
@@ -25,13 +27,36 @@ export const OpeningEditor = ({
   const [geometryDirty, setGeometryDirty] = useState(false);
   const [message, setMessage] = useState("");
   const [gapPoint, setGapPoint] = useState<{ x: number; y: number }>();
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const dragCleanup = useRef<() => void>(() => {});
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     dialog.showModal();
-    return () => dialog.close();
+    return () => {
+      dragCleanup.current();
+      dialog.close();
+    };
   }, []);
+
+  const startDrag = (event: MouseEvent<HTMLElement>) => {
+    if (event.button !== 0 || (event.target instanceof Element && event.target.closest("button"))) return;
+    event.preventDefault();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const drag = (move: globalThis.MouseEvent) =>
+      setOffset({ x: offset.x + move.clientX - startX, y: offset.y + move.clientY - startY });
+    const stop = () => {
+      window.removeEventListener("mousemove", drag);
+      window.removeEventListener("mouseup", stop);
+      dragCleanup.current = () => {};
+    };
+    dragCleanup.current();
+    window.addEventListener("mousemove", drag);
+    window.addEventListener("mouseup", stop);
+    dragCleanup.current = stop;
+  };
 
   const close = () => {
     if ((dirty || geometryDirty) && !window.confirm("Discard unapplied changes?")) return;
@@ -72,13 +97,15 @@ export const OpeningEditor = ({
     <dialog
       ref={dialogRef}
       className="opening-editor"
+      style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
       aria-labelledby="opening-editor-title"
       onCancel={(event) => {
         event.preventDefault();
         close();
       }}
     >
-      <header className="opening-editor-header">
+      <header className="opening-editor-header" onMouseDown={startDrag}>
+        <GripVertical size={16} aria-hidden="true" />
         <h2 id="opening-editor-title">Opening editor: {opening.id}</h2>
         <button type="button" aria-label="Close opening editor" onClick={close}>
           ×
@@ -90,7 +117,7 @@ export const OpeningEditor = ({
           <svg
             className="opening-editor-diagram"
             viewBox={`0 0 ${width} ${height}`}
-            role="img"
+            role="group"
             aria-label="Opening outline"
             onClick={(event) => {
               if (opening.shape === "halfCircleArch") {
@@ -109,14 +136,46 @@ export const OpeningEditor = ({
             <path d={outline} fill="#f0f4f8" stroke="#486581" strokeWidth="2" vectorEffect="non-scaling-stroke" />
             {opening.contents.map((item, index) => {
               const rectangle = rectangles[index];
-              return <rect key={index} {...rectangle}
-                fill={item.type === "Post" ? "#a97956" : item.type === "Window" ? "#a4cedd" : "#cdb496"}
-                fillOpacity="0.7" stroke={selected.item === item ? "#d64545" : "#486581"}
-                strokeWidth={selected.item === item ? 3 : 1} vectorEffect="non-scaling-stroke"
+              const target = selectionTargetForOpeningItem(item, opening);
+              const sash = item.type === "Window" && windowTypes[item.windowType].sashRequired ? item.sash : undefined;
+              const hasSash = item.type === "Window" && windowTypes[item.windowType].sashRequired;
+              const left = Math.min(rectangle.width, sash?.widthLeft?.toJson() ?? DEFAULT_SASH_DIMENSION_MM);
+              const right = Math.max(left, rectangle.width - (sash?.widthRight?.toJson() ?? DEFAULT_SASH_DIMENSION_MM));
+              const top = Math.min(rectangle.height, sash?.widthTop?.toJson() ?? DEFAULT_SASH_DIMENSION_MM);
+              const bottom = Math.max(top, rectangle.height - (sash?.widthBottom?.toJson() ?? DEFAULT_SASH_DIMENSION_MM));
+              return <g key={index} role="button" tabIndex={0} aria-label={`${index + 1}. ${selectionTargetNames[target.kind]}`}
                 onClick={(event) => {
                   event.stopPropagation();
-                  select(selectionTargetForOpeningItem(item, opening));
-                }} />;
+                  const svg = event.currentTarget.ownerSVGElement;
+                  const transform = svg?.getScreenCTM();
+                  if (!transform) {
+                    setMessage("Could not locate the selected item in the diagram.");
+                    return;
+                  }
+                  const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(transform.inverse());
+                  const hits = opening.contents.filter((_, i) => {
+                    const rect = rectangles[i];
+                    return point.x >= rect.x && point.x < rect.x + rect.width &&
+                      point.y >= rect.y && point.y < rect.y + rect.height;
+                  }).reverse();
+                  const activeIndex = hits.findIndex((hit) => hit === selected.item);
+                  select(selectionTargetForOpeningItem(hits[(activeIndex + 1) % hits.length] ?? item, opening));
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    select(target);
+                  }
+                }}>
+                <rect {...rectangle}
+                  fill={item.type === "Post" ? "#a97956" : item.type === "Window" ? "#a4cedd" : "#cdb496"}
+                  fillOpacity="0.7" />
+                {hasSash && <path
+                  d={`M ${rectangle.x} ${rectangle.y} h ${rectangle.width} v ${rectangle.height} h ${-rectangle.width} Z M ${rectangle.x + left} ${rectangle.y + top} H ${rectangle.x + right} V ${rectangle.y + bottom} H ${rectangle.x + left} Z`}
+                  fill="#a97956" fillRule="evenodd" pointerEvents="none" />}
+                <rect {...rectangle} fill="none" stroke={selected.item === item ? "#d64545" : "#486581"}
+                  strokeWidth={selected.item === item ? 3 : 1} vectorEffect="non-scaling-stroke" pointerEvents="none" />
+              </g>;
             })}
             {gap && <rect {...gap} fill="#2680c2" fillOpacity="0.3" stroke="#2680c2"
               strokeWidth="2" strokeDasharray="5 3" vectorEffect="non-scaling-stroke" pointerEvents="none" />}
@@ -134,7 +193,7 @@ export const OpeningEditor = ({
             </g>)}
           </svg>
           <p>Outline uses saved dimensions{opening.height === undefined ? " and the default display height" : ""}.</p>
-          <p>Positions are measured from the top-left of the opening. Select an item in the diagram or list.</p>
+          <p>Positions are measured from the top-left of the opening. Select an item in the diagram; click again to cycle overlapping items.</p>
           {opening.shape !== "halfCircleArch" && <p>Click empty space to add an item there.</p>}
           {warnings.overlap && <p role="status">Warning: opening items overlap.</p>}
           {opening.shape === "halfCircleArch"
@@ -148,14 +207,6 @@ export const OpeningEditor = ({
             >
               Opening properties
             </button>
-            {opening.contents.map((item, index) => {
-              const target = selectionTargetForOpeningItem(item, opening);
-              return (
-                <button type="button" key={index} aria-pressed={selected.item === item} onClick={() => select(target)}>
-                  {index + 1}. {selectionTargetNames[target.kind]}
-                </button>
-              );
-            })}
             {opening.contents.length === 0 && <p>This opening has no items.</p>}
           </div>
           {gap && <div className="opening-editor-gap" aria-label="Add item in selected space">

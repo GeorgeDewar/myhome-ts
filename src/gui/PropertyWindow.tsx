@@ -1,7 +1,7 @@
 import { GripVertical, X } from "lucide-react";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import type { PlanEditor } from "../model/PlanEditor";
-import { sashFields } from "../model/Opening";
+import { DEFAULT_SASH_DIMENSION_MM, sashFields } from "../model/Opening";
 import { isWindowType, windowTypes } from "../model/windowTypes";
 import { applyPropertyDraft, createPropertyDraft, type PropertyDraft, type PropertyErrors } from "./propertyDraft";
 import { selectionTargetNames, type SelectionTarget } from "./selection";
@@ -434,11 +434,11 @@ export const PropertyWindow = ({ target, editPlan, onClose, embedded = false, on
               <p id="window-type-description" className="property-description">{windowTypes[draft.values.windowType ?? target.item.windowType].description}</p>
             </div>
             {windowTypes[draft.values.windowType ?? target.item.windowType].sashRequired && <>
-            <DistanceField label="Sash top width (mm, optional)" field="widthTop" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
-            <DistanceField label="Sash right width (mm, optional)" field="widthRight" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
-            <DistanceField label="Sash bottom width (mm, optional)" field="widthBottom" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
-            <DistanceField label="Sash left width (mm, optional)" field="widthLeft" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
-            <DistanceField label="Sash depth (mm, optional)" field="depth" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
+            <DistanceField label="Sash top width (mm, optional)" field="widthTop" values={draft.values} errors={errors} onChange={updateValues} placeholder={String(DEFAULT_SASH_DIMENSION_MM)} />
+            <DistanceField label="Sash right width (mm, optional)" field="widthRight" values={draft.values} errors={errors} onChange={updateValues} placeholder={String(DEFAULT_SASH_DIMENSION_MM)} />
+            <DistanceField label="Sash bottom width (mm, optional)" field="widthBottom" values={draft.values} errors={errors} onChange={updateValues} placeholder={String(DEFAULT_SASH_DIMENSION_MM)} />
+            <DistanceField label="Sash left width (mm, optional)" field="widthLeft" values={draft.values} errors={errors} onChange={updateValues} placeholder={String(DEFAULT_SASH_DIMENSION_MM)} />
+            <DistanceField label="Sash depth (mm, optional)" field="depth" values={draft.values} errors={errors} onChange={updateValues} placeholder={String(DEFAULT_SASH_DIMENSION_MM)} />
             </>}
           </>
         )}

@@ -73,6 +73,15 @@ describe("opening editor", () => {
     expect(markup).toContain("Hinge side");
     expect(markup).toContain("Swing direction");
   });
+
+  it("draws sash widths and defaults, but not a sash for direct glazing", () => {
+    const { opening, window, editor } = setup();
+    expect(editor.updateWindow(window, { sash: { widthLeft: 20, widthTop: 50, widthRight: 60 } }).ok).toBe(true);
+    const render = () => renderToStaticMarkup(createElement(OpeningEditor, { opening, editPlan: editor, onClose: () => {} }));
+    expect(render()).toContain('d="M 0 0 h 1000 v 2100 h -1000 Z M 20 50 H 940 V 2065 H 20 Z"');
+    expect(editor.updateWindow(window, { windowType: "direct" }).ok).toBe(true);
+    expect(render()).not.toContain('fill-rule="evenodd"');
+  });
 });
 
 describe("property drafts", () => {
