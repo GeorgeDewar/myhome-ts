@@ -34,7 +34,7 @@ describe("PlanEditor deletion", () => {
                       distanceAlongWall: 500,
                       contents: [
                         { type: "StandardDoor", hingeSide: "left", swingDirection: "in" },
-                        { type: "SashWindow", windowType: "awning" },
+                        { type: "Window", windowType: "awning" },
                       ],
                     },
                   ],

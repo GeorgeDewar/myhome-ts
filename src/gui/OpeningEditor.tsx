@@ -110,7 +110,7 @@ export const OpeningEditor = ({
             {opening.contents.map((item, index) => {
               const rectangle = rectangles[index];
               return <rect key={index} {...rectangle}
-                fill={item.type === "Post" ? "#a97956" : item.type === "SashWindow" ? "#a4cedd" : "#cdb496"}
+                fill={item.type === "Post" ? "#a97956" : item.type === "Window" ? "#a4cedd" : "#cdb496"}
                 fillOpacity="0.7" stroke={selected.item === item ? "#d64545" : "#486581"}
                 strokeWidth={selected.item === item ? 3 : 1} vectorEffect="non-scaling-stroke"
                 onClick={(event) => {
@@ -160,7 +160,7 @@ export const OpeningEditor = ({
           </div>
           {gap && <div className="opening-editor-gap" aria-label="Add item in selected space">
             <p>Choose an item for the highlighted space:</p>
-            {(["SashWindow", "StandardDoor", "SlidingDoor", "Post"] as const).map((type) =>
+            {(["Window", "StandardDoor", "SlidingDoor", "Post"] as const).map((type) =>
               <button key={type} type="button" onClick={() => {
                 if ((dirty || geometryDirty) && !window.confirm("Discard unapplied changes?")) return;
                 const result = editPlan.addOpeningItem(opening, type, gap);
@@ -170,7 +170,7 @@ export const OpeningEditor = ({
                 setMessage("");
                 setGapPoint(undefined);
                 setSelected(selectionTargetForOpeningItem(result.item, opening));
-              }}>Add {type === "SashWindow" ? "window" : type === "StandardDoor" ? "door" : type === "SlidingDoor" ? "sliding door" : "post"} here</button>)}
+              }}>Add {type === "Window" ? "window" : type === "StandardDoor" ? "door" : type === "SlidingDoor" ? "sliding door" : "post"} here</button>)}
             <button type="button" onClick={() => setGapPoint(undefined)}>Cancel</button>
           </div>}
           {selected.kind !== "opening" && "opening" in selected && <button type="button" onClick={() => {

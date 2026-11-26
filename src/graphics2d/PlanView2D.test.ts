@@ -195,13 +195,13 @@ describe("drawFences", () => {
                   contents: [
                     { type: "StandardDoor", hingeSide: "left", swingDirection: "in" },
                     { type: "SlidingDoor" },
-                    { type: "SashWindow", windowType: "awning" },
+                    { type: "Window", windowType: "awning" },
                   ],
                 }],
               },
               { id: "virtual", start: [0, 1000], end: [4000, 1000], virtual: true },
               { id: "attic", start: [0, 2000], end: [4000, 2000], attic: true, openings: [
-                { id: "attic-opening", width: 1000, distanceAlongWall: 2000, contents: [{ type: "SashWindow", windowType: "awning" }] },
+                { id: "attic-opening", width: 1000, distanceAlongWall: 2000, contents: [{ type: "Window", windowType: "awning" }] },
               ] },
               { id: "both", start: [0, 3000], end: [4000, 3000], virtual: true, attic: true },
             ],

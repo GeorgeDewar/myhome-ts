@@ -1,6 +1,6 @@
 import type { PlanEditor } from "../model/PlanEditor";
 import { sashFields } from "../model/Opening";
-import type { JsonOpening, JsonSashWindow } from "../model/json/Document";
+import type { JsonOpening, JsonWindow } from "../model/json/Document";
 import type { SelectionTarget } from "./selection";
 
 type PropertyValues = {
@@ -23,7 +23,7 @@ type PropertyValues = {
   swingDirection?: "in" | "out";
   thickness?: string;
   openAngle?: string;
-  windowType?: JsonSashWindow["windowType"];
+  windowType?: JsonWindow["windowType"];
   widthTop?: string;
   widthRight?: string;
   widthBottom?: string;
@@ -232,7 +232,7 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
     }
     case "window": {
       const sash = Object.fromEntries(sashFields.map((field) => [field, optionalDistance(field)]));
-      if (Object.keys(errors).length === 0) report(editPlan.updateSashWindow(target.item, {
+      if (Object.keys(errors).length === 0) report(editPlan.updateWindow(target.item, {
         windowType: values.windowType !== initialValues.windowType ? values.windowType : undefined,
         sash,
       }));

@@ -2,7 +2,7 @@ import { Distance } from "./geom/Distance";
 import type { JsonItemGeometry, JsonOpening, JsonOpeningItem, JsonSash } from "./json/Document";
 import type { Wall } from "./Wall";
 
-export type OpeningItem = StandardDoor | SlidingDoor | SashWindow | Post;
+export type OpeningItem = StandardDoor | SlidingDoor | Window | Post;
 
 const DEFAULT_DOOR_THICKNESS_METRES = 0.035;
 export const DEFAULT_OPENING_HEIGHT_METRES = 2.1;
@@ -73,14 +73,14 @@ export class StandardDoor extends ItemGeometry {
   }
 }
 
-export class SashWindow extends ItemGeometry {
-  readonly type = "SashWindow" as const;
+export class Window extends ItemGeometry {
+  readonly type = "Window" as const;
   sash?: Partial<Record<SashField, Distance>>;
 
   constructor(public windowType: "awning" | "fixed") { super(); }
 
-  static fromJson(json: Extract<JsonOpeningItem, { type: "SashWindow" }>) {
-    const item = new SashWindow(json.windowType);
+  static fromJson(json: Extract<JsonOpeningItem, { type: "Window" }>) {
+    const item = new Window(json.windowType);
     item.loadGeometry(json);
     if (json.sash !== undefined) {
       item.sash = {};
@@ -92,7 +92,7 @@ export class SashWindow extends ItemGeometry {
     return item;
   }
 
-  toJson(): Extract<JsonOpeningItem, { type: "SashWindow" }> {
+  toJson(): Extract<JsonOpeningItem, { type: "Window" }> {
     const sash: JsonSash = {};
     for (const field of sashFields) {
       const value = this.sash?.[field];
@@ -167,8 +167,8 @@ export class Opening {
           return StandardDoor.fromJson(content);
         case "SlidingDoor":
           return SlidingDoor.fromJson(content);
-        case "SashWindow":
-          return SashWindow.fromJson(content);
+        case "Window":
+          return Window.fromJson(content);
         case "Post":
           return Post.fromJson(content);
         default:

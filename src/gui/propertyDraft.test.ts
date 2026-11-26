@@ -30,7 +30,7 @@ const setup = () => {
                     contents: [
                       { type: "StandardDoor", hingeSide: "left", swingDirection: "in" },
                       { type: "SlidingDoor" },
-                      { type: "SashWindow", windowType: "awning" },
+                      { type: "Window", windowType: "awning" },
                     ],
                   },
                 ],
@@ -45,7 +45,7 @@ const setup = () => {
   const wall = level.walls[0];
   const opening = wall.openings[0];
   const [door, slidingDoor, window] = opening.contents;
-  if (door.type !== "StandardDoor" || slidingDoor.type !== "SlidingDoor" || window.type !== "SashWindow") {
+  if (door.type !== "StandardDoor" || slidingDoor.type !== "SlidingDoor" || window.type !== "Window") {
     throw new Error("Unexpected opening contents");
   }
   const notify = vi.fn();
@@ -60,7 +60,7 @@ describe("opening editor", () => {
     expect(markup).toContain("Warning: opening items overlap.");
     expect(markup).toContain("1. Standard Door");
     expect(markup).toContain("2. Sliding Door");
-    expect(markup).toContain("3. Sash Window");
+    expect(markup).toContain("3. Window");
     expect(markup).toContain("Opening Properties");
   });
 

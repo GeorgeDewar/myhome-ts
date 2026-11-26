@@ -9,9 +9,9 @@ Door --|> OpeningItem
 Post --|> OpeningItem
 
 ' Window types
-class SashWindow {}
+class Window {}
 class DirectGlazedPane {}
-SashWindow --|> Window
+Window --|> Window
 DirectGlazedPane --|> Window
 
 ' Door types

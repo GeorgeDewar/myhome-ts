@@ -14,13 +14,13 @@ describe("plan loading validation", () => {
     const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
       id: "wall", start: [0, 0], end: [3000, 0], openings: [{
         id: "opening", width: 900, distanceAlongWall: 1000, contents: [
-          { type: "SashWindow", windowType: "fixed", sash: {
+          { type: "Window", windowType: "fixed", sash: {
             widthTop: 20.5, widthRight: 30, widthBottom: 35, widthLeft: 40, depth: 50, extra: true,
           } },
-          { type: "SashWindow", windowType: "awning", sash: {} },
-          { type: "SashWindow", windowType: "fixed", sash: { depth: 0 } },
-          { type: "SashWindow", windowType: "awning", sash: { widthTop: 1e-12 } },
-          { type: "SashWindow" },
+          { type: "Window", windowType: "awning", sash: {} },
+          { type: "Window", windowType: "fixed", sash: { depth: 0 } },
+          { type: "Window", windowType: "awning", sash: { widthTop: 1e-12 } },
+          { type: "Window" },
         ],
       }],
     }] }] }] });
@@ -30,8 +30,8 @@ describe("plan loading validation", () => {
     const saved = plan.toJson();
     const items = saved.buildings![0].levels[0].walls![0].openings![0].contents!;
     expect(items).toEqual([
-      { type: "SashWindow", windowType: "fixed", sash: { widthTop: 20.5, widthRight: 30, widthBottom: 35, widthLeft: 40, depth: 50 } },
-      { type: "SashWindow", windowType: "awning", sash: {} },
+      { type: "Window", windowType: "fixed", sash: { widthTop: 20.5, widthRight: 30, widthBottom: 35, widthLeft: 40, depth: 50 } },
+      { type: "Window", windowType: "awning", sash: {} },
     ]);
     expectValidPlan(saved);
     expect(Plan.fromJson(saved).toJson()).toEqual(saved);
@@ -404,7 +404,7 @@ describe("plan loading validation", () => {
               contents: [
                 { type: "StandardDoor", hingeSide: "left", swingDirection: "in", extraDoor: true },
                 { type: "SlidingDoor", extraSlidingDoor: true },
-                { type: "SashWindow", windowType: "awning", extraWindow: true },
+                { type: "Window", windowType: "awning", extraWindow: true },
               ],
             }],
           }],
@@ -419,7 +419,7 @@ describe("plan loading validation", () => {
     expect(plan.fences).toHaveLength(1);
     expect(level.rooms[0].walls).toEqual([level.walls[0]]);
     expect(level.walls[0].openings[0].contents.map((item) => item.type))
-      .toEqual(["StandardDoor", "SlidingDoor", "SashWindow"]);
+      .toEqual(["StandardDoor", "SlidingDoor", "Window"]);
     for (const property of [
       "extraRoot", "anotherRoot", "color", "extraBuilding", "extraLevel", "extraWall", "extraOpening",
       "extraDoor", "extraSlidingDoor", "extraWindow", "extraRoom", "extraRef",

@@ -4,7 +4,7 @@ import { mergeRoomWalls } from "./geom/mergeRoomWalls";
 import { Fence } from "./Fence";
 import type { JsonGeoreference, JsonPosition, JsonRoomLabel } from "./json/Document";
 import type { Level } from "./Level";
-import { DEFAULT_OPENING_HEIGHT_METRES, Opening, Post, SlidingDoor, StandardDoor, SashWindow, sashFields, type OpeningItem, type SashField } from "./Opening";
+import { DEFAULT_OPENING_HEIGHT_METRES, Opening, Post, SlidingDoor, StandardDoor, Window, sashFields, type OpeningItem, type SashField } from "./Opening";
 import { itemRectangle, openingSize, type ItemRectangle } from "./geom/openingArrangement";
 import type { Plan } from "./Plan";
 import type { Room } from "./Room";
@@ -26,7 +26,7 @@ type DoorUpdate = {
   openAngle?: number;
 };
 type SlidingDoorUpdate = { thickness?: number };
-type SashWindowUpdate = { windowType?: SashWindow["windowType"]; sash?: Partial<Record<SashField, number | null>> };
+type WindowUpdate = { windowType?: Window["windowType"]; sash?: Partial<Record<SashField, number | null>> };
 type EditResult<Field extends string = never> = { ok: true } | { ok: false; error: string; field?: Field };
 type AddResult<T> = { ok: true; item: T } | { ok: false; error: string };
 
@@ -196,8 +196,8 @@ export class PlanEditor {
       case "SlidingDoor":
         item = new SlidingDoor();
         break;
-      case "SashWindow":
-        item = new SashWindow("awning");
+      case "Window":
+        item = new Window("awning");
         break;
       case "Post":
         item = new Post();
@@ -641,7 +641,7 @@ export class PlanEditor {
     return { ok: true };
   }
 
-  updateSashWindow(window: SashWindow, update: SashWindowUpdate): EditResult<"windowType" | SashField> {
+  updateWindow(window: Window, update: WindowUpdate): EditResult<"windowType" | SashField> {
     if (!this.ownsOpeningItem(window)) return { ok: false, error: "This window is no longer in the plan." };
     if (update.windowType !== undefined && update.windowType !== "awning" && update.windowType !== "fixed") {
       return { ok: false, field: "windowType", error: "Select a valid window type." };

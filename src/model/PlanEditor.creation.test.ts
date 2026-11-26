@@ -34,7 +34,7 @@ describe("creating plan objects", () => {
     if (!opening.ok) throw new Error(opening.error);
     expect(editor.addOpeningItem(opening.item, "StandardDoor").ok).toBe(true);
     expect(editor.addOpeningItem(opening.item, "SlidingDoor").ok).toBe(true);
-    expect(editor.addOpeningItem(opening.item, "SashWindow").ok).toBe(true);
+    expect(editor.addOpeningItem(opening.item, "Window").ok).toBe(true);
     const fence = editor.addFence([0, 5000], [4000, 5000]);
     if (!fence.ok) throw new Error(fence.error);
     expect(editor.updateFence(fence.item, { width: 75, height: 1800 }).ok).toBe(true);

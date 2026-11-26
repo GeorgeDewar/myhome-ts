@@ -182,7 +182,7 @@
                       "required": ["type", "windowType"],
                       "unevaluatedProperties": false,
                       "properties": {
-                        "type": { "const": "SashWindow" },
+                        "type": { "const": "Window" },
                         "windowType": {
                           "type": "string",
                           "enum": ["awning", "fixed"],
@@ -192,42 +192,7 @@
                         "y": { "type": "integer", "minimum": 0 },
                         "width": { "type": "number", "exclusiveMinimum": 0 },
                         "height": { "type": "number", "exclusiveMinimum": 0 },
-                        "sash": {
-                          "type": "object",
-                          "unevaluatedProperties": false,
-                          "properties": {
-                            "widthTop": {
-                              "type": "number",
-                              "exclusiveMinimum": 0,
-                              "description": "Width of the sash in millimetres (parallel to the glass)",
-                              "default": 35
-                            },
-                            "widthRight": {
-                              "type": "number",
-                              "exclusiveMinimum": 0,
-                              "description": "Width of the sash in millimetres (parallel to the glass)",
-                              "default": 35
-                            },
-                            "widthBottom": {
-                              "type": "number",
-                              "exclusiveMinimum": 0,
-                              "description": "Width of the sash in millimetres (parallel to the glass)",
-                              "default": 35
-                            },
-                            "widthLeft": {
-                              "type": "number",
-                              "exclusiveMinimum": 0,
-                              "description": "Width of the sash in millimetres (parallel to the glass)",
-                              "default": 35
-                            },
-                            "depth": {
-                              "type": "number",
-                              "exclusiveMinimum": 0,
-                              "description": "Depth of the sash in millimetres (perpendicular to the glass)",
-                              "default": 35
-                            }
-                          }
-                        }
+                        "sash": { "$ref": "#/$defs/sash" }
                       }
                     },
                     {
@@ -294,6 +259,42 @@
             "unevaluatedProperties": false,
             "properties": { "ref": { "type": "string" } }
           }
+        }
+      }
+    },
+    "sash": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "properties": {
+        "widthTop": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Width of the sash in millimetres (parallel to the glass)",
+          "default": 35
+        },
+        "widthRight": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Width of the sash in millimetres (parallel to the glass)",
+          "default": 35
+        },
+        "widthBottom": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Width of the sash in millimetres (parallel to the glass)",
+          "default": 35
+        },
+        "widthLeft": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Width of the sash in millimetres (parallel to the glass)",
+          "default": 35
+        },
+        "depth": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Depth of the sash in millimetres (perpendicular to the glass)",
+          "default": 35
         }
       }
     }

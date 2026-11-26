@@ -51,7 +51,7 @@ const openingItemSchemas = openingSchema.properties.contents.items.anyOf;
 const openingItemValidators = {
   StandardDoor: ajv.compile<JsonOpeningItem>(openingItemSchemas[0]),
   SlidingDoor: ajv.compile<JsonOpeningItem>(openingItemSchemas[1]),
-  SashWindow: ajv.compile<JsonOpeningItem>(openingItemSchemas[2]),
+  Window: ajv.compile<JsonOpeningItem>({ ...openingItemSchemas[2], $defs: schema.$defs }),
   Post: ajv.compile<JsonOpeningItem>(openingItemSchemas[3]),
 };
 
@@ -179,7 +179,7 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
           (openingValue.contents ?? []).forEach((item, itemIndex) => {
             const itemPath = `${openingPath}.contents[${itemIndex}]`;
             const type = item !== null && typeof item === "object" && "type" in item ? item.type : undefined;
-            if (type !== "StandardDoor" && type !== "SlidingDoor" && type !== "SashWindow" && type !== "Post") {
+            if (type !== "StandardDoor" && type !== "SlidingDoor" && type !== "Window" && type !== "Post") {
               const reason =
                 typeof type === "string"
                   ? `unknown opening item type '${type}'`
@@ -192,7 +192,7 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
               ...((item.type === "StandardDoor" || item.type === "SlidingDoor") ? { thickness: item.thickness } : {}) },
             itemPath, warnings))
               return;
-            if (item.type === "SashWindow" && item.sash &&
+            if (item.type === "Window" && item.sash &&
               !validDimensions(Object.fromEntries(sashFields.map((field) => [field, item.sash?.[field]])), `${itemPath}.sash`, warnings)) return;
             if ((item.x !== undefined && !isValidPositionInMillimetres(item.x)) ||
               (item.y !== undefined && !isValidPositionInMillimetres(item.y))) {
