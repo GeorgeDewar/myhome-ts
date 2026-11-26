@@ -4,7 +4,7 @@ import { mergeRoomWalls } from "./geom/mergeRoomWalls";
 import { Fence } from "./Fence";
 import type { JsonGeoreference, JsonPosition, JsonRoomLabel } from "./json/Document";
 import type { Level } from "./Level";
-import { DEFAULT_OPENING_HEIGHT_METRES, Opening, Post, SlidingDoor, StandardDoor, SashWindow, type OpeningItem } from "./Opening";
+import { DEFAULT_OPENING_HEIGHT_METRES, Opening, Post, SlidingDoor, StandardDoor, SashWindow, sashFields, type OpeningItem, type SashField } from "./Opening";
 import { itemRectangle, openingSize, type ItemRectangle } from "./geom/openingArrangement";
 import type { Plan } from "./Plan";
 import type { Room } from "./Room";
@@ -26,6 +26,7 @@ type DoorUpdate = {
   openAngle?: number;
 };
 type SlidingDoorUpdate = { thickness?: number };
+type SashWindowUpdate = { windowType?: SashWindow["windowType"]; sash?: Partial<Record<SashField, number | null>> };
 type EditResult<Field extends string = never> = { ok: true } | { ok: false; error: string; field?: Field };
 type AddResult<T> = { ok: true; item: T } | { ok: false; error: string };
 
@@ -196,7 +197,7 @@ export class PlanEditor {
         item = new SlidingDoor();
         break;
       case "SashWindow":
-        item = new SashWindow();
+        item = new SashWindow("awning");
         break;
       case "Post":
         item = new Post();
@@ -635,6 +636,41 @@ export class PlanEditor {
     if (update.openAngle !== undefined && update.openAngle !== door.openAngle) {
       door.openAngle = update.openAngle;
       changed = true;
+    }
+    if (changed) this.onChange();
+    return { ok: true };
+  }
+
+  updateSashWindow(window: SashWindow, update: SashWindowUpdate): EditResult<"windowType" | SashField> {
+    if (!this.ownsOpeningItem(window)) return { ok: false, error: "This window is no longer in the plan." };
+    if (update.windowType !== undefined && update.windowType !== "awning" && update.windowType !== "fixed") {
+      return { ok: false, field: "windowType", error: "Select a valid window type." };
+    }
+    for (const field of sashFields) {
+      const value = update.sash?.[field];
+      if (value !== undefined && value !== null) {
+        const error = positiveDistanceError(value, "Sash dimension");
+        if (error) return { ok: false, field, error };
+      }
+    }
+    let changed = false;
+    if (update.windowType !== undefined && update.windowType !== window.windowType) {
+      window.windowType = update.windowType;
+      changed = true;
+    }
+    for (const field of sashFields) {
+      const value = update.sash?.[field];
+      if (value === undefined) continue;
+      if (value === null) {
+        if (window.sash?.[field] !== undefined) {
+          delete window.sash[field];
+          changed = true;
+        }
+      } else if (window.sash?.[field]?.metres !== value / 1000) {
+        window.sash ??= {};
+        window.sash[field] = Distance.fromJson(value);
+        changed = true;
+      }
     }
     if (changed) this.onChange();
     return { ok: true };

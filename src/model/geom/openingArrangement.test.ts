@@ -7,7 +7,7 @@ const setup = () => {
   const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
     id: "wall", start: [0, 0], end: [4000, 0], openings: [{
       id: "opening", width: 2000, distanceAlongWall: 2000, height: 2000,
-      contents: [{ type: "SashWindow" }],
+      contents: [{ type: "SashWindow", windowType: "awning" }],
     }],
   }] }] }] });
   const opening = plan.buildings[0].levels[0].walls[0].openings[0];
@@ -123,7 +123,7 @@ describe("opening arrangements", () => {
     const json = plan.toJson();
     json.buildings![0].levels[0].walls![0].openings![0].contents = [
       { type: "Post", x: 100, width: 1901 },
-      { type: "SashWindow", x: 0, width: 1000 },
+      { type: "SashWindow", windowType: "awning", x: 0, width: 1000 },
     ];
     const loaded = Plan.fromJson(json);
     expect(loaded.loadWarnings).toHaveLength(1);

@@ -99,7 +99,7 @@ describe("3D plan geometry", () => {
                       contents: [
                         { type: "StandardDoor", hingeSide: "left", swingDirection: "in" },
                         { type: "SlidingDoor" },
-                        { type: "SashWindow" },
+                        { type: "SashWindow", windowType: "awning" },
                       ],
                     },
                     { id: "overlap", width: 1000, distanceAlongWall: 2000, height: 1000, distanceFromFloor: 1000 },
@@ -202,7 +202,7 @@ describe("3D plan geometry", () => {
                 { id: "c", start: [2000, 2000], end: [0, 2000] },
                 { id: "d", start: [0, 2000], end: [0, 0], virtual: true },
                 { id: "attic", start: [0, 3000], end: [2000, 3000], attic: true, openings: [
-                  { id: "opening", width: 1000, distanceAlongWall: 1000, contents: [{ type: "SashWindow" }] },
+                  { id: "opening", width: 1000, distanceAlongWall: 1000, contents: [{ type: "SashWindow", windowType: "awning" }] },
                 ] },
               ],
               rooms: [{ name: "Room", walls: [{ ref: "a" }, { ref: "b" }, { ref: "c" }, { ref: "d" }] }],

@@ -10,6 +10,33 @@ const expectValidPlan = (document: unknown) => {
 };
 
 describe("plan loading validation", () => {
+  it("round-trips sash windows and rejects invalid sash properties", () => {
+    const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
+      id: "wall", start: [0, 0], end: [3000, 0], openings: [{
+        id: "opening", width: 900, distanceAlongWall: 1000, contents: [
+          { type: "SashWindow", windowType: "fixed", sash: {
+            widthTop: 20.5, widthRight: 30, widthBottom: 35, widthLeft: 40, depth: 50, extra: true,
+          } },
+          { type: "SashWindow", windowType: "awning", sash: {} },
+          { type: "SashWindow", windowType: "fixed", sash: { depth: 0 } },
+          { type: "SashWindow", windowType: "awning", sash: { widthTop: 1e-12 } },
+          { type: "SashWindow" },
+        ],
+      }],
+    }] }] }] });
+    expect(plan.loadWarnings).toHaveLength(4);
+    expect(plan.loadWarnings.some((warning) => warning.includes("unexpected property 'extra'"))).toBe(true);
+    expect(plan.loadWarnings.some((warning) => warning.includes("too small to save"))).toBe(true);
+    const saved = plan.toJson();
+    const items = saved.buildings![0].levels[0].walls![0].openings![0].contents!;
+    expect(items).toEqual([
+      { type: "SashWindow", windowType: "fixed", sash: { widthTop: 20.5, widthRight: 30, widthBottom: 35, widthLeft: 40, depth: 50 } },
+      { type: "SashWindow", windowType: "awning", sash: {} },
+    ]);
+    expectValidPlan(saved);
+    expect(Plan.fromJson(saved).toJson()).toEqual(saved);
+  });
+
   it("round-trips label overrides and warns about unknown label properties", () => {
     const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{
       number: 0, name: "Ground", rooms: [{
@@ -377,7 +404,7 @@ describe("plan loading validation", () => {
               contents: [
                 { type: "StandardDoor", hingeSide: "left", swingDirection: "in", extraDoor: true },
                 { type: "SlidingDoor", extraSlidingDoor: true },
-                { type: "SashWindow", extraWindow: true },
+                { type: "SashWindow", windowType: "awning", extraWindow: true },
               ],
             }],
           }],

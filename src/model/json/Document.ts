@@ -51,7 +51,12 @@ export type JsonStandardDoor = JsonItemGeometry & {
   thickness?: number;
 };
 
-export type JsonSashWindow = JsonItemGeometry & { type: "SashWindow" };
+export type JsonSash = { widthTop?: number; widthRight?: number; widthBottom?: number; widthLeft?: number; depth?: number };
+export type JsonSashWindow = JsonItemGeometry & {
+  type: "SashWindow";
+  windowType: "awning" | "fixed";
+  sash?: JsonSash;
+};
 export type JsonPost = JsonItemGeometry & { type: "Post" };
 
 export type JsonSlidingDoor = JsonItemGeometry & { type: "SlidingDoor"; thickness?: number };

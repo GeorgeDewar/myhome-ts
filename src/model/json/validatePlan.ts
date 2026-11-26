@@ -3,7 +3,7 @@ import type { ErrorObject, ValidateFunction } from "ajv";
 import schema from "../../../schema.json";
 import { isValidPositiveDistance, isValidPositionInMillimetres } from "../geom/Distance";
 import { Point2D } from "../geom/Point2D";
-import { DEFAULT_OPENING_HEIGHT_METRES } from "../Opening";
+import { DEFAULT_OPENING_HEIGHT_METRES, sashFields } from "../Opening";
 import type {
   JsonBuilding,
   JsonFence,
@@ -192,6 +192,8 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
               ...((item.type === "StandardDoor" || item.type === "SlidingDoor") ? { thickness: item.thickness } : {}) },
             itemPath, warnings))
               return;
+            if (item.type === "SashWindow" && item.sash &&
+              !validDimensions(Object.fromEntries(sashFields.map((field) => [field, item.sash?.[field]])), `${itemPath}.sash`, warnings)) return;
             if ((item.x !== undefined && !isValidPositionInMillimetres(item.x)) ||
               (item.y !== undefined && !isValidPositionInMillimetres(item.y))) {
               warnings.push(`${itemPath}: position cannot be accurately represented in integer millimetres; ignored.`);

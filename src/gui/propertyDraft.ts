@@ -1,5 +1,6 @@
 import type { PlanEditor } from "../model/PlanEditor";
-import type { JsonOpening } from "../model/json/Document";
+import { sashFields } from "../model/Opening";
+import type { JsonOpening, JsonSashWindow } from "../model/json/Document";
 import type { SelectionTarget } from "./selection";
 
 type PropertyValues = {
@@ -22,6 +23,12 @@ type PropertyValues = {
   swingDirection?: "in" | "out";
   thickness?: string;
   openAngle?: string;
+  windowType?: JsonSashWindow["windowType"];
+  widthTop?: string;
+  widthRight?: string;
+  widthBottom?: string;
+  widthLeft?: string;
+  depth?: string;
 };
 
 export type PropertyDraft = {
@@ -31,8 +38,9 @@ export type PropertyDraft = {
 };
 
 type DistanceField =
-  "width" | "height" | "startX" | "startY" | "endX" | "endY" | "distanceAlongWall" | "distanceFromFloor" | "thickness";
-export type PropertyErrors = Partial<Record<DistanceField | "fontSize" | "rotation" | "openAngle" | "shape" | "hingeSide" | "swingDirection" | "form", string>>;
+  "width" | "height" | "startX" | "startY" | "endX" | "endY" | "distanceAlongWall" | "distanceFromFloor" | "thickness" |
+  "widthTop" | "widthRight" | "widthBottom" | "widthLeft" | "depth";
+export type PropertyErrors = Partial<Record<DistanceField | "fontSize" | "rotation" | "openAngle" | "shape" | "hingeSide" | "swingDirection" | "windowType" | "form", string>>;
 
 export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
   let values: PropertyValues;
@@ -82,6 +90,11 @@ export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
       values = { thickness: String(target.item.leafThickness.toJson()) };
       break;
     case "window":
+      values = {
+        windowType: target.item.windowType,
+        ...Object.fromEntries(sashFields.map((field) => [field, target.item.sash?.[field]?.toJson().toString() ?? ""])),
+      };
+      break;
     case "post":
       values = {};
       break;
@@ -101,7 +114,7 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
     }
     return value;
   };
-  const optionalDistance = (field: "height" | "distanceFromFloor") => {
+  const optionalDistance = (field: "height" | "distanceFromFloor" | typeof sashFields[number]) => {
     if (values[field] === undefined || values[field] === initialValues[field]) return undefined;
     return values[field].trim() === "" ? null : parseDistance(field);
   };
@@ -217,7 +230,14 @@ export const applyPropertyDraft = (draft: PropertyDraft, editPlan: PlanEditor): 
       );
       break;
     }
-    case "window":
+    case "window": {
+      const sash = Object.fromEntries(sashFields.map((field) => [field, optionalDistance(field)]));
+      if (Object.keys(errors).length === 0) report(editPlan.updateSashWindow(target.item, {
+        windowType: values.windowType !== initialValues.windowType ? values.windowType : undefined,
+        sash,
+      }));
+      break;
+    }
     case "post":
       break;
   }

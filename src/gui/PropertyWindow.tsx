@@ -20,6 +20,7 @@ const DistanceField = ({
   values,
   errors,
   onChange,
+  placeholder,
 }: {
   label: string;
   field:
@@ -31,10 +32,12 @@ const DistanceField = ({
     | "endY"
     | "distanceAlongWall"
     | "distanceFromFloor"
-    | "thickness";
+    | "thickness"
+    | "widthTop" | "widthRight" | "widthBottom" | "widthLeft" | "depth";
   values: Values;
   errors: PropertyErrors;
   onChange: (values: Partial<Values>) => void;
+  placeholder?: string;
 }) => (
   <label>
     {label}
@@ -42,6 +45,7 @@ const DistanceField = ({
       type="number"
       step="any"
       value={values[field] ?? ""}
+      placeholder={placeholder}
       aria-invalid={!!errors[field]}
       aria-describedby={errors[field] ? `property-${field}-error` : undefined}
       onChange={(event) => onChange({ [field]: event.target.value })}
@@ -405,7 +409,28 @@ export const PropertyWindow = ({ target, editPlan, onClose, embedded = false, on
             <input value={target.opening.id} readOnly />
           </label>
         )}
-        {(target.kind === "window" || target.kind === "post") && <p>No other properties are available yet.</p>}
+        {target.kind === "window" && (
+          <>
+            <label>
+              Window type
+              <select value={draft.values.windowType} aria-invalid={!!errors.windowType}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (value === "awning" || value === "fixed") updateValues({ windowType: value });
+                }}>
+                <option value="awning">Awning</option>
+                <option value="fixed">Fixed</option>
+              </select>
+              {errors.windowType && <span className="property-error" role="alert">{errors.windowType}</span>}
+            </label>
+            <DistanceField label="Sash top width (mm, optional)" field="widthTop" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
+            <DistanceField label="Sash right width (mm, optional)" field="widthRight" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
+            <DistanceField label="Sash bottom width (mm, optional)" field="widthBottom" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
+            <DistanceField label="Sash left width (mm, optional)" field="widthLeft" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
+            <DistanceField label="Sash depth (mm, optional)" field="depth" values={draft.values} errors={errors} onChange={updateValues} placeholder="35" />
+          </>
+        )}
+        {target.kind === "post" && <p>No other properties are available yet.</p>}
         {(target.kind === "door" || target.kind === "slidingDoor") && (
           <DistanceField
             label="Leaf thickness (mm)"

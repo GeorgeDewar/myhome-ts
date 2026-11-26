@@ -26,7 +26,7 @@
                   "width": 900,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 },
                 {
                   "id": "window1",
@@ -34,7 +34,7 @@
                   "width": 900,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 },
                 {
                   "id": "window2",
@@ -42,7 +42,7 @@
                   "width": 3460,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 }
               ]
             },
@@ -73,7 +73,7 @@
                   "width": 900,
                   "height": 1975,
                   "distanceFromFloor": 25,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 },
                 {
                   "id": "window6",
@@ -81,7 +81,7 @@
                   "width": 900,
                   "height": 1975,
                   "distanceFromFloor": 25,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 },
                 {
                   "id": "window7",
@@ -89,7 +89,7 @@
                   "width": 1300,
                   "height": 2000,
                   "distanceFromFloor": 0,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 }
               ]
             },
@@ -106,7 +106,7 @@
                   "width": 900,
                   "height": 930,
                   "distanceFromFloor": 1200,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 },
                 {
                   "id": "window9",
@@ -114,7 +114,7 @@
                   "width": 900,
                   "height": 930,
                   "distanceFromFloor": 1200,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 },
                 {
                   "id": "window10",
@@ -122,7 +122,7 @@
                   "width": 1790,
                   "height": 870,
                   "distanceFromFloor": 1135,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 }
               ]
             },
@@ -305,7 +305,7 @@
                   "width": 2398,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 }
               ]
             },
@@ -335,7 +335,7 @@
                   "width": 3202,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 }
               ]
             },
@@ -350,7 +350,7 @@
                   "width": 2398,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 }
               ]
             },
@@ -366,7 +366,7 @@
                   "width": 2387,
                   "height": 1012,
                   "distanceFromFloor": 988,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 }
               ]
             },
@@ -382,16 +382,59 @@
                   "height": 1965,
                   "distanceFromFloor": 0,
                   "contents": [
-                    { "type": "SashWindow", "width": 722, "height": 653 },
-                    { "type": "SashWindow", "y": 654, "width": 722, "height": 650 },
-                    { "type": "SashWindow", "y": 1305, "width": 722, "height": 660 },
+                    {
+                      "type": "SashWindow",
+                      "windowType": "awning",
+                      "width": 722,
+                      "height": 653,
+                      "sash": { "widthBottom": 23 }
+                    },
+                    {
+                      "type": "SashWindow",
+                      "windowType": "awning",
+                      "y": 654,
+                      "width": 722,
+                      "height": 650,
+                      "sash": { "widthBottom": 23 }
+                    },
+                    {
+                      "type": "SashWindow",
+                      "windowType": "fixed",
+                      "y": 1305,
+                      "width": 722,
+                      "height": 660,
+                      "sash": { "widthBottom": 170 }
+                    },
                     { "type": "Post", "x": 722, "width": 55 },
                     { "type": "StandardDoor", "x": 777, "width": 747, "hingeSide": "left", "swingDirection": "out" },
                     { "type": "StandardDoor", "x": 1524, "width": 730, "hingeSide": "right", "swingDirection": "out" },
                     { "type": "Post", "x": 2254, "width": 55 },
-                    { "type": "SashWindow", "x": 2309, "width": 731, "height": 653 },
-                    { "type": "SashWindow", "x": 2309, "y": 654, "width": 731, "height": 650 },
-                    { "type": "SashWindow", "x": 2309, "y": 1305, "width": 731, "height": 660 }
+                    {
+                      "type": "SashWindow",
+                      "windowType": "awning",
+                      "x": 2309,
+                      "width": 731,
+                      "height": 653,
+                      "sash": { "widthBottom": 23 }
+                    },
+                    {
+                      "type": "SashWindow",
+                      "windowType": "awning",
+                      "x": 2309,
+                      "y": 654,
+                      "width": 731,
+                      "height": 650,
+                      "sash": { "widthBottom": 23 }
+                    },
+                    {
+                      "type": "SashWindow",
+                      "windowType": "fixed",
+                      "x": 2309,
+                      "y": 1305,
+                      "width": 731,
+                      "height": 660,
+                      "sash": { "widthBottom": 170 }
+                    }
                   ]
                 },
                 {
@@ -400,7 +443,7 @@
                   "width": 900,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 },
                 {
                   "id": "window25",
@@ -408,7 +451,7 @@
                   "width": 900,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 }
               ]
             },
@@ -558,7 +601,7 @@
                   "width": 1810,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 },
                 {
                   "id": "window28",
@@ -566,7 +609,7 @@
                   "width": 1515,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 },
                 {
                   "id": "window30",
@@ -574,7 +617,7 @@
                   "width": 2720,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 }
               ]
             },
@@ -597,7 +640,7 @@
                   "width": 1180,
                   "height": 570,
                   "distanceFromFloor": 1500,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 },
                 {
                   "id": "window34",
@@ -605,7 +648,7 @@
                   "width": 540,
                   "height": 540,
                   "distanceFromFloor": 1500,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 }
               ]
             },
@@ -620,7 +663,7 @@
                   "width": 1947,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 },
                 {
                   "id": "window37",
@@ -628,7 +671,7 @@
                   "width": 1332,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 },
                 {
                   "id": "window38",
@@ -636,7 +679,7 @@
                   "width": 1782,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 },
                 {
                   "id": "window40",
@@ -644,7 +687,7 @@
                   "width": 1951,
                   "height": 1200,
                   "distanceFromFloor": 800,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 }
               ]
             },
@@ -659,7 +702,7 @@
                   "width": 1790,
                   "height": 565,
                   "distanceFromFloor": 1505,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 },
                 {
                   "id": "window43",
@@ -667,7 +710,7 @@
                   "width": 1790,
                   "height": 565,
                   "distanceFromFloor": 1505,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 }
               ]
             },
@@ -763,7 +806,7 @@
                   "width": 900,
                   "height": 490,
                   "distanceFromFloor": 1689,
-                  "contents": [{ "type": "SashWindow" }]
+                  "contents": [{ "type": "SashWindow", "windowType": "awning" }]
                 }
               ]
             },

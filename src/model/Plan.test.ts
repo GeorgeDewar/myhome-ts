@@ -39,9 +39,9 @@ describe("Plan", () => {
         id: "opening", width: 2000, height: 2000, distanceAlongWall: 2000,
         contents: [
           { type: "Post", x: 500, y: 0, width: 100, height: 100 },
-          { type: "SashWindow", x: 0, y: 700, width: 100, height: 100 },
+          { type: "SashWindow", windowType: "awning", x: 0, y: 700, width: 100, height: 100 },
           { type: "SlidingDoor", x: 0, y: 100, width: 100, height: 100 },
-          { type: "SashWindow", width: 100, height: 100 },
+          { type: "SashWindow", windowType: "awning", width: 100, height: 100 },
           { type: "Post", width: 100, height: 100 },
         ],
       }],

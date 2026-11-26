@@ -50,9 +50,9 @@ const unmergedFamilyPlan = () => {
     { id: "door17", distanceAlongWall: 2676, width: 842, height: 2100, distanceFromFloor: 0,
       contents: [{ type: "StandardDoor", hingeSide: "right", swingDirection: "out" }] },
     { id: "window22", distanceAlongWall: 1110, width: 450, height: 2000, distanceFromFloor: 0,
-      contents: [{ type: "SashWindow" }] },
+      contents: [{ type: "SashWindow", windowType: "awning" }] },
     { id: "window23", distanceAlongWall: 3332, width: 450, height: 2000, distanceFromFloor: 0,
-      contents: [{ type: "SashWindow" }] },
+      contents: [{ type: "SashWindow", windowType: "awning" }] },
   ];
   const originals = json.map((item) => Opening.fromJson(item));
   for (const opening of originals) opening.wall = wall;

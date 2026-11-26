@@ -30,7 +30,7 @@ const setup = () => {
                     contents: [
                       { type: "StandardDoor", hingeSide: "left", swingDirection: "in" },
                       { type: "SlidingDoor" },
-                      { type: "SashWindow" },
+                      { type: "SashWindow", windowType: "awning" },
                     ],
                   },
                 ],
@@ -219,6 +219,28 @@ describe("property drafts", () => {
     expect(door.toJson().openAngle).toBe(22.5);
     expect(createPropertyDraft({ kind: "door", item: door, opening }).values.openAngle).toBe("22.5");
     expect(notify).toHaveBeenCalledOnce();
+  });
+
+  it("edits sash window type and dimensions atomically, retaining and clearing optional overrides", () => {
+    const { opening, window, editor, notify } = setup();
+    const target = { kind: "window" as const, item: window, opening };
+    const draft = createPropertyDraft(target);
+    expect(draft.values.windowType).toBe("awning");
+    expect(draft.values.widthTop).toBe("");
+    draft.values = { ...draft.values, windowType: "fixed", widthTop: "45.5", depth: "0" };
+    expect(applyPropertyDraft(draft, editor).depth).toBeDefined();
+    expect(window.windowType).toBe("awning");
+    expect(window.sash).toBeUndefined();
+    expect(notify).not.toHaveBeenCalled();
+    draft.values.depth = "30";
+    expect(applyPropertyDraft(draft, editor)).toEqual({});
+    expect(window.toJson()).toMatchObject({ windowType: "fixed", sash: { widthTop: 45.5, depth: 30 } });
+    expect(notify).toHaveBeenCalledOnce();
+    const next = createPropertyDraft(target);
+    next.values = { ...next.values, widthTop: "" };
+    expect(applyPropertyDraft(next, editor)).toEqual({});
+    expect(window.toJson().sash).toEqual({ depth: 30 });
+    expect(notify).toHaveBeenCalledTimes(2);
   });
 
   it("applies room and sliding-door changes, and leaves windows unchanged", () => {

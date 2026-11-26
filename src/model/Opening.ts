@@ -1,11 +1,13 @@
 import { Distance } from "./geom/Distance";
-import type { JsonItemGeometry, JsonOpening, JsonOpeningItem } from "./json/Document";
+import type { JsonItemGeometry, JsonOpening, JsonOpeningItem, JsonSash } from "./json/Document";
 import type { Wall } from "./Wall";
 
 export type OpeningItem = StandardDoor | SlidingDoor | SashWindow | Post;
 
 const DEFAULT_DOOR_THICKNESS_METRES = 0.035;
 export const DEFAULT_OPENING_HEIGHT_METRES = 2.1;
+export const sashFields = ["widthTop", "widthRight", "widthBottom", "widthLeft", "depth"] as const;
+export type SashField = keyof JsonSash;
 
 class ItemGeometry {
   x?: Distance;
@@ -73,15 +75,31 @@ export class StandardDoor extends ItemGeometry {
 
 export class SashWindow extends ItemGeometry {
   readonly type = "SashWindow" as const;
+  sash?: Partial<Record<SashField, Distance>>;
+
+  constructor(public windowType: "awning" | "fixed") { super(); }
 
   static fromJson(json: Extract<JsonOpeningItem, { type: "SashWindow" }>) {
-    const item = new SashWindow();
+    const item = new SashWindow(json.windowType);
     item.loadGeometry(json);
+    if (json.sash !== undefined) {
+      item.sash = {};
+      for (const field of sashFields) {
+        const value = json.sash[field];
+        if (value !== undefined) item.sash[field] = Distance.fromJson(value);
+      }
+    }
     return item;
   }
 
   toJson(): Extract<JsonOpeningItem, { type: "SashWindow" }> {
-    return { type: this.type, ...this.geometryJson() };
+    const sash: JsonSash = {};
+    for (const field of sashFields) {
+      const value = this.sash?.[field];
+      if (value !== undefined) sash[field] = value.toJson();
+    }
+    return { type: this.type, windowType: this.windowType, ...this.geometryJson(),
+      ...(this.sash === undefined ? {} : { sash }) };
   }
 }
 
