@@ -214,7 +214,7 @@ export const drawOpenings = (context: CanvasRenderingContext2D, walls: Wall[], s
       opening.contents.forEach((content) => {
         if (showDoors && content.type === "StandardDoor") drawDoor(context, wall, opening, content, scale);
         if (showDoors && content.type === "SlidingDoor") drawSlidingDoor(context, wall, opening, content, scale);
-        if (content.type === "StandardWindow") drawWindow(context, wall, opening, content, scale);
+        if (content.type === "SashWindow") drawWindow(context, wall, opening, content, scale);
         if (content.type === "Post") {
           const { start, end, normal } = openingPoints(wall, opening, content);
           const half = wall.width.metres / 2;

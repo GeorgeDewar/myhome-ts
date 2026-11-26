@@ -4,7 +4,7 @@ import { mergeRoomWalls } from "./geom/mergeRoomWalls";
 import { Fence } from "./Fence";
 import type { JsonGeoreference, JsonPosition, JsonRoomLabel } from "./json/Document";
 import type { Level } from "./Level";
-import { DEFAULT_OPENING_HEIGHT_METRES, Opening, Post, SlidingDoor, StandardDoor, StandardWindow, type OpeningItem } from "./Opening";
+import { DEFAULT_OPENING_HEIGHT_METRES, Opening, Post, SlidingDoor, StandardDoor, SashWindow, type OpeningItem } from "./Opening";
 import { itemRectangle, openingSize, type ItemRectangle } from "./geom/openingArrangement";
 import type { Plan } from "./Plan";
 import type { Room } from "./Room";
@@ -195,8 +195,8 @@ export class PlanEditor {
       case "SlidingDoor":
         item = new SlidingDoor();
         break;
-      case "StandardWindow":
-        item = new StandardWindow();
+      case "SashWindow":
+        item = new SashWindow();
         break;
       case "Post":
         item = new Post();

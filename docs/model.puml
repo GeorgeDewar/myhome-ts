@@ -1,0 +1,23 @@
+@startuml
+
+class OpeningItem {}
+abstract class Window {}
+abstract class Door {}
+class Post {}
+Window --|> OpeningItem
+Door --|> OpeningItem
+Post --|> OpeningItem
+
+' Window types
+class SashWindow {}
+class DirectGlazedPane {}
+SashWindow --|> Window
+DirectGlazedPane --|> Window
+
+' Door types
+class StandardDoor {}
+class SlidingDoor {}
+StandardDoor --|> Door
+SlidingDoor --|> Door
+
+@enduml

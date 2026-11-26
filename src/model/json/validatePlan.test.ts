@@ -377,7 +377,7 @@ describe("plan loading validation", () => {
               contents: [
                 { type: "StandardDoor", hingeSide: "left", swingDirection: "in", extraDoor: true },
                 { type: "SlidingDoor", extraSlidingDoor: true },
-                { type: "StandardWindow", extraWindow: true },
+                { type: "SashWindow", extraWindow: true },
               ],
             }],
           }],
@@ -392,7 +392,7 @@ describe("plan loading validation", () => {
     expect(plan.fences).toHaveLength(1);
     expect(level.rooms[0].walls).toEqual([level.walls[0]]);
     expect(level.walls[0].openings[0].contents.map((item) => item.type))
-      .toEqual(["StandardDoor", "SlidingDoor", "StandardWindow"]);
+      .toEqual(["StandardDoor", "SlidingDoor", "SashWindow"]);
     for (const property of [
       "extraRoot", "anotherRoot", "color", "extraBuilding", "extraLevel", "extraWall", "extraOpening",
       "extraDoor", "extraSlidingDoor", "extraWindow", "extraRoom", "extraRef",

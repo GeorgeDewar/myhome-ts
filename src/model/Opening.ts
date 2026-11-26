@@ -2,7 +2,7 @@ import { Distance } from "./geom/Distance";
 import type { JsonItemGeometry, JsonOpening, JsonOpeningItem } from "./json/Document";
 import type { Wall } from "./Wall";
 
-export type OpeningItem = StandardDoor | SlidingDoor | StandardWindow | Post;
+export type OpeningItem = StandardDoor | SlidingDoor | SashWindow | Post;
 
 const DEFAULT_DOOR_THICKNESS_METRES = 0.035;
 export const DEFAULT_OPENING_HEIGHT_METRES = 2.1;
@@ -71,16 +71,16 @@ export class StandardDoor extends ItemGeometry {
   }
 }
 
-export class StandardWindow extends ItemGeometry {
-  readonly type = "StandardWindow" as const;
+export class SashWindow extends ItemGeometry {
+  readonly type = "SashWindow" as const;
 
-  static fromJson(json: Extract<JsonOpeningItem, { type: "StandardWindow" }>) {
-    const item = new StandardWindow();
+  static fromJson(json: Extract<JsonOpeningItem, { type: "SashWindow" }>) {
+    const item = new SashWindow();
     item.loadGeometry(json);
     return item;
   }
 
-  toJson(): Extract<JsonOpeningItem, { type: "StandardWindow" }> {
+  toJson(): Extract<JsonOpeningItem, { type: "SashWindow" }> {
     return { type: this.type, ...this.geometryJson() };
   }
 }
@@ -149,8 +149,8 @@ export class Opening {
           return StandardDoor.fromJson(content);
         case "SlidingDoor":
           return SlidingDoor.fromJson(content);
-        case "StandardWindow":
-          return StandardWindow.fromJson(content);
+        case "SashWindow":
+          return SashWindow.fromJson(content);
         case "Post":
           return Post.fromJson(content);
         default:

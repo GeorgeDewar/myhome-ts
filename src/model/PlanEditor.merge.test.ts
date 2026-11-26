@@ -50,9 +50,9 @@ const unmergedFamilyPlan = () => {
     { id: "door17", distanceAlongWall: 2676, width: 842, height: 2100, distanceFromFloor: 0,
       contents: [{ type: "StandardDoor", hingeSide: "right", swingDirection: "out" }] },
     { id: "window22", distanceAlongWall: 1110, width: 450, height: 2000, distanceFromFloor: 0,
-      contents: [{ type: "StandardWindow" }] },
+      contents: [{ type: "SashWindow" }] },
     { id: "window23", distanceAlongWall: 3332, width: 450, height: 2000, distanceFromFloor: 0,
-      contents: [{ type: "StandardWindow" }] },
+      contents: [{ type: "SashWindow" }] },
   ];
   const originals = json.map((item) => Opening.fromJson(item));
   for (const opening of originals) opening.wall = wall;
@@ -97,7 +97,7 @@ describe("merging rooms", () => {
         id: "door17", distanceAlongWall: 2221, width: 2672, height: 2100, distanceFromFloor: 0,
       });
       expect(retained.contents.map((item) => item.type)).toEqual([
-        "StandardWindow", "StandardDoor", "StandardDoor", "StandardWindow",
+        "SashWindow", "StandardDoor", "StandardDoor", "SashWindow",
       ]);
       expect(wall.openings).toEqual(expect.arrayContaining([retained, ...remaining]));
       expect(wall.openings).toHaveLength(remaining.length + 1);

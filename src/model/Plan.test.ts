@@ -39,9 +39,9 @@ describe("Plan", () => {
         id: "opening", width: 2000, height: 2000, distanceAlongWall: 2000,
         contents: [
           { type: "Post", x: 500, y: 0, width: 100, height: 100 },
-          { type: "StandardWindow", x: 0, y: 700, width: 100, height: 100 },
+          { type: "SashWindow", x: 0, y: 700, width: 100, height: 100 },
           { type: "SlidingDoor", x: 0, y: 100, width: 100, height: 100 },
-          { type: "StandardWindow", width: 100, height: 100 },
+          { type: "SashWindow", width: 100, height: 100 },
           { type: "Post", width: 100, height: 100 },
         ],
       }],
@@ -50,8 +50,8 @@ describe("Plan", () => {
     const original = [...opening.contents];
     const saved = plan.toJson().buildings![0].levels[0].walls![0].openings![0].contents!;
     expect(saved.map((item) => [item.type, item.x ?? 0, item.y ?? 0])).toEqual([
-      ["StandardWindow", 0, 0], ["Post", 0, 0], ["SlidingDoor", 0, 100],
-      ["StandardWindow", 0, 700], ["Post", 500, 0],
+      ["SashWindow", 0, 0], ["Post", 0, 0], ["SlidingDoor", 0, 100],
+      ["SashWindow", 0, 700], ["Post", 500, 0],
     ]);
     expect(opening.contents).toEqual(original);
     expect(Plan.fromJson(plan.toJson()).loadWarnings).toEqual([]);

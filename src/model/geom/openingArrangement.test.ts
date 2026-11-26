@@ -7,7 +7,7 @@ const setup = () => {
   const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
     id: "wall", start: [0, 0], end: [4000, 0], openings: [{
       id: "opening", width: 2000, distanceAlongWall: 2000, height: 2000,
-      contents: [{ type: "StandardWindow" }],
+      contents: [{ type: "SashWindow" }],
     }],
   }] }] }] });
   const opening = plan.buildings[0].levels[0].walls[0].openings[0];
@@ -53,7 +53,7 @@ describe("opening arrangements", () => {
     const gap = largestEmptyRectangle(2000, 2000, [itemRectangle(opening, item)], { x: 250, y: 1500 });
     expect(gap).toEqual({ x: 0, y: 1000, width: 2000, height: 1000 });
     notify.mockClear();
-    const added = editor.addOpeningItem(opening, "StandardWindow", gap);
+    const added = editor.addOpeningItem(opening, "SashWindow", gap);
     if (!added.ok) throw new Error(added.error);
     expect(itemRectangle(opening, added.item)).toEqual(gap);
     expect(notify).toHaveBeenCalledOnce();
@@ -78,7 +78,7 @@ describe("opening arrangements", () => {
   it("finds the rightmost edge regardless of item order and retains the old default when full", () => {
     const { opening, item, editor } = setup();
     expect(editor.updateOpeningItemGeometry(opening, item, { x: 500, y: 0, width: 500, height: 2000 }).ok).toBe(true);
-    const second = editor.addOpeningItem(opening, "StandardWindow");
+    const second = editor.addOpeningItem(opening, "SashWindow");
     if (!second.ok) throw new Error(second.error);
     expect(editor.updateOpeningItemGeometry(opening, second.item, { x: 0, y: 0, width: 250, height: 2000 }).ok).toBe(true);
     const third = editor.addOpeningItem(opening, "StandardDoor");
@@ -123,7 +123,7 @@ describe("opening arrangements", () => {
     const json = plan.toJson();
     json.buildings![0].levels[0].walls![0].openings![0].contents = [
       { type: "Post", x: 100, width: 1901 },
-      { type: "StandardWindow", x: 0, width: 1000 },
+      { type: "SashWindow", x: 0, width: 1000 },
     ];
     const loaded = Plan.fromJson(json);
     expect(loaded.loadWarnings).toHaveLength(1);

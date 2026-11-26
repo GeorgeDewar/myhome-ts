@@ -51,7 +51,7 @@ const openingItemSchemas = openingSchema.properties.contents.items.anyOf;
 const openingItemValidators = {
   StandardDoor: ajv.compile<JsonOpeningItem>(openingItemSchemas[0]),
   SlidingDoor: ajv.compile<JsonOpeningItem>(openingItemSchemas[1]),
-  StandardWindow: ajv.compile<JsonOpeningItem>(openingItemSchemas[2]),
+  SashWindow: ajv.compile<JsonOpeningItem>(openingItemSchemas[2]),
   Post: ajv.compile<JsonOpeningItem>(openingItemSchemas[3]),
 };
 
@@ -179,7 +179,7 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
           (openingValue.contents ?? []).forEach((item, itemIndex) => {
             const itemPath = `${openingPath}.contents[${itemIndex}]`;
             const type = item !== null && typeof item === "object" && "type" in item ? item.type : undefined;
-            if (type !== "StandardDoor" && type !== "SlidingDoor" && type !== "StandardWindow" && type !== "Post") {
+            if (type !== "StandardDoor" && type !== "SlidingDoor" && type !== "SashWindow" && type !== "Post") {
               const reason =
                 typeof type === "string"
                   ? `unknown opening item type '${type}'`
