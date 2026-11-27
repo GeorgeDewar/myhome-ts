@@ -142,9 +142,14 @@ The edit dialog for an opening is special. It shows a 2D and 3D representation o
 - Add trees - effect on shade
 - Estimate WiFi propagation
 - Do thermal calculations
+- Add security cameras and show coverage and sample views
 - Plugin ecosystem
 - Capture some details from a photo using AI!
 - Add in street-map data from OSM to provide context
 - Automatic health assessment - e.g. adequate smoke detectors, ventilation
 - Room types - bedroom, etc
 - Nested rooms - closet is a child of a bedroom with a type "closet"
+- Furniture
+- Roofs
+- Materials and paints
+- Allow custom models

@@ -121,7 +121,39 @@ describe("3D plan geometry", () => {
     expect(volume).toBeCloseTo(1.1);
     expect(meshesFor(group, door)).toHaveLength(1);
     expect(meshesFor(group, slidingDoor)).toHaveLength(2);
-    expect(meshesFor(group, window)).toHaveLength(1);
+    expect(meshesFor(group, window)).toHaveLength(5);
+    disposePlanGeometry(group);
+  });
+
+  it("draws sash widths and depth in 3D, clipping to the wall and omitting a direct window's sash", () => {
+    const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
+      id: "wall", start: [0, 0], end: [2000, 0], width: 100, openings: [{
+        id: "opening", width: 1000, height: 1000, distanceAlongWall: 250,
+        contents: [
+          { type: "Window", windowType: "fixed", width: 1000, height: 1000,
+            sash: { widthTop: 50, widthRight: 60, widthBottom: 70, widthLeft: 80, depth: 90 } },
+          { type: "Window", windowType: "direct", width: 1000, height: 1000 },
+          { type: "Window", windowType: "awning", width: 1000, height: 1000, sash: { depth: 5 } },
+        ],
+      }],
+    }] }] }] });
+    const [window, direct, shallowSash] = plan.buildings[0].levels[0].walls[0].openings[0].contents;
+    const group = createPlanGeometry(plan);
+    group.updateMatrixWorld(true);
+    const frames = meshesFor(group, window).slice(1);
+    expect(frames).toHaveLength(3);
+    const bounds = frames.map((mesh) => new THREE.Box3().setFromObject(mesh));
+    expect(bounds[0].min.x).toBeCloseTo(0);
+    expect(bounds[0].max.x).toBeCloseTo(0.75);
+    expect(bounds[0].min.y).toBeCloseTo(0.95);
+    expect(bounds[1].max.y).toBeCloseTo(0.07);
+    expect(bounds[2].min.x).toBeCloseTo(0.69);
+    expect(bounds[2].max.z - bounds[2].min.z).toBeCloseTo(0.09);
+    expect(meshesFor(group, direct)).toHaveLength(1);
+    const shallowMeshes = meshesFor(group, shallowSash);
+    const glass = new THREE.Box3().setFromObject(shallowMeshes[0]);
+    const frame = new THREE.Box3().setFromObject(shallowMeshes[1]);
+    expect(glass.max.z).toBeLessThan(frame.max.z);
     disposePlanGeometry(group);
   });
 

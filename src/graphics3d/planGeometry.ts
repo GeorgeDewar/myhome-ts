@@ -10,9 +10,10 @@ import { roomPolygon } from "../model/geom/roomPolygon";
 import { doorSweep } from "../model/geom/doorSweep";
 import { itemRectangle } from "../model/geom/openingArrangement";
 import type { Level } from "../model/Level";
-import { DEFAULT_OPENING_HEIGHT_METRES, type Opening } from "../model/Opening";
+import { DEFAULT_OPENING_HEIGHT_METRES, DEFAULT_SASH_DIMENSION_MM, type Opening } from "../model/Opening";
 import type { Plan } from "../model/Plan";
 import type { Wall } from "../model/Wall";
+import { windowTypes } from "../model/windowTypes";
 
 const DEFAULT_LEVEL_HEIGHT = 2.4;
 const DEFAULT_FENCE_HEIGHT = 1.8;
@@ -151,13 +152,49 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
         );
         mesh.rotation.y = -Math.atan2(dz, dx);
       } else {
+        const glassDepth = item.type === "Window" && windowTypes[item.windowType].sashRequired
+          ? Math.min(0.02, (item.sash?.depth?.metres ?? DEFAULT_SASH_DIMENSION_MM / 1000) / 2)
+          : 0.02;
         box(
           group,
-          [width, itemHeight, item.type === "Post" ? wall.width.metres : 0.02],
+          [width, itemHeight, item.type === "Post" ? wall.width.metres : glassDepth],
           [(itemLeft + itemRight) / 2, (itemBottom + itemTop) / 2, 0],
           item.type === "Post" ? 0xa57952 : 0x9ac4d5,
           selectionTargetForOpeningItem(item, opening),
         );
+        if (item.type === "Window" && windowTypes[item.windowType].sashRequired) {
+          const sash = item.sash;
+          const sashWidth = (side: "widthTop" | "widthRight" | "widthBottom" | "widthLeft") =>
+            (sash?.[side]?.toJson() ?? DEFAULT_SASH_DIMENSION_MM) / 1000;
+          const fullWidth = rect.width / 1000;
+          const fullHeight = rect.height / 1000;
+          const frameLeft = Math.min(fullWidth, sashWidth("widthLeft"));
+          const frameRight = Math.max(frameLeft, fullWidth - sashWidth("widthRight"));
+          const frameTop = Math.min(fullHeight, sashWidth("widthTop"));
+          const frameBottom = Math.max(frameTop, fullHeight - sashWidth("widthBottom"));
+          const originX = openingLeft + rect.x / 1000;
+          const originY = openingTop - rect.y / 1000;
+          const depth = (sash?.depth?.toJson() ?? DEFAULT_SASH_DIMENSION_MM) / 1000;
+          for (const [x0, y0, x1, y1] of [
+            [0, 0, fullWidth, frameTop],
+            [0, frameBottom, fullWidth, fullHeight],
+            [0, frameTop, frameLeft, frameBottom],
+            [frameRight, frameTop, fullWidth, frameBottom],
+          ]) {
+            const xMin = Math.max(itemLeft, originX + x0);
+            const xMax = Math.min(itemRight, originX + x1);
+            const yMin = Math.max(itemBottom, originY - y1);
+            const yMax = Math.min(itemTop, originY - y0);
+            if (xMax <= xMin || yMax <= yMin) continue;
+            box(
+              group,
+              [xMax - xMin, yMax - yMin, depth],
+              [(xMin + xMax) / 2, (yMin + yMax) / 2, 0],
+              0xa57952,
+              selectionTargetForOpeningItem(item, opening),
+            );
+          }
+        }
       }
     }
   }
