@@ -810,14 +810,7 @@
               "start": [14327, 10107],
               "end": [16044, 10107],
               "openings": [
-                {
-                  "id": "window44",
-                  "distanceAlongWall": 859,
-                  "width": 900,
-                  "height": 490,
-                  "distanceFromFloor": 1689,
-                  "contents": [{ "type": "Window", "windowType": "awning" }]
-                }
+                { "id": "window44", "distanceAlongWall": 859, "width": 900, "height": 490, "distanceFromFloor": 1689 }
               ]
             },
             { "id": "wall47", "start": [16044, 10107], "end": [16044, 11187] },
