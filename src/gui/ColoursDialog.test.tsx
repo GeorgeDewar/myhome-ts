@@ -14,7 +14,7 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-it("manages colours and protects an unapplied draft", async () => {
+it("manages colours, shows field errors, protects drafts and moves with the title bar", async () => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: () => {} });
   Object.defineProperty(HTMLDialogElement.prototype, "close", { configurable: true, value: () => {} });
@@ -29,37 +29,56 @@ it("manages colours and protects an unapplied draft", async () => {
     return open ? <ColoursDialog plan={plan} editor={editor} onClose={() => setOpen(false)} /> : null;
   };
   await act(() => root.render(createElement(Harness)));
-  const button = (text: string) => {
-    const found = [...host.querySelectorAll("button")].find((item) => item.textContent === text || item.getAttribute("aria-label") === text);
-    if (!found) throw new Error(`Missing button: ${text}`);
+  const button = (name: string) => {
+    const found = [...host.querySelectorAll("button")].find((item) =>
+      item.textContent === name || item.getAttribute("aria-label") === name);
+    if (!found) throw new Error(`Missing button: ${name}`);
     return found;
   };
-  const click = async (text: string) => { await act(() => button(text).click()); };
-  const fill = async (index: number, value: string) => {
-    const input = host.querySelectorAll("input")[index];
+  const click = async (name: string) => { await act(() => button(name).click()); };
+  const fill = async (label: string, value: string) => {
+    const input = host.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[aria-label="${label}"]`)!;
+    const prototype = input instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
     await act(() => {
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
+      Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(input, value);
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
   };
-  await click("Add colour");
-  await fill(0, "blue");
-  await fill(2, "0000FF");
+
+  expect(host.querySelector<HTMLInputElement>('[aria-label="ID"]')!.value).toBe("white");
+  await click("+ Add colour");
+  await fill("ID", "white");
+  await fill("Hex value", "#0000FF");
+  await click("Apply");
+  expect(host.querySelector('[role="alert"]')!.textContent).toBe("A colour with this ID already exists.");
+  await fill("ID", "blue");
   await click("Close colours");
   expect(confirm).toHaveBeenCalledOnce();
   expect(host.querySelector("dialog")).not.toBeNull();
-  await click("Save colour");
+  await click("Apply");
   expect(plan.toJson().colours).toEqual([{ id: "white", value: "FFFFFF" }, { id: "blue", value: "0000FF" }]);
-  const blueEdit = host.querySelector<HTMLButtonElement>('[aria-label="Edit blue"]')!;
-  await act(() => blueEdit.click());
-  await fill(1, "Exterior");
-  await click("Save colour");
+  expect(host.querySelector<HTMLInputElement>('[aria-label="ID"]')!.value).toBe("blue");
+
+  await fill("Description", "Exterior");
+  await click("Apply");
   expect(plan.colours[1].description).toBe("Exterior");
+  await fill("Hex value", "12345");
+  await click("Apply");
+  expect(host.querySelector('[role="alert"]')!.textContent).toBe("Enter 6 hex digits (e.g. 2E5E4E).");
+  await click("Revert");
+  expect(host.querySelector<HTMLInputElement>('[aria-label="Hex value"]')!.value).toBe("0000FF");
+
+  const header = host.querySelector("header")!;
+  await act(() => header.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 10, clientY: 10 })));
+  await act(() => window.dispatchEvent(new MouseEvent("mousemove", { clientX: 40, clientY: 25 })));
+  await act(() => window.dispatchEvent(new MouseEvent("mouseup")));
+  expect(host.querySelector("dialog")!.style.transform).toBe("translate(30px, 15px)");
+
   confirm.mockReturnValue(true);
-  const remove = host.querySelector<HTMLButtonElement>('[aria-label="Remove blue"]')!;
-  await act(() => remove.click());
+  await click("Remove…");
   expect(plan.colours).toEqual([{ id: "white", value: "FFFFFF" }]);
-  await click("Close colours");
+  expect(host.querySelector<HTMLInputElement>('[aria-label="ID"]')!.value).toBe("white");
+  await click("Close");
   expect(host.querySelector("dialog")).toBeNull();
   await act(() => root.unmount());
 });

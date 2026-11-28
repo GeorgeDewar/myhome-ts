@@ -1,20 +1,305 @@
 .colours-dialog {
-  width: min(36rem, calc(100vw - 2rem));
-  max-height: calc(100vh - 2rem);
+  width: min(760px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100vh - 32px);
+  box-sizing: border-box;
   padding: 0;
+  overflow: hidden;
   border: 1px solid #9fb3c8;
+  border-radius: 6px;
+  color: #243b53;
+  background: white;
+  box-shadow: 0 12px 28px rgb(16 42 67 / 24%);
+}
+
+.colours-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.colours-dialog::backdrop {
+  background: rgb(16 42 67 / 35%);
+}
+
+.colours-dialog button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.colours-dialog button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.colours-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  color: white;
+  background: #243b53;
+  cursor: grab;
+  user-select: none;
+}
+
+.colours-dialog-header:active {
+  cursor: grabbing;
+}
+
+.colours-dialog-header h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.colours-dialog-header button {
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font-size: 1.3rem;
+}
+
+.colours-dialog-layout {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  flex: 1;
+  min-height: 380px;
+  overflow: hidden;
+}
+
+.colours-dialog-list {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  border-right: 1px solid #d9e2ec;
+  background: #f0f4f8;
+}
+
+.colours-dialog-list ul {
+  flex: 1;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+}
+
+.colours-dialog-list li button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+}
+
+.colours-dialog-list li button:hover {
+  background: #e3ebf3;
+}
+
+.colours-dialog-list li button[aria-pressed="true"] {
+  border-color: #2680c2;
+  background: #edf6ff;
+}
+
+.colours-dialog-list strong,
+.colours-dialog-list small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.colours-dialog-list small {
+  color: #627d98;
+  font: 12px ui-monospace, monospace;
+}
+
+.colour-swatch {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #829ab1;
+  border-radius: 4px;
+}
+
+.colours-dialog-add {
+  margin: 6px;
+  padding: 8px;
+  border: 1px dashed #829ab1;
+  border-radius: 4px;
+  color: #2680c2;
+  background: white;
+  font-weight: 600;
+}
+
+.colours-dialog-detail {
+  padding: 16px 20px;
+  overflow: auto;
+}
+
+.colours-dialog-detail form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 100%;
+}
+
+.colours-dialog-detail h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.colours-dialog-dirty {
+  padding: 2px 7px;
+  border-radius: 10px;
+  color: #b44d00;
+  background: #fff3e0;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.colours-dialog-preview {
+  display: flex;
+  align-items: flex-end;
+  height: 84px;
+  padding: 8px 10px;
+  border: 1px solid #829ab1;
   border-radius: 6px;
 }
 
-.colours-dialog::backdrop { background: rgb(0 0 0 / 35%); }
-.colours-dialog header { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 1rem; background: #e6edf3; }
-.colours-dialog h2, .colours-dialog h3 { margin: 0; font-size: 1rem; }
-.colours-dialog-body { padding: 1rem; }
-.colours-dialog ul { list-style: none; padding: 0; margin: 0 0 1rem; }
-.colours-dialog li { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
-.colour-swatch { width: 1.5rem; height: 1.5rem; flex: none; border: 1px solid #627d98; }
-.colour-details { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.colour-details small { display: block; }
-.colours-dialog form { display: grid; gap: 0.5rem; margin-top: 1rem; }
-.colours-dialog label { display: grid; gap: 0.2rem; }
-.colours-dialog-actions { display: flex; gap: 0.5rem; }
+.colours-dialog-preview.is-invalid {
+  background: repeating-linear-gradient(45deg, #f0f4f8, #f0f4f8 8px, #e3ebf3 8px, #e3ebf3 16px);
+}
+
+.colours-dialog-preview span {
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 85%);
+  font: 12px ui-monospace, monospace;
+}
+
+.colours-dialog-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: 12px;
+}
+
+.colours-dialog-detail label {
+  display: grid;
+  gap: 4px;
+  color: #486581;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.colours-dialog-detail input:not([type="color"]),
+.colours-dialog-detail textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 8px;
+  border: 1px solid #9fb3c8;
+  border-radius: 4px;
+  color: #243b53;
+  font: inherit;
+  font-weight: 400;
+}
+
+.colours-dialog-detail input:not([type="color"]) {
+  height: 34px;
+}
+
+.colours-dialog-detail textarea {
+  padding: 6px 8px;
+  resize: vertical;
+}
+
+.colours-dialog-detail input[aria-invalid="true"] {
+  border-color: #c0392b;
+}
+
+.colours-dialog-hexrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #627d98;
+  font-family: ui-monospace, monospace;
+  font-weight: 400;
+}
+
+.colours-dialog-hexrow input[type="color"] {
+  flex: none;
+  box-sizing: border-box;
+  width: 44px;
+  height: 34px;
+  padding: 2px;
+  border: 1px solid #9fb3c8;
+  border-radius: 4px;
+  background: white;
+}
+
+.colours-dialog-hint,
+.colours-dialog-error {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.colours-dialog-hint {
+  color: #829ab1;
+}
+
+.colours-dialog-error {
+  color: #c0392b;
+}
+
+.colours-dialog-detail footer {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #d9e2ec;
+}
+
+.colours-dialog-detail footer span {
+  flex: 1;
+}
+
+.colours-dialog-detail footer button,
+.colours-dialog-footer button {
+  padding: 6px 14px;
+  border: 1px solid #9fb3c8;
+  border-radius: 4px;
+  color: #243b53;
+  background: white;
+}
+
+.colours-dialog-detail footer .colours-dialog-primary {
+  border-color: #2680c2;
+  color: white;
+  background: #2680c2;
+}
+
+.colours-dialog-detail footer .colours-dialog-danger {
+  border-color: #e6b0aa;
+  color: #c0392b;
+}
+
+.colours-dialog-empty {
+  color: #627d98;
+}
+
+.colours-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-top: 1px solid #d9e2ec;
+  color: #627d98;
+  background: #f0f4f8;
+  font-size: 0.78rem;
+}

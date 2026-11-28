@@ -81,12 +81,14 @@ export class PlanEditor {
     private onChange: () => void,
   ) {}
 
-  saveColour(colour: JsonColour, existing?: JsonColour): EditResult {
+  saveColour(colour: JsonColour, existing?: JsonColour): EditResult<"id" | "value"> {
     if (existing && !this.plan.colours.includes(existing)) return { ok: false, error: "This colour is no longer in the plan." };
-    if (!colour.id.trim()) return { ok: false, error: "Enter a colour ID." };
-    if (!/^[0-9a-fA-F]{6}$/.test(colour.value)) return { ok: false, error: "Enter six hexadecimal digits without #." };
+    if (!colour.id.trim()) return { ok: false, field: "id", error: "Enter a colour ID." };
+    if (!/^[0-9a-fA-F]{6}$/.test(colour.value)) {
+      return { ok: false, field: "value", error: "Enter 6 hex digits (e.g. 2E5E4E)." };
+    }
     if (this.plan.colours.some((item) => item !== existing && item.id === colour.id)) {
-      return { ok: false, error: "A colour with this ID already exists." };
+      return { ok: false, field: "id", error: "A colour with this ID already exists." };
     }
     if (existing) {
       if (existing.id === colour.id && existing.value === colour.value && existing.description === colour.description) return { ok: true };
