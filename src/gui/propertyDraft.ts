@@ -83,12 +83,12 @@ export const createPropertyDraft = (target: SelectionTarget): PropertyDraft => {
       values = {
         hingeSide: target.item.hingeSide,
         swingDirection: target.item.swingDirection,
-        thickness: String(target.item.leafThickness.toJson()),
+        thickness: String(target.opening.doorThickness(target.item).toJson()),
         openAngle: String(target.item.effectiveOpenAngle),
       };
       break;
     case "slidingDoor":
-      values = { thickness: String(target.item.leafThickness.toJson()) };
+      values = { thickness: String(target.opening.doorThickness(target.item).toJson()) };
       break;
     case "window":
       values = {

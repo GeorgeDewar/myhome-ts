@@ -5,6 +5,7 @@
     { "id": "white", "name": "White", "description": "Used for most doors and interior trim", "value": "FFFFFF" },
     { "id": "trim-green", "name": "Trim Green", "description": "Green used for some exterior trim", "value": "3E653F" }
   ],
+  "defaults": { "interiorTrim": { "colour": "white" }, "exteriorTrim": { "colour": "white" } },
   "fences": [
     { "id": "fence0", "start": [9644, 0], "end": [32632, 0] },
     { "id": "fence1", "start": [25144, 8173], "end": [29069, 9601] },

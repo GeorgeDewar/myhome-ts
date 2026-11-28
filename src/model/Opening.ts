@@ -1,6 +1,7 @@
 import { Distance } from "./geom/Distance";
-import type { JsonItemGeometry, JsonOpening, JsonOpeningItem, JsonSash } from "./json/Document";
-import type { Wall } from "./Wall";
+import { resolveDefault, resolveSashDimension, resolveTrimColour } from "./defaults";
+import type { JsonItemGeometry, JsonOpening, JsonOpeningFace, JsonOpeningItem, JsonSash } from "./json/Document";
+import type { Wall, WallFace } from "./Wall";
 import type { WindowType } from "./windowTypes";
 
 export type OpeningItem = StandardDoor | SlidingDoor | Window | Post;
@@ -36,6 +37,7 @@ class ItemGeometry {
 
 export class StandardDoor extends ItemGeometry {
   readonly type = "StandardDoor" as const;
+  colour?: string;
 
   constructor(
     public hingeSide: "left" | "right",
@@ -43,10 +45,6 @@ export class StandardDoor extends ItemGeometry {
     public thickness?: Distance,
     public openAngle?: number,
   ) { super(); }
-
-  get leafThickness() {
-    return this.thickness ?? new Distance(DEFAULT_DOOR_THICKNESS_METRES);
-  }
 
   get effectiveOpenAngle() {
     return this.openAngle ?? 90;
@@ -59,6 +57,7 @@ export class StandardDoor extends ItemGeometry {
       json.thickness === undefined ? undefined : Distance.fromJson(json.thickness),
       json.openAngle,
     );
+    item.colour = json.colour;
     item.loadGeometry(json);
     return item;
   }
@@ -70,6 +69,7 @@ export class StandardDoor extends ItemGeometry {
       ...(this.openAngle === undefined ? {} : { openAngle: this.openAngle }),
       hingeSide: this.hingeSide,
       swingDirection: this.swingDirection,
+      ...(this.colour === undefined ? {} : { colour: this.colour }),
       ...(this.thickness ? { thickness: this.thickness.toJson() } : {}),
     };
   }
@@ -121,27 +121,44 @@ export class Post extends ItemGeometry {
 
 export class SlidingDoor extends ItemGeometry {
   readonly type = "SlidingDoor" as const;
+  colour?: string;
 
   constructor(public thickness?: Distance) { super(); }
 
-  get leafThickness() {
-    return this.thickness ?? new Distance(DEFAULT_DOOR_THICKNESS_METRES);
-  }
-
   static fromJson(json: Extract<JsonOpeningItem, { type: "SlidingDoor" }>) {
     const item = new SlidingDoor(json.thickness === undefined ? undefined : Distance.fromJson(json.thickness));
+    item.colour = json.colour;
     item.loadGeometry(json);
     return item;
   }
 
   toJson(): Extract<JsonOpeningItem, { type: "SlidingDoor" }> {
-    return { type: this.type, ...this.geometryJson(), ...(this.thickness ? { thickness: this.thickness.toJson() } : {}) };
+    return {
+      type: this.type,
+      ...this.geometryJson(),
+      ...(this.colour === undefined ? {} : { colour: this.colour }),
+      ...(this.thickness ? { thickness: this.thickness.toJson() } : {}),
+    };
   }
 }
+
+// Copies only known properties, so that unexpected ones aren't saved
+const copyFace = ({ trim }: JsonOpeningFace): JsonOpeningFace => ({
+  ...(trim === undefined
+    ? {}
+    : {
+        trim: {
+          ...(trim.colour === undefined ? {} : { colour: trim.colour }),
+          ...(trim.sillColour === undefined ? {} : { sillColour: trim.sillColour }),
+        },
+      }),
+});
 
 export class Opening {
   public wall?: Wall;
   public contents: OpeningItem[];
+  public faceA?: JsonOpeningFace;
+  public faceB?: JsonOpeningFace;
 
   constructor(
     public id: string,
@@ -163,6 +180,8 @@ export class Opening {
       json.distanceFromFloor === undefined ? undefined : Distance.fromJson(json.distanceFromFloor),
       json.shape === "rectangle" ? undefined : json.shape,
     );
+    if (json.faceA) opening.faceA = copyFace(json.faceA);
+    if (json.faceB) opening.faceB = copyFace(json.faceB);
     opening.contents = (json.contents ?? []).map((content) => {
       switch (content.type) {
         case "StandardDoor":
@@ -188,10 +207,43 @@ export class Opening {
       width: this.width.toJson(),
       ...(this.height ? { height: this.height.toJson() } : {}),
       ...(this.distanceFromFloor ? { distanceFromFloor: this.distanceFromFloor.toPositionJson() } : {}),
+      ...(this.faceA ? { faceA: copyFace(this.faceA) } : {}),
+      ...(this.faceB ? { faceB: copyFace(this.faceB) } : {}),
       ...(this.contents.length > 0 ? {
         contents: this.contents.map((content) => content.toJson()).sort((a, b) =>
           (a.x ?? 0) - (b.x ?? 0) || (a.y ?? 0) - (b.y ?? 0)),
       } : {}),
     };
+  }
+
+  // Doors take the exterior defaults if either side of the wall is exterior. Room defaults don't apply, as a door
+  // can be between two rooms.
+  private doorElement() {
+    return this.wall?.isExterior() ? "exteriorDoor" : "interiorDoor";
+  }
+
+  private levelScopes() {
+    return this.wall?.level?.defaultsScopes() ?? [];
+  }
+
+  doorColour(door: StandardDoor | SlidingDoor) {
+    return door.colour ?? resolveDefault(this.levelScopes(), this.doorElement(), "colour");
+  }
+
+  doorThickness(door: StandardDoor | SlidingDoor) {
+    if (door.thickness) return door.thickness;
+    const thickness = resolveDefault(this.levelScopes(), this.doorElement(), "thickness");
+    return thickness === undefined ? new Distance(DEFAULT_DOOR_THICKNESS_METRES) : Distance.fromJson(thickness);
+  }
+
+  sashDimension(window: Window, field: SashField) {
+    return window.sash?.[field]?.toJson() ?? resolveSashDimension(this.levelScopes(), field) ?? DEFAULT_SASH_DIMENSION_MM;
+  }
+
+  trimColour(face: WallFace, property: "colour" | "sillColour") {
+    const element = this.wall?.isFaceExterior(face) ? "exteriorTrim" : "interiorTrim";
+    const trim = (face === "A" ? this.faceA : this.faceB)?.trim;
+    const scopes = [{ interiorTrim: trim, exteriorTrim: trim }, ...(this.wall?.faceDefaultsScopes(face) ?? [])];
+    return resolveTrimColour(scopes, element, property);
   }
 }

@@ -41,6 +41,7 @@
         }
       }
     },
+    "defaults": { "$ref": "#/$defs/defaults" },
     "fences": {
       "type": "array",
       "items": {
@@ -70,6 +71,7 @@
         "unevaluatedProperties": false,
         "properties": {
           "name": { "type": "string" },
+          "defaults": { "$ref": "#/$defs/defaults" },
           "levels": {
             "type": "array",
             "items": {
@@ -79,11 +81,7 @@
               "properties": {
                 "number": { "type": "integer", "description": "Floor number, starting from 0 for the ground floor" },
                 "name": { "type": "string", "description": "Displayable name of the floor" },
-                "ceilingHeight": {
-                  "type": "number",
-                  "exclusiveMinimum": 0,
-                  "description": "Height of the ceiling in millimetres, from the unfinished floor surface to the ceiling surface above"
-                },
+                "defaults": { "$ref": "#/$defs/defaults" },
                 "totalHeight": {
                   "type": "number",
                   "exclusiveMinimum": 0,
@@ -120,7 +118,16 @@
           "$ref": "#/$defs/position",
           "description": "Position of the end of the wall (right side when viewing face A) relative to the floor, in millimetres. The position is midway through the thickness of the wall."
         },
-        "width": { "type": "number", "exclusiveMinimum": 0, "description": "Width of the wall in millimetres" },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Width of the wall in millimetres. Overrides defaults.wall.width."
+        },
+        "faceA": {
+          "$ref": "#/$defs/wallFace",
+          "description": "Overrides for face A of the wall (the face viewed with the start of the wall on the left)"
+        },
+        "faceB": { "$ref": "#/$defs/wallFace", "description": "Overrides for face B of the wall (the opposite face to face A)" },
         "openings": {
           "type": "array",
           "items": {
@@ -149,6 +156,14 @@
                 "description": "Distance of the bottom of the door from the floor, in millimetres.",
                 "default": 0
               },
+              "faceA": {
+                "$ref": "#/$defs/openingFace",
+                "description": "Overrides for the face A side of the opening, as for the wall it is in"
+              },
+              "faceB": {
+                "$ref": "#/$defs/openingFace",
+                "description": "Overrides for the face B side of the opening, as for the wall it is in"
+              },
               "contents": {
                 "type": "array",
                 "items": {
@@ -173,14 +188,9 @@
                           "type": "string",
                           "enum": ["in", "out"],
                           "description": "Direction the door swings when opening, viewed from the A-side of the wall the door is installed in (in being toward the observer)"
-                        },
-                        "thickness": {
-                          "type": "number",
-                          "exclusiveMinimum": 0,
-                          "description": "Thickness of the door leaf in millimetres",
-                          "default": 35
                         }
-                      }
+                      },
+                      "allOf": [{ "$ref": "#/$defs/doorProperties" }]
                     },
                     {
                       "type": "object",
@@ -191,14 +201,9 @@
                         "x": { "type": "integer", "minimum": 0 },
                         "y": { "type": "integer", "minimum": 0 },
                         "width": { "type": "number", "exclusiveMinimum": 0 },
-                        "height": { "type": "number", "exclusiveMinimum": 0 },
-                        "thickness": {
-                          "type": "number",
-                          "exclusiveMinimum": 0,
-                          "description": "Thickness of the door leaf in millimetres",
-                          "default": 35
-                        }
-                      }
+                        "height": { "type": "number", "exclusiveMinimum": 0 }
+                      },
+                      "allOf": [{ "$ref": "#/$defs/doorProperties" }]
                     },
                     {
                       "type": "object",
@@ -214,10 +219,10 @@
                         "x": { "type": "integer", "minimum": 0 },
                         "y": { "type": "integer", "minimum": 0 },
                         "width": { "type": "number", "exclusiveMinimum": 0 },
-                        "height": { "type": "number", "exclusiveMinimum": 0 },
-                        "sash": { "$ref": "#/$defs/sash" }
+                        "height": { "type": "number", "exclusiveMinimum": 0 }
                       },
                       "allOf": [
+                        { "$ref": "#/$defs/windowProperties" },
                         {
                           "if": { "properties": { "windowType": { "const": "direct" } }, "required": ["windowType"] },
                           "then": { "not": { "required": ["sash"] } }
@@ -258,6 +263,7 @@
       "unevaluatedProperties": false,
       "properties": {
         "name": { "type": "string" },
+        "defaults": { "$ref": "#/$defs/roomDefaults" },
         "label": {
           "type": "object",
           "description": "Label information for the room",
@@ -288,6 +294,111 @@
             "unevaluatedProperties": false,
             "properties": { "ref": { "type": "string" } }
           }
+        }
+      }
+    },
+    "colourRef": {
+      "type": "string",
+      "description": "The id of a colour defined in the plan's colours"
+    },
+    "colourProperties": {
+      "type": "object",
+      "properties": { "colour": { "$ref": "#/$defs/colourRef" } }
+    },
+    "ceilingProperties": {
+      "type": "object",
+      "properties": {
+        "colour": { "$ref": "#/$defs/colourRef" },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Height of the ceiling in millimetres, from the unfinished floor surface to the ceiling surface above"
+        }
+      }
+    },
+    "trimProperties": {
+      "type": "object",
+      "properties": {
+        "colour": { "$ref": "#/$defs/colourRef" },
+        "sillColour": {
+          "$ref": "#/$defs/colourRef",
+          "description": "Colour of sills. If not set at a given level of the hierarchy, the trim colour at that level applies."
+        }
+      }
+    },
+    "doorProperties": {
+      "type": "object",
+      "properties": {
+        "colour": { "$ref": "#/$defs/colourRef" },
+        "thickness": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Thickness of the door leaf in millimetres",
+          "default": 35
+        }
+      }
+    },
+    "windowProperties": {
+      "type": "object",
+      "properties": { "sash": { "$ref": "#/$defs/sash" } }
+    },
+    "wallProperties": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Width of walls in millimetres",
+          "default": 100
+        }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "description": "Default properties for items within this plan, building or level. A property that is not set on an item is taken from the nearest enclosing room, level, building or plan that sets it, in that order. Interior and exterior refer to the face of a wall that the item is on.",
+      "unevaluatedProperties": false,
+      "properties": {
+        "interiorWall": { "$ref": "#/$defs/colourProperties", "unevaluatedProperties": false },
+        "exteriorWall": { "$ref": "#/$defs/colourProperties", "unevaluatedProperties": false },
+        "wall": { "$ref": "#/$defs/wallProperties", "unevaluatedProperties": false },
+        "ceiling": { "$ref": "#/$defs/ceilingProperties", "unevaluatedProperties": false },
+        "roof": { "$ref": "#/$defs/colourProperties", "unevaluatedProperties": false },
+        "interiorDoor": { "$ref": "#/$defs/doorProperties", "unevaluatedProperties": false },
+        "exteriorDoor": { "$ref": "#/$defs/doorProperties", "unevaluatedProperties": false },
+        "interiorTrim": { "$ref": "#/$defs/trimProperties", "unevaluatedProperties": false },
+        "exteriorTrim": { "$ref": "#/$defs/trimProperties", "unevaluatedProperties": false },
+        "window": { "$ref": "#/$defs/windowProperties", "unevaluatedProperties": false }
+      }
+    },
+    "roomDefaults": {
+      "type": "object",
+      "description": "Default properties for items within a room. Only properties that can differ from room to room are available. As the ceiling height is set by the level, only its colour can be set here.",
+      "unevaluatedProperties": false,
+      "properties": {
+        "interiorWall": { "$ref": "#/$defs/colourProperties", "unevaluatedProperties": false },
+        "ceiling": { "$ref": "#/$defs/colourProperties", "unevaluatedProperties": false },
+        "interiorTrim": { "$ref": "#/$defs/trimProperties", "unevaluatedProperties": false }
+      }
+    },
+    "wallFace": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "properties": {
+        "exterior": {
+          "type": "boolean",
+          "description": "Overrides whether this face is exterior. By default it is exterior if no room lies against it."
+        },
+        "colour": { "$ref": "#/$defs/colourRef", "description": "Colour of this face of the wall" }
+      }
+    },
+    "openingFace": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "properties": {
+        "trim": {
+          "$ref": "#/$defs/trimProperties",
+          "unevaluatedProperties": false,
+          "description": "Trim around the opening on this side"
         }
       }
     },

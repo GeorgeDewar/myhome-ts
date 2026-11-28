@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import testPlan from "../testData/McKeefry.json";
 import { Fence } from "./Fence";
-import { SlidingDoor, StandardDoor } from "./Opening";
+import { Opening, SlidingDoor, StandardDoor } from "./Opening";
 import { Distance } from "./geom/Distance";
 import { Plan } from "./Plan";
 import { Room } from "./Room";
@@ -174,8 +174,9 @@ describe("Plan", () => {
   });
 
   it("uses a 35mm leaf thickness for doors without an explicit thickness", () => {
-    expect(new StandardDoor("left", "in").leafThickness.metres).toBe(0.035);
-    expect(new SlidingDoor().leafThickness.metres).toBe(0.035);
+    const opening = new Opening("opening", new Distance(1), new Distance(1));
+    expect(opening.doorThickness(new StandardDoor("left", "in")).metres).toBe(0.035);
+    expect(opening.doorThickness(new SlidingDoor()).metres).toBe(0.035);
   });
 
   it("round-trips optional sliding-door thickness", () => {
@@ -205,8 +206,9 @@ describe("Plan", () => {
     expect(defaultDoor).toBeInstanceOf(SlidingDoor);
     expect(customDoor).toBeInstanceOf(SlidingDoor);
     if (defaultDoor.type !== "SlidingDoor" || customDoor.type !== "SlidingDoor") throw new Error("Expected sliding doors");
-    expect(defaultDoor.leafThickness.metres).toBe(0.035);
-    expect(customDoor.leafThickness.metres).toBe(0.06);
+    const opening = plan.buildings[0].levels[0].walls[0].openings[0];
+    expect(opening.doorThickness(defaultDoor).metres).toBe(0.035);
+    expect(opening.doorThickness(customDoor).metres).toBe(0.06);
     expect(plan.toJson()).toEqual(document);
   });
 

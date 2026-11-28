@@ -213,7 +213,8 @@ const drawDoor = (
     y: hinge.y + rotatedDirection.y * width,
   };
   const leafNormal = { x: -rotatedDirection.y, y: rotatedDirection.x };
-  const leafSide = { x: -leafNormal.x * door.leafThickness.metres, y: -leafNormal.y * door.leafThickness.metres };
+  const leafThickness = opening.doorThickness(door).metres;
+  const leafSide = { x: -leafNormal.x * leafThickness, y: -leafNormal.y * leafThickness };
   const startAngle = Math.atan2(closedDirection.y, closedDirection.x);
 
   context.strokeStyle = "#1f2933";
@@ -240,7 +241,7 @@ const drawSlidingDoor = (
   const { start, end, normal } = openingPoints(wall, opening, door);
   context.strokeStyle = "#1f2933";
   context.lineWidth = 1 / scale;
-  for (const leaf of slidingDoorLeaves(start, end, normal, door.leafThickness.metres)) {
+  for (const leaf of slidingDoorLeaves(start, end, normal, opening.doorThickness(door).metres)) {
     drawPolygon(context, leaf);
     context.stroke();
   }

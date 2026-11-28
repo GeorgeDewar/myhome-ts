@@ -1,12 +1,14 @@
 import { Building } from "./Building";
 import { Fence } from "./Fence";
-import type { JsonColour, JsonGeoreference, JsonPlan } from "./json/Document";
+import type { DefaultsScopes } from "./defaults";
+import type { JsonColour, JsonDefaults, JsonGeoreference, JsonPlan } from "./json/Document";
 import { validatePlanJson } from "./json/validatePlan";
 
 export class Plan {
   public buildings: Building[];
   public fences: Fence[];
   public colours: JsonColour[];
+  public defaults?: JsonDefaults;
   public georeference?: JsonGeoreference;
 
   constructor(
@@ -28,6 +30,7 @@ export class Plan {
     plan.buildings = (document.buildings ?? []).map(Building.fromJson);
     plan.fences = (document.fences ?? []).map(Fence.fromJson);
     plan.colours = (document.colours ?? []).map((colour) => ({ ...colour }));
+    if (document.defaults) plan.defaults = structuredClone(document.defaults);
     plan.buildings.forEach((building) => (building.plan = plan));
     return plan;
   }
@@ -37,9 +40,14 @@ export class Plan {
       ...(this.schema === undefined ? {} : { $schema: this.schema }),
       ...(this.georeference === undefined ? {} : { georeference: { ...this.georeference } }),
       ...(this.colours.length > 0 ? { colours: this.colours.map((colour) => ({ ...colour })) } : {}),
+      ...(this.defaults === undefined ? {} : { defaults: structuredClone(this.defaults) }),
       ...(this.fences.length > 0 ? { fences: this.fences.map((fence) => fence.toJson()) } : {}),
       ...(this.buildings.length > 0 ? { buildings: this.buildings.map((building) => building.toJson()) } : {}),
     };
+  }
+
+  defaultsScopes(): DefaultsScopes {
+    return [this.defaults];
   }
 
   getWallsOnLevel(level: number) {

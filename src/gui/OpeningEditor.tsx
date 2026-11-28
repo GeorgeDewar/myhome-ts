@@ -1,6 +1,6 @@
 import { GripVertical } from "lucide-react";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { DEFAULT_SASH_DIMENSION_MM, type Opening, type OpeningItem } from "../model/Opening";
+import type { Opening, OpeningItem, SashField } from "../model/Opening";
 import { arrangementWarnings, defaultItemRectangle, emptySpaceMarkers, itemGeometry, itemRectangle, largestEmptyRectangle, openingSize, type ItemGeometry } from "../model/geom/openingArrangement";
 import type { PlanEditor } from "../model/PlanEditor";
 import { windowTypes } from "../model/windowTypes";
@@ -137,12 +137,13 @@ export const OpeningEditor = ({
             {opening.contents.map((item, index) => {
               const rectangle = rectangles[index];
               const target = selectionTargetForOpeningItem(item, opening);
-              const sash = item.type === "Window" && windowTypes[item.windowType].sashRequired ? item.sash : undefined;
               const hasSash = item.type === "Window" && windowTypes[item.windowType].sashRequired;
-              const left = Math.min(rectangle.width, sash?.widthLeft?.toJson() ?? DEFAULT_SASH_DIMENSION_MM);
-              const right = Math.max(left, rectangle.width - (sash?.widthRight?.toJson() ?? DEFAULT_SASH_DIMENSION_MM));
-              const top = Math.min(rectangle.height, sash?.widthTop?.toJson() ?? DEFAULT_SASH_DIMENSION_MM);
-              const bottom = Math.max(top, rectangle.height - (sash?.widthBottom?.toJson() ?? DEFAULT_SASH_DIMENSION_MM));
+              const sashSize = (field: SashField) =>
+                item.type === "Window" ? opening.sashDimension(item, field) : 0;
+              const left = Math.min(rectangle.width, sashSize("widthLeft"));
+              const right = Math.max(left, rectangle.width - sashSize("widthRight"));
+              const top = Math.min(rectangle.height, sashSize("widthTop"));
+              const bottom = Math.max(top, rectangle.height - sashSize("widthBottom"));
               return <g key={index} role="button" tabIndex={0} aria-label={`${index + 1}. ${selectionTargetNames[target.kind]}`}
                 onClick={(event) => {
                   event.stopPropagation();

@@ -49,7 +49,7 @@ describe("3D plan geometry", () => {
               number: 0,
               name: "Ground",
               totalHeight: 3200,
-              ceilingHeight: 2500,
+              defaults: { ceiling: { height: 2500 } },
               walls: [{ id: "ground", start: [0, 0], end: [1000, 0] }],
             },
           ],
@@ -82,7 +82,7 @@ describe("3D plan geometry", () => {
             {
               number: 0,
               name: "Ground",
-              ceilingHeight: 3000,
+              defaults: { ceiling: { height: 3000 } },
               walls: [
                 {
                   id: "wall",

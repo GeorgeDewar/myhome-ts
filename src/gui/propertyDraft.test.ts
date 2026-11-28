@@ -211,7 +211,7 @@ describe("property drafts", () => {
     const next = createPropertyDraft({ kind: "door", item: door, opening });
     next.values = { ...next.values, thickness: "50" };
     expect(applyPropertyDraft(next, editor)).toEqual({});
-    expect(door.leafThickness.toJson()).toBe(50);
+    expect(opening.doorThickness(door).toJson()).toBe(50);
     expect(notify).toHaveBeenCalledTimes(2);
   });
 
@@ -284,7 +284,7 @@ describe("property drafts", () => {
     expect(applyPropertyDraft(createPropertyDraft({ kind: "window", item: window, opening }), editor)).toEqual({});
     expect(room.name).toBe("Kitchen");
     expect(room.walls).toEqual([level.walls[0]]);
-    expect(slidingDoor.leafThickness.toJson()).toBe(55);
+    expect(opening.doorThickness(slidingDoor).toJson()).toBe(55);
     expect(notify).toHaveBeenCalledTimes(2);
   });
 

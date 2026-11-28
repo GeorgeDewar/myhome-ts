@@ -53,7 +53,7 @@ Positions use integer millimetres in JSON and floating-point metres in memory. T
 
 ### 3D view
 
-The 3D view shows all levels, room floors, fences, wall openings and their contents. Levels are ordered by number and stacked using each level's total height, or its ceiling height if total height is absent. Level 0 is at ground level; if there is no level 0, the lowest level is at ground level. Missing level heights use 2.4m for display. Missing fence heights use 1.8m, and missing opening heights use 2.1m. These defaults are not saved.
+The 3D view shows all levels, room floors, fences, wall openings and their contents. Levels are ordered by number and stacked using each level's total height, or its ceiling height (see Defaults) if total height is absent. Level 0 is at ground level; if there is no level 0, the lowest level is at ground level. Missing level heights use 2.4m for display. Missing fence heights use 1.8m, and missing opening heights use 2.1m. These defaults are not saved.
 
 Selections in the hierarchy and 2D plan are highlighted in 3D. Clicking a 3D object selects it and locks the pointer for camera movement; Escape releases the pointer. The 3D context menu and double-click editing use the same selection and property windows as the other views.
 
@@ -63,9 +63,19 @@ Opening shapes do not yet affect plan or 3D rendering; openings are displayed as
 
 Standard doors are shown at their current open angle in both views; sliding doors do not use an open angle.
 
+### Defaults
+
+`defaults` can be set on the plan, a building, a level and a room (`defaults` in `src/model/json/Document.ts`; `$defs/defaults` and `$defs/roomDefaults` in `schema.json`). It is grouped by element and then property: `interiorWall`, `exteriorWall`, `ceiling`, `roof`, `interiorDoor`, `exteriorDoor`, `interiorTrim` and `exteriorTrim` hold a `colour`; trim also has `sillColour`; `wall.width`, `ceiling.height`, door `thickness` and `window.sash` are dimensions. A room can only set `interiorWall`, `ceiling` (colour only) and `interiorTrim`, because the other properties can't vary from room to room. Colours are references to `colours[].id`; a reference to an undefined colour is ignored with a warning when loading.
+
+A property that an item doesn't set is taken from the nearest scope that sets it, in the order item, room, level, building, plan, and each property is resolved separately. A sill uses its scope's trim colour when that scope sets no `sillColour`. When nothing sets a property, built-in values apply (100mm walls, 35mm door thickness and sash dimensions). Resolution lives in `src/model/defaults.ts`, and each of `Plan`, `Building`, `Level` and `Room` has `defaultsScopes()`, which lists its scopes from nearest to furthest.
+
+Items override defaults using the same property names: a wall's `width`, a door's `colour` and `thickness`, a window's `sash`, and `faceA`/`faceB` on walls (`colour`, `exterior`) and openings (`trim`). Face A is the side the wall's normal points to, with the wall start on the left when viewed from face A. A wall face is exterior unless a room lies against it, which `Wall.roomAgainst` finds by probing a point just off the face against the room polygon; `faceA.exterior` and `faceB.exterior` override this. The room against a face supplies the most specific defaults for that face (`Wall.faceColour`, `Opening.trimColour`). Doors don't use room defaults, as a door can be between two rooms; a door uses the exterior defaults if either side of its wall is exterior (`Opening.doorColour`, `Opening.doorThickness`). `Opening.sashDimension` resolves sash dimensions for the opening editor and the 3D view.
+
+A level's ceiling height is `defaults.ceiling.height` (resolved by `Level.ceilingHeight`), replacing the former `ceilingHeight` property of a level. Colours are not yet drawn, and there's no editor for defaults; they are loaded, validated and saved.
+
 ### Loading plans
 
-Plans are validated against `schema.json` as they load. Items with fractional positions are ignored with a warning. Invalid colours, buildings, levels, walls, fences, openings, opening items and rooms are omitted, and the app lists warnings identifying their locations. Children of an invalid item are not checked. Walls are checked before rooms so that warnings about invalid walls appear before warnings about rooms that reference them.
+Plans are validated against `schema.json` as they load. Items with fractional positions are ignored with a warning. Invalid colours, buildings, levels, walls, fences, openings, opening items and rooms are omitted, and the app lists warnings identifying their locations. Invalid `defaults` are omitted on their own without affecting the plan, building, level or room that holds them. Children of an invalid item are not checked. Walls are checked before rooms so that warnings about invalid walls appear before warnings about rooms that reference them.
 
 Unexpected properties produce warnings without excluding otherwise valid objects. They are ignored and are not included in downloaded JSON.
 

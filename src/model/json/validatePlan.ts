@@ -7,6 +7,7 @@ import { DEFAULT_OPENING_HEIGHT_METRES, sashFields } from "../Opening";
 import type {
   JsonBuilding,
   JsonColour,
+  JsonDefaults,
   JsonFence,
   JsonGeoreference,
   JsonLevel,
@@ -14,16 +15,20 @@ import type {
   JsonOpeningItem,
   JsonPlan,
   JsonRoom,
+  JsonRoomDefaults,
   JsonWall,
 } from "./Document";
 
-type PlanShell = Omit<JsonPlan, "buildings" | "fences" | "georeference" | "colours"> & {
-  buildings?: unknown[]; fences?: unknown[]; colours?: unknown[]; georeference?: unknown;
+type PlanShell = Omit<JsonPlan, "buildings" | "fences" | "georeference" | "colours" | "defaults"> & {
+  buildings?: unknown[]; fences?: unknown[]; colours?: unknown[]; georeference?: unknown; defaults?: unknown;
 };
-type BuildingShell = Omit<JsonBuilding, "levels"> & { levels: unknown[] };
-type LevelShell = Omit<JsonLevel, "walls" | "rooms"> & { walls?: unknown[]; rooms?: unknown[] };
+type BuildingShell = Omit<JsonBuilding, "levels" | "defaults"> & { levels: unknown[]; defaults?: unknown };
+type LevelShell = Omit<JsonLevel, "walls" | "rooms" | "defaults"> & {
+  walls?: unknown[]; rooms?: unknown[]; defaults?: unknown;
+};
 type WallShell = Omit<JsonWall, "openings"> & { openings?: unknown[] };
 type OpeningShell = Omit<JsonOpening, "contents"> & { contents?: unknown[] };
+type RoomShell = Omit<JsonRoom, "defaults"> & { defaults?: unknown };
 
 const buildingSchema = schema.properties.buildings.items;
 const levelSchema = buildingSchema.properties.levels.items;
@@ -31,28 +36,32 @@ const wallSchema = schema.$defs.wall;
 const roomSchema = schema.$defs.room;
 const openingSchema = wallSchema.properties.openings.items;
 const ajv = new Ajv2020({ strict: false, strictNumbers: true, allErrors: true });
+// Children and defaults are validated separately so that a problem in one doesn't discard the whole parent
 const shallowSchema = <T extends { properties: object }>(source: T, children: string[]) => {
   const properties: Record<string, unknown> = { ...source.properties };
   for (const child of children) properties[child] = { type: "array" };
+  if ("defaults" in properties) properties.defaults = {};
   return { ...source, properties, $defs: schema.$defs };
 };
 
 const validatePlan = ajv.compile<PlanShell>({
   ...shallowSchema(schema, ["fences", "buildings", "colours"]),
-  properties: { ...schema.properties, fences: { type: "array" }, buildings: { type: "array" }, colours: { type: "array" }, georeference: {} },
+  properties: { ...schema.properties, fences: { type: "array" }, buildings: { type: "array" }, colours: { type: "array" }, georeference: {}, defaults: {} },
 });
+const validateDefaults = ajv.compile<JsonDefaults>({ ...schema.$defs.defaults, $defs: schema.$defs });
+const validateRoomDefaults = ajv.compile<JsonRoomDefaults>({ ...schema.$defs.roomDefaults, $defs: schema.$defs });
 const validateGeoreference = ajv.compile<JsonGeoreference>(schema.properties.georeference);
 const validateColour = ajv.compile<JsonColour>(schema.properties.colours.items);
 const validateFence = ajv.compile<JsonFence>({ ...schema.properties.fences.items, $defs: schema.$defs });
 const validateBuilding = ajv.compile<BuildingShell>(shallowSchema(buildingSchema, ["levels"]));
 const validateLevel = ajv.compile<LevelShell>(shallowSchema(levelSchema, ["walls", "rooms"]));
 const validateWall = ajv.compile<WallShell>(shallowSchema(wallSchema, ["openings"]));
-const validateRoom = ajv.compile<JsonRoom>({ ...roomSchema, $defs: schema.$defs });
+const validateRoom = ajv.compile<RoomShell>(shallowSchema(roomSchema, []));
 const validateOpening = ajv.compile<OpeningShell>(shallowSchema(openingSchema, ["contents"]));
 const openingItemSchemas = openingSchema.properties.contents.items.anyOf;
 const openingItemValidators = {
-  StandardDoor: ajv.compile<JsonOpeningItem>(openingItemSchemas[0]),
-  SlidingDoor: ajv.compile<JsonOpeningItem>(openingItemSchemas[1]),
+  StandardDoor: ajv.compile<JsonOpeningItem>({ ...openingItemSchemas[0], $defs: schema.$defs }),
+  SlidingDoor: ajv.compile<JsonOpeningItem>({ ...openingItemSchemas[1], $defs: schema.$defs }),
   Window: ajv.compile<JsonOpeningItem>({ ...openingItemSchemas[2], $defs: schema.$defs }),
   Post: ajv.compile<JsonOpeningItem>(openingItemSchemas[3]),
 };
@@ -115,6 +124,74 @@ const duplicate = <T>(seen: Set<T>, value: T, label: string, path: string, warni
   return false;
 };
 
+const COLOUR_KEYS = new Set(["colour", "sillColour"]);
+
+// Returns a copy without references to colours that aren't defined in the plan. Arrays are left alone, as the
+// objects within them are checked as they are validated.
+const withKnownColours = <T>(value: T, path: string, colourIds: ReadonlySet<string>, warnings: string[]): T => {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
+  const result: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value)) {
+    if (COLOUR_KEYS.has(key) && typeof child === "string" && !colourIds.has(child)) {
+      warnings.push(`${path}.${key}: unknown colour '${child}'; ignored.`);
+    } else {
+      result[key] = withKnownColours(child, `${path}.${key}`, colourIds, warnings);
+    }
+  }
+  return result as T;
+};
+
+// Unknown properties are warned about by isValid; they must not be carried into the model, which writes them back out
+const withoutUnknownProperties = <T>(value: T, errors: readonly ErrorObject[] | null | undefined): T => {
+  const copy = structuredClone(value);
+  for (const error of errors ?? []) {
+    if (error.keyword !== "unevaluatedProperties") continue;
+    const parent = error.instancePath
+      .split("/")
+      .slice(1)
+      .reduce<unknown>((object, key) => (object as Record<string, unknown> | undefined)?.[key], copy);
+    if (parent !== null && typeof parent === "object") delete (parent as Record<string, unknown>)[error.params.unevaluatedProperty];
+  }
+  return copy;
+};
+
+// Removing unknown properties and colours can leave empty groups behind, which carry no information
+const withoutEmptyObjects = <T extends object>(value: T): T | undefined => {
+  const result: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value)) {
+    const kept = child !== null && typeof child === "object" ? withoutEmptyObjects(child) : child;
+    if (kept !== undefined) result[key] = kept;
+  }
+  return Object.keys(result).length === 0 ? undefined : (result as T);
+};
+
+const validDefaults = <T extends JsonDefaults>(
+  validator: ValidateFunction<T>,
+  input: unknown,
+  path: string,
+  colourIds: ReadonlySet<string>,
+  warnings: string[],
+): T | undefined => {
+  if (input === undefined) return undefined;
+  if (!isValid(validator, input, path, warnings)) return undefined;
+  const value = withoutUnknownProperties(input, validator.errors);
+  const dimensions: Record<string, number | undefined> = {
+    "wall.width": value.wall?.width,
+    "ceiling.height": value.ceiling?.height,
+    "interiorDoor.thickness": value.interiorDoor?.thickness,
+    "exteriorDoor.thickness": value.exteriorDoor?.thickness,
+    ...Object.fromEntries(sashFields.map((field) => [`window.sash.${field}`, value.window?.sash?.[field]])),
+  };
+  return validDimensions(dimensions, path, warnings)
+    ? withoutEmptyObjects(withKnownColours(value, path, colourIds, warnings))
+    : undefined;
+};
+
+const withDefaults = <T extends object>(shell: T & { defaults?: unknown }, defaults: object | undefined) => {
+  const { defaults: _unvalidated, ...rest } = shell;
+  return { ...rest, ...(defaults === undefined ? {} : { defaults }) };
+};
+
 export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings: string[] } => {
   const warnings: string[] = [];
   if (!isValid(validatePlan, input, "plan", warnings)) return { document: {}, warnings };
@@ -152,14 +229,7 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
     buildingValue.levels.forEach((levelValue, levelIndex) => {
       const levelPath = `${buildingPath}.levels[${levelIndex}]`;
       if (!isValid(validateLevel, levelValue, levelPath, warnings)) return;
-      if (
-        !validDimensions(
-          { ceilingHeight: levelValue.ceilingHeight, totalHeight: levelValue.totalHeight },
-          levelPath,
-          warnings,
-        )
-      )
-        return;
+      if (!validDimensions({ totalHeight: levelValue.totalHeight }, levelPath, warnings)) return;
       if (duplicate(levelNumbers, levelValue.number, "level number", levelPath, warnings)) return;
 
       const walls: JsonWall[] = [];
@@ -217,11 +287,11 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
               warnings.push(`${itemPath}: item extends outside the opening; ignored.`);
               return;
             }
-            contents.push(item);
+            contents.push(withKnownColours(item, itemPath, colourIds, warnings));
           });
-          openings.push({ ...openingValue, contents });
+          openings.push({ ...withKnownColours(openingValue, openingPath, colourIds, warnings), contents });
         });
-        walls.push({ ...wallValue, openings });
+        walls.push({ ...withKnownColours(wallValue, wallPath, colourIds, warnings), openings });
       });
 
       const rooms: JsonRoom[] = [];
@@ -238,12 +308,15 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
           warnings.push(`${roomPath}: references unknown wall '${missing.ref}'; ignored.`);
           return;
         }
-        rooms.push(roomValue);
+        rooms.push(withDefaults(roomValue, validDefaults(validateRoomDefaults, roomValue.defaults, `${roomPath}.defaults`, colourIds, warnings)));
       });
-      levels.push({ ...levelValue, walls, rooms });
+      levels.push(withDefaults({ ...levelValue, walls, rooms },
+        validDefaults(validateDefaults, levelValue.defaults, `${levelPath}.defaults`, colourIds, warnings)));
     });
-    buildings.push({ ...buildingValue, levels });
+    buildings.push(withDefaults({ ...buildingValue, levels },
+      validDefaults(validateDefaults, buildingValue.defaults, `${buildingPath}.defaults`, colourIds, warnings)));
   });
 
-  return { document: { ...input, georeference, colours, fences, buildings }, warnings };
+  return { document: withDefaults({ ...input, georeference, colours, fences, buildings },
+    validDefaults(validateDefaults, input.defaults, "defaults", colourIds, warnings)), warnings };
 };

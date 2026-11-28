@@ -508,7 +508,7 @@ describe("plan loading validation", () => {
         {
           name: "House",
           levels: [
-            { number: 0, name: "Invalid height", ceilingHeight: 0 },
+            { number: 0, name: "Invalid height", totalHeight: 0 },
             {
               number: 1,
               name: "Valid",

@@ -10,7 +10,7 @@ import { roomPolygon } from "../model/geom/roomPolygon";
 import { doorSweep } from "../model/geom/doorSweep";
 import { itemRectangle } from "../model/geom/openingArrangement";
 import type { Level } from "../model/Level";
-import { DEFAULT_OPENING_HEIGHT_METRES, DEFAULT_SASH_DIMENSION_MM, type Opening } from "../model/Opening";
+import { DEFAULT_OPENING_HEIGHT_METRES, type Opening } from "../model/Opening";
 import type { Plan } from "../model/Plan";
 import type { Wall } from "../model/Wall";
 import { windowTypes } from "../model/windowTypes";
@@ -119,18 +119,19 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
       const itemHeight = itemTop - itemBottom;
       if (width <= 0 || itemHeight <= 0) continue;
       if (item.type === "SlidingDoor") {
+        const leafThickness = opening.doorThickness(item).metres;
         const leafWidth = width * 0.55;
         box(
           group,
-          [leafWidth, itemHeight, item.leafThickness.metres],
-          [itemLeft + leafWidth / 2, (itemBottom + itemTop) / 2, -item.leafThickness.metres / 2],
+          [leafWidth, itemHeight, leafThickness],
+          [itemLeft + leafWidth / 2, (itemBottom + itemTop) / 2, -leafThickness / 2],
           0xa57952,
           selectionTargetForOpeningItem(item, opening),
         );
         box(
           group,
-          [leafWidth, itemHeight, item.leafThickness.metres],
-          [itemRight - leafWidth / 2, (itemBottom + itemTop) / 2, item.leafThickness.metres / 2],
+          [leafWidth, itemHeight, leafThickness],
+          [itemRight - leafWidth / 2, (itemBottom + itemTop) / 2, leafThickness / 2],
           0xa57952,
           selectionTargetForOpeningItem(item, opening),
         );
@@ -140,7 +141,7 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
         const direction = leftHinged ? 1 : -1;
         const dx = direction * Math.cos(sweep);
         const dz = direction * Math.sin(sweep);
-        const thickness = item.leafThickness.metres;
+        const thickness = opening.doorThickness(item).metres;
         const hinge = leftHinged ? itemLeft : itemRight;
         const hingeDepth = (item.swingDirection === "out" ? -1 : 1) * wall.width.metres / 2;
         const mesh = box(
@@ -153,7 +154,7 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
         mesh.rotation.y = -Math.atan2(dz, dx);
       } else {
         const glassDepth = item.type === "Window" && windowTypes[item.windowType].sashRequired
-          ? Math.min(0.02, (item.sash?.depth?.metres ?? DEFAULT_SASH_DIMENSION_MM / 1000) / 2)
+          ? Math.min(0.02, opening.sashDimension(item, "depth") / 1000 / 2)
           : 0.02;
         box(
           group,
@@ -163,9 +164,8 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
           selectionTargetForOpeningItem(item, opening),
         );
         if (item.type === "Window" && windowTypes[item.windowType].sashRequired) {
-          const sash = item.sash;
           const sashWidth = (side: "widthTop" | "widthRight" | "widthBottom" | "widthLeft") =>
-            (sash?.[side]?.toJson() ?? DEFAULT_SASH_DIMENSION_MM) / 1000;
+            opening.sashDimension(item, side) / 1000;
           const fullWidth = rect.width / 1000;
           const fullHeight = rect.height / 1000;
           const frameLeft = Math.min(fullWidth, sashWidth("widthLeft"));
@@ -174,7 +174,7 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
           const frameBottom = Math.max(frameTop, fullHeight - sashWidth("widthBottom"));
           const originX = openingLeft + rect.x / 1000;
           const originY = openingTop - rect.y / 1000;
-          const depth = (sash?.depth?.toJson() ?? DEFAULT_SASH_DIMENSION_MM) / 1000;
+          const depth = opening.sashDimension(item, "depth") / 1000;
           for (const [x0, y0, x1, y1] of [
             [0, 0, fullWidth, frameTop],
             [0, frameBottom, fullWidth, fullHeight],

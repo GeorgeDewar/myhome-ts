@@ -1,9 +1,11 @@
-import type { JsonRoom, JsonRoomLabel } from "./json/Document";
+import type { DefaultsScopes } from "./defaults";
+import type { JsonRoom, JsonRoomDefaults, JsonRoomLabel } from "./json/Document";
 import type { Level } from "./Level";
 import type { Wall } from "./Wall";
 
 export class Room {
   public level?: Level;
+  public defaults?: JsonRoomDefaults;
   constructor(
     public name: string,
     public walls: readonly Wall[],
@@ -19,22 +21,29 @@ export class Room {
       return wall;
     });
     const label = json.label;
-    return new Room(json.name, walls, label === undefined ? undefined : {
+    const room = new Room(json.name, walls, label === undefined ? undefined : {
       ...(label.text !== undefined ? { text: label.text } : {}),
       ...(label.position !== undefined ? { position: [...label.position] } : {}),
       ...(label.rotation !== undefined ? { rotation: label.rotation } : {}),
       ...(label.fontSize !== undefined ? { fontSize: label.fontSize } : {}),
     });
+    if (json.defaults) room.defaults = structuredClone(json.defaults);
+    return room;
   }
 
   toJson(): JsonRoom {
     return {
       name: this.name,
+      ...(this.defaults === undefined ? {} : { defaults: structuredClone(this.defaults) }),
       walls: this.walls.map((wall) => ({ ref: wall.id })),
       ...(this.label !== undefined ? { label: {
         ...this.label,
         ...(this.label.position !== undefined ? { position: [...this.label.position] as [number, number] } : {}),
       } } : {}),
     };
+  }
+
+  defaultsScopes(): DefaultsScopes {
+    return [this.defaults, ...(this.level?.defaultsScopes() ?? [])];
   }
 }
