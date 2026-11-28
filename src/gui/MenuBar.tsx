@@ -1,5 +1,18 @@
 import * as Menubar from "@radix-ui/react-menubar";
-import { Check, Layers } from "lucide-react";
+import {
+  BrickWall,
+  Check,
+  DoorOpen,
+  Download,
+  Layers,
+  Merge,
+  Minus,
+  Palette,
+  Pencil,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { PlanTool } from "../graphics2d/PlanView2D";
 import type { Level } from "../model/Level";
@@ -35,9 +48,23 @@ const Menu = ({ label, children }: { label: string; children: ReactNode }) => (
   </Menubar.Menu>
 );
 
-const Item = ({ onSelect, shortcut, children }: { onSelect?: () => void; shortcut?: string; children: ReactNode }) => (
+const MenuIcon = ({ icon: Icon }: { icon?: LucideIcon }) => (
+  <span className="menu-item-icon">{Icon && <Icon size={15} aria-hidden="true" />}</span>
+);
+
+const Item = ({
+  onSelect,
+  shortcut,
+  icon,
+  children,
+}: {
+  onSelect?: () => void;
+  shortcut?: string;
+  icon?: LucideIcon;
+  children: ReactNode;
+}) => (
   <Menubar.Item className="menu-item" disabled={!onSelect} onSelect={onSelect}>
-    <span className="menu-item-indicator" />
+    <MenuIcon icon={icon} />
     {children}
     {shortcut && <span className="menu-item-hint">{shortcut}</span>}
   </Menubar.Item>
@@ -48,12 +75,14 @@ const CheckItem = ({
   disabled,
   onCheckedChange,
   hint,
+  icon,
   children,
 }: {
   checked: boolean;
   disabled?: boolean;
   onCheckedChange: (checked: boolean) => void;
   hint?: string;
+  icon?: LucideIcon;
   children: ReactNode;
 }) => (
   <Menubar.CheckboxItem className="menu-item" checked={checked} disabled={disabled} onCheckedChange={onCheckedChange}>
@@ -62,6 +91,7 @@ const CheckItem = ({
         <Check size={14} aria-hidden="true" />
       </Menubar.ItemIndicator>
     </span>
+    {icon && <MenuIcon icon={icon} />}
     {children}
     {hint && <span className="menu-item-hint">{hint}</span>}
   </Menubar.CheckboxItem>
@@ -84,11 +114,12 @@ export const MenuBar = ({
   activeLevel,
   onLevelSelect,
 }: MenuBarProps) => {
-  const toolItem = (kind: PlanTool, label: string, hint: string) => (
+  const toolItem = (kind: PlanTool, label: string, hint: string, icon: LucideIcon) => (
     <CheckItem
       checked={tool === kind}
       disabled={disabledTools[kind]}
       hint={hint}
+      icon={icon}
       onCheckedChange={(checked) => onToolChange(checked ? kind : undefined)}
     >
       {label}
@@ -102,24 +133,32 @@ export const MenuBar = ({
       </div>
       <Menubar.Root className="menubar">
         <Menu label="File">
-          <Item onSelect={onDownload}>Download JSON</Item>
+          <Item onSelect={onDownload} icon={Download}>
+            Download JSON
+          </Item>
         </Menu>
         <Menu label="Edit">
-          <Item onSelect={onEditSelected} shortcut="Enter">
+          <Item onSelect={onEditSelected} shortcut="Enter" icon={Pencil}>
             Edit selected…
           </Item>
-          <Item onSelect={onDeleteSelected} shortcut="Del">
+          <Item onSelect={onDeleteSelected} shortcut="Del" icon={Trash2}>
             Delete selected
           </Item>
-          <Item onSelect={onMergeRooms}>Merge rooms</Item>
-          <Item onSelect={onMergeOpenings}>Merge openings</Item>
+          <Item onSelect={onMergeRooms} icon={Merge}>
+            Merge rooms
+          </Item>
+          <Item onSelect={onMergeOpenings} icon={Merge}>
+            Merge openings
+          </Item>
           <Menubar.Separator className="menu-separator" />
-          <Item onSelect={onManageColours}>Colours…</Item>
+          <Item onSelect={onManageColours} icon={Palette}>
+            Colours…
+          </Item>
         </Menu>
         <Menu label="Add">
-          {toolItem("wall", "Wall", "click start, end")}
-          {toolItem("fence", "Fence", "click start, end")}
-          {toolItem("opening", "Opening", "click on a wall")}
+          {toolItem("wall", "Wall", "click start, end", BrickWall)}
+          {toolItem("fence", "Fence", "click start, end", Minus)}
+          {toolItem("opening", "Opening", "click on a wall", DoorOpen)}
         </Menu>
         <Menu label="View">
           <Menubar.Label className="menu-label">Side panels</Menubar.Label>
@@ -135,7 +174,9 @@ export const MenuBar = ({
             </CheckItem>
           ))}
           <Menubar.Separator className="menu-separator" />
-          <Item onSelect={() => onLayoutChange(defaultPanelLayout())}>Reset panel layout</Item>
+          <Item onSelect={() => onLayoutChange(defaultPanelLayout())} icon={RotateCcw}>
+            Reset panel layout
+          </Item>
         </Menu>
       </Menubar.Root>
       <div className="menubar-divider" />

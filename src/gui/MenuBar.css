@@ -123,3 +123,12 @@
   background: #2680c2;
   font-weight: 600;
 }
+.menu-item-icon {
+  display: inline-flex;
+  width: 16px;
+  justify-content: center;
+  color: #486581;
+}
+.menu-item[data-disabled] .menu-item-icon {
+  color: inherit;
+}
