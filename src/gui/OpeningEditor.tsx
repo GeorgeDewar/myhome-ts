@@ -278,7 +278,7 @@ const GeometryFields = ({ opening, item, editPlan, onDirtyChange }: {
     {geometryFields.map((field) => <label key={field}>
       {field === "x" ? "X" : field === "y" ? "Y" : field === "width" ? "Width" : "Height"} (mm)
       <input type="number" step={field === "x" || field === "y" ? "1" : "any"} value={values[field]}
-        placeholder={String(defaults[field])}
+        placeholder={field === "width" || field === "height" ? `${defaults[field]} (opening ${field})` : String(defaults[field])}
         onChange={(event) => {
           const next = { ...values, [field]: event.target.value };
           setValues(next);
