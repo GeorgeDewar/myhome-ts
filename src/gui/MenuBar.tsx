@@ -182,17 +182,19 @@ export const MenuBar = ({
       <div className="menubar-divider" />
       <div className="level-switcher" role="group" aria-label="Active level">
         <span className="level-switcher-label">Floor</span>
-        {levels.map((level, index) => (
-          <button
-            key={index}
-            type="button"
-            aria-pressed={level.number === activeLevel}
-            onClick={() => onLevelSelect(level.number)}
-          >
-            {level.name}
-          </button>
-        ))}
-        {levels.length === 0 && <span className="level-switcher-label">No levels</span>}
+        <div className="level-switcher-buttons">
+          {levels.map((level, index) => (
+            <button
+              key={index}
+              type="button"
+              aria-pressed={level.number === activeLevel}
+              onClick={() => onLevelSelect(level.number)}
+            >
+              {level.name}
+            </button>
+          ))}
+          {levels.length === 0 && <span className="level-switcher-label">No levels</span>}
+        </div>
       </div>
     </header>
   );

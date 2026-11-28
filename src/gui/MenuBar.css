@@ -95,13 +95,18 @@
 .level-switcher {
   display: flex;
   align-items: center;
+  gap: 6px;
+}
+.level-switcher-buttons {
+  display: flex;
+  align-items: center;
   gap: 2px;
   padding: 2px;
   background: #eaf0f6;
   border-radius: 7px;
 }
 .level-switcher-label {
-  padding: 0 8px;
+  padding: 0 2px;
   color: #627d98;
   font-size: 0.75rem;
 }
