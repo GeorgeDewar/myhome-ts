@@ -12,7 +12,7 @@ import { formatPlanJson } from "./json/formatPlanJson";
 describe("Plan", () => {
   it("preserves the fixture's white colour through formatted JSON and loading", async () => {
     const plan = Plan.fromJson(testPlan);
-    expect(plan.colours).toContainEqual({ id: "white", description: "Used for most doors and interior trim", value: "FFFFFF" });
+    expect(plan.colours).toContainEqual({ id: "white", name: "White", description: "Used for most doors and interior trim", value: "FFFFFF" });
     const reloaded = Plan.fromJson(JSON.parse(await formatPlanJson(plan)));
     expect(reloaded.loadWarnings).toEqual([]);
     expect(reloaded.colours).toEqual(plan.colours);

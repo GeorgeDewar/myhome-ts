@@ -1,7 +1,7 @@
 {
   "$schema": "https://myhome.dewar.co.nz/myhome.schema.json",
   "georeference": { "latitude": -41.17785183616714, "longitude": 174.82284433053258, "bearing": 279 },
-  "colours": [{ "id": "white", "description": "Used for most doors and interior trim", "value": "FFFFFF" }],
+  "colours": [{ "id": "white", "name": "White", "description": "Used for most doors and interior trim", "value": "FFFFFF" }],
   "fences": [
     { "id": "fence0", "start": [9644, 0], "end": [32632, 0] },
     { "id": "fence1", "start": [25144, 8173], "end": [29069, 9601] },

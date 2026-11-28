@@ -23,10 +23,15 @@
       "items": {
         "type": "object",
         "description": "Definition of a colour that can be referenced by items in the plan",
-        "required": ["id", "value"],
+        "required": ["id", "name", "value"],
         "unevaluatedProperties": false,
         "properties": {
-          "id": { "type": "string", "description": "Unique identifier for the colour" },
+          "id": { "type": "string", "description": "Unique identifier for the colour, used internally to reference it" },
+          "name": {
+            "type": "string",
+            "description": "Display name of the colour. It is not required to be unique.",
+            "examples": ["Fence Brown"]
+          },
           "description": {
             "type": "string",
             "description": "Description of the colour and its intended use",

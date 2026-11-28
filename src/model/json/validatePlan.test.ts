@@ -12,17 +12,22 @@ const expectValidPlan = (document: unknown) => {
 describe("plan loading validation", () => {
   it("retains valid colours while warning about invalid, duplicate and unexpected properties", () => {
     const plan = Plan.fromJson({ colours: [
-      { id: "white", value: "FFFFFF", description: "Trim", extra: true },
-      { id: "missing" },
-      { id: "white", value: "000000" },
-      { id: "blue", value: "0088ff" },
+      { id: "white", name: "White", value: "FFFFFF", description: "Trim", extra: true },
+      { id: "missing", name: "Missing" },
+      { id: "white", name: "Duplicate", value: "000000" },
+      { id: "nameless", value: "000000" },
+      { id: "blue", name: "Blue", value: "0088ff" },
     ], fences: [{ id: "f", start: [0, 0], end: [1000, 0] }] });
-    expect(plan.loadWarnings).toHaveLength(3);
+    expect(plan.loadWarnings).toHaveLength(4);
     expect(plan.loadWarnings[0]).toContain("unexpected property 'extra'");
     expect(plan.loadWarnings[1]).toContain("missing required property 'value'");
     expect(plan.loadWarnings[2]).toContain("duplicate colour id 'white'");
+    expect(plan.loadWarnings[3]).toContain("missing required property 'name'");
     const saved = plan.toJson();
-    expect(saved.colours).toEqual([{ id: "white", value: "FFFFFF", description: "Trim" }, { id: "blue", value: "0088ff" }]);
+    expect(saved.colours).toEqual([
+      { id: "white", name: "White", value: "FFFFFF", description: "Trim" },
+      { id: "blue", name: "Blue", value: "0088ff" },
+    ]);
     expect(saved.fences).toHaveLength(1);
     expectValidPlan(saved);
     expect(Plan.fromJson(saved).toJson()).toEqual(saved);

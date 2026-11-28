@@ -14,26 +14,27 @@ const createPlan = () =>
 
 describe("colour editing", () => {
   it("adds, edits and removes colours atomically, rejecting invalid, duplicate and stale entries", () => {
-    const plan = Plan.fromJson({ colours: [{ id: "white", value: "FFFFFF", description: "Trim" }] });
+    const plan = Plan.fromJson({ colours: [{ id: "white", name: "White", value: "FFFFFF", description: "Trim" }] });
     const notify = vi.fn();
     const editor = new PlanEditor(plan, notify);
     const white = plan.colours[0];
-    expect(editor.saveColour({ id: "white", value: "123456" }).ok).toBe(false);
-    expect(editor.saveColour({ id: "blue", value: "#123456" }).ok).toBe(false);
-    expect(editor.saveColour({ id: " ", value: "123456" }).ok).toBe(false);
-    expect(plan.colours).toEqual([{ id: "white", value: "FFFFFF", description: "Trim" }]);
+    expect(editor.saveColour({ id: "white", name: "Other", value: "123456" }).ok).toBe(false);
+    expect(editor.saveColour({ id: "blue", name: "Blue", value: "#123456" }).ok).toBe(false);
+    expect(editor.saveColour({ id: " ", name: "Blue", value: "123456" }).ok).toBe(false);
+    expect(editor.saveColour({ id: "blue", name: " ", value: "123456" })).toMatchObject({ ok: false, field: "name" });
+    expect(plan.colours).toEqual([{ id: "white", name: "White", value: "FFFFFF", description: "Trim" }]);
     expect(notify).not.toHaveBeenCalled();
-    expect(editor.saveColour({ id: "blue", value: "123abc" }).ok).toBe(true);
-    expect(editor.saveColour({ id: "blue", value: "FFFFFF" }, white).ok).toBe(false);
-    expect(editor.saveColour({ id: "ivory", value: "FFFFEE" }, white).ok).toBe(true);
-    expect(white).toEqual({ id: "ivory", value: "FFFFEE" });
+    expect(editor.saveColour({ id: "blue", name: "White", value: "123abc" }).ok).toBe(true);
+    expect(editor.saveColour({ id: "blue", name: "Blue", value: "FFFFFF" }, white).ok).toBe(false);
+    expect(editor.saveColour({ id: "ivory", name: "Ivory", value: "FFFFEE" }, white).ok).toBe(true);
+    expect(white).toEqual({ id: "ivory", name: "Ivory", value: "FFFFEE" });
     expect(editor.saveColour({ ...white }, white).ok).toBe(true);
     expect(notify).toHaveBeenCalledTimes(2);
     expect(editor.deleteColour(white).ok).toBe(true);
     expect(editor.deleteColour(white).ok).toBe(false);
-    expect(editor.saveColour({ id: "ivory", value: "FFFFEE" }, white).ok).toBe(false);
+    expect(editor.saveColour({ id: "ivory", name: "Ivory", value: "FFFFEE" }, white).ok).toBe(false);
     expect(notify).toHaveBeenCalledTimes(3);
-    expect(Plan.fromJson(plan.toJson()).colours).toEqual([{ id: "blue", value: "123abc" }]);
+    expect(Plan.fromJson(plan.toJson()).colours).toEqual([{ id: "blue", name: "White", value: "123abc" }]);
     expect(editor.deleteColour(plan.colours[0]).ok).toBe(true);
     expect(plan.toJson().colours).toBeUndefined();
   });

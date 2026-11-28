@@ -128,8 +128,8 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
     const path = `colours[${index}]`;
     if (!isValid(validateColour, value, path, warnings)) return;
     if (duplicate(colourIds, value.id, "colour id", path, warnings)) return;
-    colours.push({ id: value.id, value: value.value,
-      ...(value.description === undefined ? {} : { description: value.description }) });
+    colours.push({ id: value.id, name: value.name,
+      ...(value.description === undefined ? {} : { description: value.description }), value: value.value });
   });
 
   const fences: JsonFence[] = [];

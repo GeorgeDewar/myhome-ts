@@ -189,12 +189,52 @@
   gap: 12px;
 }
 
-.colours-dialog-detail label {
+.colours-dialog-detail label,
+.colours-dialog-field {
   display: grid;
   gap: 4px;
   color: #486581;
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+.colours-dialog-labelrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 18px;
+}
+
+.colours-dialog-badge {
+  height: 18px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 9px;
+  color: #2680c2;
+  background: #e3ebf3;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+button.colours-dialog-link {
+  padding: 0;
+  border: 0;
+  color: #2680c2;
+  background: none;
+  font-size: inherit;
+  font-weight: 600;
+}
+
+.colours-dialog-warning {
+  color: #b44d00;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.colours-dialog-detail input[readonly] {
+  border-color: #d9e2ec;
+  color: #486581;
+  background: #f0f4f8;
 }
 
 .colours-dialog-detail input:not([type="color"]),
