@@ -18,6 +18,24 @@
         "bearing": { "type": "number", "minimum": 0, "exclusiveMaximum": 360 }
       }
     },
+    "colours": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "Definition of a colour that can be referenced by items in the plan",
+        "required": ["id", "value"],
+        "unevaluatedProperties": false,
+        "properties": {
+          "id": { "type": "string", "description": "Unique identifier for the colour" },
+          "description": {
+            "type": "string",
+            "description": "Description of the colour and its intended use",
+            "examples": ["Used as the wall colour in most rooms"]
+          },
+          "value": { "type": "string", "description": "Hexadecimal value of the colour" }
+        }
+      }
+    },
     "fences": {
       "type": "array",
       "items": {
