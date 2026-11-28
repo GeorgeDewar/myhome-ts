@@ -250,6 +250,8 @@ describe("property drafts", () => {
     expect(applyPropertyDraft(next, editor)).toEqual({});
     expect(window.toJson().sash).toEqual({ depth: 30 });
     expect(notify).toHaveBeenCalledTimes(2);
+    expect(editor.updateWindow(window, { sash: { widthTop: null, depth: null } }).ok).toBe(true);
+    expect(window.toJson()).not.toHaveProperty("sash");
   });
 
   it("switches to direct glazing without saving hidden sash overrides", () => {
@@ -367,8 +369,8 @@ describe("property drafts", () => {
     const next = createPropertyDraft({ kind: "wall", item: wall });
     next.values = { ...next.values, virtual: false };
     expect(applyPropertyDraft(next, editor)).toEqual({});
-    expect(wall.toJson().virtual).toBe(false);
-    expect(Plan.fromJson(plan.toJson()).buildings[0].levels[0].walls[0].virtual).toBe(false);
+    expect(wall.toJson()).not.toHaveProperty("virtual");
+    expect(Plan.fromJson(plan.toJson()).buildings[0].levels[0].walls[0].virtual).toBeUndefined();
     expect(notify).toHaveBeenCalledTimes(2);
   });
 
@@ -404,7 +406,7 @@ describe("property drafts", () => {
     const next = createPropertyDraft({ kind: "wall", item: wall });
     next.values = { ...next.values, attic: false };
     expect(applyPropertyDraft(next, editor)).toEqual({});
-    expect(wall.toJson().attic).toBe(false);
+    expect(wall.toJson()).not.toHaveProperty("attic");
     expect(notify).toHaveBeenCalledTimes(2);
     level.walls.pop();
     next.values = { ...next.values, attic: false };

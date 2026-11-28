@@ -489,12 +489,11 @@ export class PlanEditor {
       wall.to = Point2D.fromJson(update.end);
       changed = true;
     }
-    if (update.virtual !== undefined && update.virtual !== wall.virtual) {
-      wall.virtual = update.virtual;
-      changed = true;
-    }
-    if (update.attic !== undefined && update.attic !== wall.attic) {
-      wall.attic = update.attic;
+    // Turning a flag off removes it, as false is the default.
+    for (const flag of ["virtual", "attic"] as const) {
+      const value = update[flag];
+      if (value === undefined || (value || undefined) === wall[flag]) continue;
+      wall[flag] = value || undefined;
       changed = true;
     }
 
@@ -710,6 +709,7 @@ export class PlanEditor {
       if (value === null) {
         if (window.sash?.[field] !== undefined) {
           delete window.sash[field];
+          if (Object.keys(window.sash).length === 0) window.sash = undefined;
           changed = true;
         }
       } else if (window.sash?.[field]?.metres !== value / 1000) {
