@@ -92,7 +92,7 @@ export type JsonStandardDoor = JsonItemGeometry & {
   swingDirection: "in" | "out";
 } & JsonDoorProperties;
 
-export type JsonSash = { widthTop?: number; widthRight?: number; widthBottom?: number; widthLeft?: number; depth?: number };
+export type JsonSash = { colour?: JsonColourRef; widthTop?: number; widthRight?: number; widthBottom?: number; widthLeft?: number; depth?: number };
 export type JsonWindow = JsonItemGeometry & {
   type: "Window";
   windowType: WindowType;

@@ -30,7 +30,7 @@ const buildPlan = (overrides: Partial<JsonPlan> = {}) =>
       exteriorTrim: { colour: "green", sillColour: "brown" },
       exteriorDoor: { colour: "green", thickness: 45 },
       interiorDoor: { colour: "white", thickness: 35 },
-      window: { sash: { depth: 40 } },
+      window: { sash: { depth: 40, colour: "white" } },
     },
     buildings: [
       {
@@ -177,6 +177,23 @@ describe("openings", () => {
     expect(opening.doorThickness(sliding).metres).toBe(0.035);
   });
 
+  it("resolves the sash colour from the window, then defaults, independently of dimensions", () => {
+    const opening = withOpening(0, { contents: [
+      { type: "Window", windowType: "awning", sash: { widthTop: 60 } },
+      { type: "Window", windowType: "awning", sash: { colour: "blue" } },
+    ] });
+    const [plain, blue] = opening.contents;
+    if (plain.type !== "Window" || blue.type !== "Window") throw new Error("Expected windows");
+    const level = opening.wall!.level!;
+    expect(opening.sashColour(plain)).toBe("white");
+    level.defaults = { window: { sash: { colour: "green", depth: 50 } } };
+    expect(opening.sashColour(plain)).toBe("green");
+    expect(opening.sashColour(blue)).toBe("blue");
+    expect(opening.sashDimension(blue, "depth")).toBe(50);
+    expect(opening.colourValue("green")).toBe("00AA00");
+    expect(opening.colourValue("unknown")).toBeUndefined();
+  });
+
   it("resolves sash dimensions from the window item, then defaults, then 35mm", () => {
     const opening = withOpening(0, { contents: [{ type: "Window", windowType: "awning", sash: { widthTop: 60 } }] });
     const window = opening.contents[0];
@@ -202,7 +219,10 @@ describe("round-tripping and validation", () => {
           width: 900,
           distanceAlongWall: 2000,
           faceA: { trim: { colour: "white", sillColour: "green" } },
-          contents: [{ type: "SlidingDoor", colour: "blue", thickness: 40 }],
+          contents: [
+            { type: "SlidingDoor", colour: "blue", thickness: 40 },
+            { type: "Window", windowType: "fixed", sash: { colour: "green", depth: 40 } },
+          ],
         },
       ],
     } as never;

@@ -18,6 +18,11 @@ import { windowTypes } from "../model/windowTypes";
 const DEFAULT_LEVEL_HEIGHT = 2.4;
 const DEFAULT_FENCE_HEIGHT = 1.8;
 
+const DEFAULT_ITEM_COLOUR = 0xa57952;
+
+const hexColour = (value: string | undefined, fallback: number) =>
+  value === undefined ? fallback : Number.parseInt(value, 16);
+
 const box = (
   parent: THREE.Group,
   size: [number, number, number],
@@ -120,19 +125,20 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
       if (width <= 0 || itemHeight <= 0) continue;
       if (item.type === "SlidingDoor") {
         const leafThickness = opening.doorThickness(item).metres;
+        const doorColour = hexColour(opening.colourValue(opening.doorColour(item)), DEFAULT_ITEM_COLOUR);
         const leafWidth = width * 0.55;
         box(
           group,
           [leafWidth, itemHeight, leafThickness],
           [itemLeft + leafWidth / 2, (itemBottom + itemTop) / 2, -leafThickness / 2],
-          0xa57952,
+          doorColour,
           selectionTargetForOpeningItem(item, opening),
         );
         box(
           group,
           [leafWidth, itemHeight, leafThickness],
           [itemRight - leafWidth / 2, (itemBottom + itemTop) / 2, leafThickness / 2],
-          0xa57952,
+          doorColour,
           selectionTargetForOpeningItem(item, opening),
         );
       } else if (item.type === "StandardDoor") {
@@ -142,13 +148,14 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
         const dx = direction * Math.cos(sweep);
         const dz = direction * Math.sin(sweep);
         const thickness = opening.doorThickness(item).metres;
+        const doorColour = hexColour(opening.colourValue(opening.doorColour(item)), DEFAULT_ITEM_COLOUR);
         const hinge = leftHinged ? itemLeft : itemRight;
         const hingeDepth = (item.swingDirection === "out" ? -1 : 1) * wall.width.metres / 2;
         const mesh = box(
           group,
           [width, itemHeight, thickness],
           [hinge + dx * width / 2 + dz * thickness / 2, (itemBottom + itemTop) / 2, hingeDepth + dz * width / 2 - dx * thickness / 2],
-          0xa57952,
+          doorColour,
           selectionTargetForOpeningItem(item, opening),
         );
         mesh.rotation.y = -Math.atan2(dz, dx);
@@ -175,6 +182,7 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
           const originX = openingLeft + rect.x / 1000;
           const originY = openingTop - rect.y / 1000;
           const depth = opening.sashDimension(item, "depth") / 1000;
+          const sashColour = hexColour(opening.colourValue(opening.sashColour(item)), DEFAULT_ITEM_COLOUR);
           for (const [x0, y0, x1, y1] of [
             [0, 0, fullWidth, frameTop],
             [0, frameBottom, fullWidth, fullHeight],
@@ -190,7 +198,7 @@ const wallGroup = (wall: Wall, height: number, elevation: number) => {
               group,
               [xMax - xMin, yMax - yMin, depth],
               [(xMin + xMax) / 2, (yMin + yMax) / 2, 0],
-              0xa57952,
+              sashColour,
               selectionTargetForOpeningItem(item, opening),
             );
           }

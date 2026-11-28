@@ -32,7 +32,7 @@ export const resolveTrimColour = (
   return undefined;
 };
 
-export const resolveSashDimension = (scopes: DefaultsScopes, field: keyof JsonSash) => {
+export const resolveSashProperty = <F extends keyof JsonSash>(scopes: DefaultsScopes, field: F): JsonSash[F] | undefined => {
   for (const scope of scopes) {
     const value = scope?.window?.sash?.[field];
     if (value !== undefined) return value;

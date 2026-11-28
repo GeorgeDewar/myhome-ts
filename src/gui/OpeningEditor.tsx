@@ -137,6 +137,15 @@ export const OpeningEditor = ({
             {opening.contents.map((item, index) => {
               const rectangle = rectangles[index];
               const target = selectionTargetForOpeningItem(item, opening);
+              const colourFill = (id: string | undefined, fallback: string) => {
+                const value = opening.colourValue(id);
+                return value === undefined ? fallback : `#${value}`;
+              };
+              const doorFill = colourFill(
+                item.type === "StandardDoor" || item.type === "SlidingDoor" ? opening.doorColour(item) : undefined,
+                "#cdb496",
+              );
+              const sashFill = colourFill(item.type === "Window" ? opening.sashColour(item) : undefined, "#a97956");
               const hasSash = item.type === "Window" && windowTypes[item.windowType].sashRequired;
               const sashSize = (field: SashField) =>
                 item.type === "Window" ? opening.sashDimension(item, field) : 0;
@@ -169,11 +178,11 @@ export const OpeningEditor = ({
                   }
                 }}>
                 <rect {...rectangle}
-                  fill={item.type === "Post" ? "#a97956" : item.type === "Window" ? "#a4cedd" : "#cdb496"}
+                  fill={item.type === "Post" ? "#a97956" : item.type === "Window" ? "#a4cedd" : doorFill}
                   fillOpacity="0.7" />
                 {hasSash && <path
                   d={`M ${rectangle.x} ${rectangle.y} h ${rectangle.width} v ${rectangle.height} h ${-rectangle.width} Z M ${rectangle.x + left} ${rectangle.y + top} H ${rectangle.x + right} V ${rectangle.y + bottom} H ${rectangle.x + left} Z`}
-                  fill="#a97956" fillRule="evenodd" pointerEvents="none" />}
+                  fill={sashFill} fillRule="evenodd" pointerEvents="none" />}
                 <rect {...rectangle} fill="none" stroke={selected.item === item ? "#d64545" : "#486581"}
                   strokeWidth={selected.item === item ? 3 : 1} vectorEffect="non-scaling-stroke" pointerEvents="none" />
               </g>;

@@ -157,6 +157,42 @@ describe("3D plan geometry", () => {
     disposePlanGeometry(group);
   });
 
+  it("colours doors and sashes from their own colour or the defaults, falling back to the built-in colour", () => {
+    const plan = Plan.fromJson({
+      colours: [{ id: "red", name: "Red", value: "FF0000" }, { id: "blue", name: "Blue", value: "0000FF" }],
+      defaults: { interiorDoor: { colour: "red" }, exteriorDoor: { colour: "red" }, window: { sash: { colour: "blue" } } },
+      buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
+        id: "wall", start: [0, 0], end: [4000, 0], openings: [{
+          id: "opening", width: 3000, distanceAlongWall: 1500,
+          contents: [
+            { type: "StandardDoor", hingeSide: "left", swingDirection: "in", x: 0, width: 800 },
+            { type: "SlidingDoor", colour: "blue", x: 800, width: 800 },
+            { type: "Window", windowType: "fixed", x: 1600, width: 700 },
+            { type: "Window", windowType: "fixed", x: 2300, width: 700, sash: { colour: "red" } },
+          ],
+        }],
+      }] }] }],
+    });
+    const [door, slidingDoor, window, redSash] = plan.buildings[0].levels[0].walls[0].openings[0].contents;
+    const group = createPlanGeometry(plan);
+    const colour = (mesh: THREE.Mesh) => (mesh.material as THREE.MeshStandardMaterial).color.getHex();
+    expect(colour(meshesFor(group, door)[0])).toBe(0xff0000);
+    expect(colour(meshesFor(group, slidingDoor)[0])).toBe(0x0000ff);
+    expect(colour(meshesFor(group, window)[1])).toBe(0x0000ff);
+    expect(colour(meshesFor(group, redSash)[1])).toBe(0xff0000);
+    disposePlanGeometry(group);
+
+    const plain = Plan.fromJson({ buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
+      id: "wall", start: [0, 0], end: [4000, 0], openings: [{
+        id: "opening", width: 1000, distanceAlongWall: 1500,
+        contents: [{ type: "StandardDoor", hingeSide: "left", swingDirection: "in" }],
+      }],
+    }] }] }] });
+    const plainGroup = createPlanGeometry(plain);
+    expect(colour(meshesFor(plainGroup, plain.buildings[0].levels[0].walls[0].openings[0].contents[0])[0])).toBe(0xa57952);
+    disposePlanGeometry(plainGroup);
+  });
+
   it.each([
     ["left", "in", 0], ["left", "in", 45], ["left", "in", 90], ["left", "in", 180],
     ["left", "out", 45], ["right", "in", 45], ["right", "out", 45],

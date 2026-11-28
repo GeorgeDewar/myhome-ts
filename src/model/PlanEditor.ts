@@ -711,8 +711,9 @@ export class PlanEditor {
       window.windowType = update.windowType;
       changed = true;
     }
-    if (!windowTypes[windowType].sashRequired && window.sash !== undefined) {
+    if (!windowTypes[windowType].sashRequired && (window.sash !== undefined || window.sashColour !== undefined)) {
       window.sash = undefined;
+      window.sashColour = undefined;
       changed = true;
     }
     for (const field of sashFields) {

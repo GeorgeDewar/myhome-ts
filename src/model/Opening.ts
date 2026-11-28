@@ -1,5 +1,5 @@
 import { Distance } from "./geom/Distance";
-import { resolveDefault, resolveSashDimension, resolveTrimColour } from "./defaults";
+import { resolveDefault, resolveSashProperty, resolveTrimColour } from "./defaults";
 import type { JsonItemGeometry, JsonOpening, JsonOpeningFace, JsonOpeningItem, JsonSash } from "./json/Document";
 import type { Wall, WallFace } from "./Wall";
 import type { WindowType } from "./windowTypes";
@@ -10,7 +10,7 @@ const DEFAULT_DOOR_THICKNESS_METRES = 0.035;
 export const DEFAULT_OPENING_HEIGHT_METRES = 2.1;
 export const DEFAULT_SASH_DIMENSION_MM = 35;
 export const sashFields = ["widthTop", "widthRight", "widthBottom", "widthLeft", "depth"] as const;
-export type SashField = keyof JsonSash;
+export type SashField = (typeof sashFields)[number];
 
 class ItemGeometry {
   x?: Distance;
@@ -78,12 +78,14 @@ export class StandardDoor extends ItemGeometry {
 export class Window extends ItemGeometry {
   readonly type = "Window" as const;
   sash?: Partial<Record<SashField, Distance>>;
+  sashColour?: string;
 
   constructor(public windowType: WindowType) { super(); }
 
   static fromJson(json: Extract<JsonOpeningItem, { type: "Window" }>) {
     const item = new Window(json.windowType);
     item.loadGeometry(json);
+    item.sashColour = json.sash?.colour;
     if (json.sash !== undefined) {
       item.sash = {};
       for (const field of sashFields) {
@@ -95,13 +97,13 @@ export class Window extends ItemGeometry {
   }
 
   toJson(): Extract<JsonOpeningItem, { type: "Window" }> {
-    const sash: JsonSash = {};
+    const sash: JsonSash = this.sashColour === undefined ? {} : { colour: this.sashColour };
     for (const field of sashFields) {
       const value = this.sash?.[field];
       if (value !== undefined) sash[field] = value.toJson();
     }
     return { type: this.type, windowType: this.windowType, ...this.geometryJson(),
-      ...(this.sash === undefined ? {} : { sash }) };
+      ...(this.sash === undefined && this.sashColour === undefined ? {} : { sash }) };
   }
 }
 
@@ -237,7 +239,17 @@ export class Opening {
   }
 
   sashDimension(window: Window, field: SashField) {
-    return window.sash?.[field]?.toJson() ?? resolveSashDimension(this.levelScopes(), field) ?? DEFAULT_SASH_DIMENSION_MM;
+    return window.sash?.[field]?.toJson() ?? resolveSashProperty(this.levelScopes(), field) ?? DEFAULT_SASH_DIMENSION_MM;
+  }
+
+  sashColour(window: Window) {
+    return window.sashColour ?? resolveSashProperty(this.levelScopes(), "colour");
+  }
+
+  // The colour's six-digit hex value (without #) if the colour id is defined in the plan
+  colourValue(id: string | undefined) {
+    const value = id === undefined ? undefined : this.wall?.level?.building?.plan?.colours.find((c) => c.id === id)?.value;
+    return value !== undefined && /^[0-9a-fA-F]{6}$/.test(value) ? value : undefined;
   }
 
   trimColour(face: WallFace, property: "colour" | "sillColour") {

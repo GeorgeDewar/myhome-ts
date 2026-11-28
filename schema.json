@@ -406,6 +406,7 @@
       "type": "object",
       "unevaluatedProperties": false,
       "properties": {
+        "colour": { "$ref": "#/$defs/colourRef", "description": "Colour of the sash" },
         "widthTop": {
           "type": "number",
           "exclusiveMinimum": 0,
