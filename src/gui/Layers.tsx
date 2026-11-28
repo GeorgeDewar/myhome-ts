@@ -17,8 +17,7 @@ export const Layers = ({
   visibility: LayerVisibility;
   onChange: (visibility: LayerVisibility) => void;
 }) => (
-  <section aria-labelledby="layers-heading">
-    <div className="panel-heading" id="layers-heading">Layers</div>
+  <section aria-label="Layers">
     <div className="layer-description">2D plan visibility</div>
     <div className="layer-list">
       {layers.map(({ id, label }) => (

@@ -1,0 +1,49 @@
+.side-panel {
+  border-bottom: 1px solid #e3eaf1;
+}
+.side-panel-header {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px 4px 6px;
+}
+.side-panel-title {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border: 0;
+  color: #486581;
+  background: transparent;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+.side-panel-close {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  color: #829ab1;
+  background: transparent;
+  cursor: pointer;
+}
+.side-panel-title:hover:not(:disabled),
+.side-panel-close:hover:not(:disabled) {
+  color: #102a43;
+  background: #eaf2f8;
+}
+.side-panel-title:disabled,
+.side-panel-close:disabled {
+  color: #bcccdc;
+  cursor: default;
+}
+.side-panel-body > nav {
+  padding-bottom: 8px;
+}

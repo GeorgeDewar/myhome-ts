@@ -35,7 +35,7 @@ Positional data will be stored in integer millimetres at rest, and in floating p
 
 Empty optional arrays are omitted when saving; required arrays are retained.
 
-The toolbar's Download JSON button exports the current plan as a JSON file.
+The File menu's Download JSON item exports the current plan as a JSON file.
 
 ### Schema
 
@@ -116,7 +116,7 @@ Clicking a level in the Plan Explorer switches the current view to show that lev
 
 ### Editing
 
-A toolbar provides editing tools including:
+The Add menu provides editing tools including:
 - Create wall
 - Create opening
 - Create room (by clicking inside an enclosed space - eligible spaces will be highlighted)

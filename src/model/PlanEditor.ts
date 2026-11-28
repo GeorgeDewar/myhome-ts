@@ -5,6 +5,7 @@ import { Fence } from "./Fence";
 import type { JsonColour, JsonGeoreference, JsonPosition, JsonRoomLabel } from "./json/Document";
 import type { Level } from "./Level";
 import { DEFAULT_OPENING_HEIGHT_METRES, Opening, Post, SlidingDoor, StandardDoor, Window, sashFields, type OpeningItem, type SashField } from "./Opening";
+import { placeOpeningOnWall } from "./geom/openingPlacement";
 import { defaultItemRectangle, itemGeometry, itemRectangle, openingSize, type ItemGeometry, type ItemRectangle } from "./geom/openingArrangement";
 import type { Plan } from "./Plan";
 import type { Room } from "./Room";
@@ -214,6 +215,13 @@ export class PlanEditor {
     wall.openings.push(opening);
     this.onChange();
     return { ok: true, item: opening };
+  }
+
+  // Height and distance from floor are left unset so that their defaults apply.
+  addOpeningAt(wall: Wall, distanceAlongWall: number): AddResult<Opening> {
+    const placement = placeOpeningOnWall(wall, distanceAlongWall);
+    if (!placement) return { ok: false, error: "There is no room for an opening there." };
+    return this.addOpening(wall, placement.width, placement.distanceAlongWall);
   }
 
   addOpeningItem(opening: Opening, type: OpeningItem["type"], geometry?: ItemRectangle): AddResult<OpeningItem> {

@@ -2,12 +2,14 @@ import { difference, union } from "polygon-clipping";
 import type { LayerVisibility } from "../gui/Layers";
 import { isSelectionTarget, type SelectionState, type SelectionTarget } from "../gui/selection";
 import type { Fence } from "../model/Fence";
-import type { Opening, OpeningItem, SlidingDoor, StandardDoor } from "../model/Opening";
+import { Opening, type OpeningItem, type SlidingDoor, type StandardDoor } from "../model/Opening";
 import type { Room } from "../model/Room";
 import type { Wall } from "../model/Wall";
 import type { JsonGeoreference } from "../model/json/Document";
+import { Distance } from "../model/geom/Distance";
 import { doorSweep } from "../model/geom/doorSweep";
 import { itemRectangle } from "../model/geom/openingArrangement";
+import { DEFAULT_NEW_OPENING_WIDTH_MM, placeOpeningOnWall, wallLengthMillimetres } from "../model/geom/openingPlacement";
 import { roomPolygon } from "../model/geom/roomPolygon";
 import { planToGeographic, referenceAt } from "./georeference";
 import { drawMultiPolygon, slidingDoorLeaves, toPoint, toPolygon } from "./renderPolygons";
@@ -59,6 +61,42 @@ const openingPolygon = (wall: Wall, opening: Opening) => {
     { x: end.x - normal.x * halfWallWidth, y: end.y - normal.y * halfWallWidth },
     { x: start.x - normal.x * halfWallWidth, y: start.y - normal.y * halfWallWidth },
   ];
+};
+
+export type WallPosition = { wall: Wall; distance: number };
+
+// The wall whose body is under the point, with the distance along it in millimetres.
+export const wallPositionAtPoint = (walls: Wall[], point: Point, tolerance: number): WallPosition | undefined => {
+  let best: (WallPosition & { offset: number }) | undefined;
+  for (const wall of walls) {
+    const from = toPoint(wall.from);
+    const to = toPoint(wall.to);
+    const length = Math.hypot(to.x - from.x, to.y - from.y);
+    const dx = (to.x - from.x) / length;
+    const dy = (to.y - from.y) / length;
+    const along = (point.x - from.x) * dx + (point.y - from.y) * dy;
+    const offset = Math.abs((point.x - from.x) * dy - (point.y - from.y) * dx);
+    if (along < 0 || along > length || offset > wall.width.metres / 2 + tolerance) continue;
+    if (!best || offset < best.offset) best = { wall, distance: along * 1000, offset };
+  }
+  return best && { wall: best.wall, distance: best.distance };
+};
+
+// Shows where a click would place an opening, or a red marker if there is no room.
+export const drawOpeningPreview = (context: CanvasRenderingContext2D, hit: WallPosition, scale: number) => {
+  const placement = placeOpeningOnWall(hit.wall, hit.distance);
+  const centre = placement?.distanceAlongWall ??
+    Math.min(Math.max(hit.distance, 0), wallLengthMillimetres(hit.wall));
+  const width = placement?.width ?? DEFAULT_NEW_OPENING_WIDTH_MM;
+  const polygon = openingPolygon(hit.wall, new Opening("preview", Distance.fromJson(width), Distance.fromJson(centre)));
+  drawPolygon(context, polygon);
+  context.fillStyle = placement ? "rgba(38, 128, 194, 0.35)" : "rgba(214, 69, 69, 0.35)";
+  context.fill();
+  context.strokeStyle = placement ? "#2680c2" : "#d64545";
+  context.lineWidth = 2 / scale;
+  context.setLineDash([5 / scale, 3 / scale]);
+  context.stroke();
+  context.setLineDash([]);
 };
 
 const drawPolygon = (context: CanvasRenderingContext2D, points: Point[]) => {

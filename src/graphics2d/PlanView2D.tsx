@@ -11,9 +11,11 @@ import type { JsonPosition } from "../model/json/Document";
 import type { PlanEditor } from "../model/PlanEditor";
 import type { Room } from "../model/Room";
 import type { Opening } from "../model/Opening";
+import type { Wall } from "../model/Wall";
 import {
   doubleClickSelection, drawFences, drawGrid, drawOpenings, drawSelection, drawWalls,
-  isVisibleTarget, mapRotationHandle, rotateMapFromDrag, selectionAtPoint, targetsAtPoint, visibleWalls,
+  drawOpeningPreview, isVisibleTarget, mapRotationHandle, rotateMapFromDrag, selectionAtPoint, targetsAtPoint,
+  visibleWalls, wallPositionAtPoint, type WallPosition,
 } from "./planView2DHelpers";
 import { toPoint } from "./renderPolygons";
 import {
@@ -29,6 +31,7 @@ import "./PlanView2D.css";
 type Point = { x: number; y: number };
 type Viewport = { offsetX: number; offsetY: number; scale: number };
 
+export type PlanTool = "wall" | "fence" | "opening";
 export type PlanView2DStatus = { cursor: Point; offset: Point; scale: number };
 export type MapAlignment = {
   reference: JsonGeoreference;
@@ -48,8 +51,9 @@ export const PlanView2D = ({
   onToggleOpening,
   onEdit,
   onContextMenu,
-  drawingWall,
-  onDrawWall,
+  tool,
+  onDrawLine,
+  onPlaceOpening,
   editPlan,
   version,
   baseMap,
@@ -64,8 +68,9 @@ export const PlanView2D = ({
   onToggleOpening: (opening: Opening) => void;
   onEdit: (target: SelectionTarget) => void;
   onContextMenu: (target: SelectionTarget, x: number, y: number) => boolean;
-  drawingWall: boolean;
-  onDrawWall: (start: JsonPosition, end: JsonPosition) => boolean;
+  tool?: PlanTool;
+  onDrawLine: (tool: "wall" | "fence", start: JsonPosition, end: JsonPosition) => boolean;
+  onPlaceOpening: (wall: Wall, distanceAlongWall: number) => boolean;
   editPlan: PlanEditor;
   version: number;
   baseMap?: { settings: BaseMapSettings; reference: JsonGeoreference; status: PlanView2DStatus };
@@ -84,9 +89,10 @@ export const PlanView2D = ({
 
   useEffect(() => { renderRef.current(); }, [alignment]);
 
+  const drawingLine = tool === "wall" || tool === "fence";
   useEffect(() => {
-    if (!drawingWall) wallStartRef.current = undefined;
-  }, [drawingWall]);
+    if (!drawingLine) wallStartRef.current = undefined;
+  }, [drawingLine]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -116,6 +122,8 @@ export const PlanView2D = ({
       update?: JsonRoomLabel;
     } | undefined;
     let cursor = { x: 0, y: 0 };
+    let openingHover: WallPosition | undefined;
+    const hoverTolerance = () => 6 / viewport.scale;
 
     const worldPoint = (event: MouseEvent | PointerEvent) => {
       const bounds = canvas.getBoundingClientRect();
@@ -190,7 +198,8 @@ export const PlanView2D = ({
           if (layout) drawRoomLabel(context, layout, selectedLabelRef.current === room, viewport.scale);
         }
       }
-      if (drawingWall && wallStartRef.current) {
+      if (tool === "opening" && openingHover) drawOpeningPreview(context, openingHover, viewport.scale);
+      if (drawingLine && wallStartRef.current) {
         context.beginPath();
         context.moveTo(wallStartRef.current[0] / 1000, wallStartRef.current[1] / 1000);
         context.lineTo(cursor.x, cursor.y);
@@ -253,7 +262,7 @@ export const PlanView2D = ({
         canvas.setPointerCapture(event.pointerId);
         return;
       }
-      if (!drawingWall && layerVisibility.roomLabels && !event.metaKey) {
+      if (!tool && layerVisibility.roomLabels && !event.metaKey) {
         const point = worldPoint(event);
         const selected = selectedLabelRef.current;
         const room = active?.kind === "room" || active?.kind === "roomLabel" ? active.item : undefined;
@@ -321,7 +330,8 @@ export const PlanView2D = ({
         reportStatus();
         return;
       }
-      if (drawingWall) {
+      if (tool) {
+        if (tool === "opening") openingHover = wallPositionAtPoint(walls, cursor, hoverTolerance());
         render();
         reportStatus();
         return;
@@ -387,12 +397,18 @@ export const PlanView2D = ({
             x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
             y: (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
           };
-          if (drawingWall) {
+          if (tool === "wall" || tool === "fence") {
             cursor = point;
             const position: JsonPosition = [Math.round(point.x * 1000), Math.round(point.y * 1000)];
             if (!wallStartRef.current) wallStartRef.current = position;
-            else if (onDrawWall(wallStartRef.current, position)) wallStartRef.current = undefined;
+            else if (onDrawLine(tool, wallStartRef.current, position)) wallStartRef.current = undefined;
             render();
+            dragOrigin = undefined;
+            return;
+          }
+          if (tool === "opening") {
+            const hit = wallPositionAtPoint(walls, point, hoverTolerance());
+            if (hit) onPlaceOpening(hit.wall, hit.distance);
             dragOrigin = undefined;
             return;
           }
@@ -425,8 +441,13 @@ export const PlanView2D = ({
       labelDrag = undefined;
       render();
     };
+    const pointerLeave = () => {
+      if (!openingHover) return;
+      openingHover = undefined;
+      render();
+    };
     const doubleClick = (event: MouseEvent) => {
-      if (drawingWall || alignmentRef.current) return;
+      if (tool || alignmentRef.current) return;
       const before = doubleClickStartRef.current ?? selection;
       doubleClickStartRef.current = undefined;
       const priorActive = before.targets[before.activeIndex];
@@ -450,7 +471,7 @@ export const PlanView2D = ({
       if (activeTarget) onEdit(activeTarget);
     };
     const contextMenu = (event: MouseEvent) => {
-      if (drawingWall || alignmentRef.current) return;
+      if (tool || alignmentRef.current) return;
       const bounds = canvas.getBoundingClientRect();
       const point = {
         x: (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
@@ -498,6 +519,7 @@ export const PlanView2D = ({
     canvas.addEventListener("pointermove", pointerMove);
     canvas.addEventListener("pointerup", pointerUp);
     canvas.addEventListener("pointercancel", pointerCancel);
+    canvas.addEventListener("pointerleave", pointerLeave);
     canvas.addEventListener("dblclick", doubleClick);
     canvas.addEventListener("contextmenu", contextMenu);
     canvas.addEventListener("wheel", wheel, { passive: false });
@@ -512,16 +534,17 @@ export const PlanView2D = ({
       canvas.removeEventListener("pointermove", pointerMove);
       canvas.removeEventListener("pointerup", pointerUp);
       canvas.removeEventListener("pointercancel", pointerCancel);
+      canvas.removeEventListener("pointerleave", pointerLeave);
       canvas.removeEventListener("dblclick", doubleClick);
       canvas.removeEventListener("contextmenu", contextMenu);
       canvas.removeEventListener("wheel", wheel);
       canvas.style.cursor = "";
     };
-  }, [drawingWall, editPlan, layerVisibility, level, onContextMenu, onDrawWall, onEdit, onSelectionChange, onStatusChange, onToggleRoom, onToggleOpening, plan, selection, version]);
+  }, [tool, drawingLine, editPlan, layerVisibility, level, onContextMenu, onDrawLine, onPlaceOpening, onEdit, onSelectionChange, onStatusChange, onToggleRoom, onToggleOpening, plan, selection, version]);
 
   return <div className="plan-view-host">
     {baseMap && <BaseMap {...baseMap} rooms={plan?.getRoomsOnLevel(level) ?? []} version={version} level={level} />}
-    <canvas className={`plan-view-2d${drawingWall ? " is-drawing" : ""}`} ref={canvasRef} tabIndex={0} />
+    <canvas className={`plan-view-2d${tool ? " is-drawing" : ""}`} ref={canvasRef} tabIndex={0} />
     {layerVisibility.compass && <Compass bearing={alignment?.reference.bearing ?? plan?.georeference?.bearing} />}
   </div>;
 };

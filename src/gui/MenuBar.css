@@ -1,0 +1,125 @@
+.menubar-bar {
+  display: flex;
+  height: 42px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  color: #243b53;
+  background: #ffffff;
+  border-bottom: 1px solid #d9e2ec;
+}
+.menubar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 0 4px;
+  font-weight: 700;
+}
+.menubar {
+  display: flex;
+  gap: 2px;
+}
+.menubar-trigger {
+  padding: 6px 11px;
+  border: 0;
+  border-radius: 5px;
+  color: #243b53;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.menubar-trigger:hover,
+.menubar-trigger[data-state="open"],
+.menubar-trigger:focus-visible {
+  background: #eaf2f8;
+  outline: none;
+}
+.menubar-divider {
+  width: 1px;
+  height: 24px;
+  margin: 0 6px;
+  background: #d9e2ec;
+}
+.menu-content {
+  z-index: 40;
+  min-width: 240px;
+  padding: 4px;
+  color: #243b53;
+  background: #ffffff;
+  border: 1px solid #bcccdc;
+  border-radius: 7px;
+  box-shadow: 0 8px 24px #102a4330;
+  font-size: 0.85rem;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+  user-select: none;
+}
+.menu-item[data-highlighted] {
+  background: #edf6ff;
+  outline: none;
+}
+.menu-item[data-disabled] {
+  color: #bcccdc;
+  cursor: default;
+}
+.menu-item-indicator {
+  display: inline-flex;
+  width: 16px;
+  justify-content: center;
+}
+.menu-item-hint {
+  margin-left: auto;
+  padding-left: 16px;
+  color: #829ab1;
+  font-size: 0.72rem;
+}
+.menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: #e3eaf1;
+}
+.menu-label {
+  padding: 4px 10px;
+  color: #829ab1;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.level-switcher {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: #eaf0f6;
+  border-radius: 7px;
+}
+.level-switcher-label {
+  padding: 0 8px;
+  color: #627d98;
+  font-size: 0.75rem;
+}
+.level-switcher button {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 5px;
+  color: #486581;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.level-switcher button:hover {
+  background: #ffffff80;
+}
+.level-switcher button[aria-pressed="true"] {
+  color: #ffffff;
+  background: #2680c2;
+  font-weight: 600;
+}

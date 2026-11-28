@@ -6,80 +6,6 @@
   background: #f6f8fa;
 }
 
-.toolbar {
-  height: 48px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 14px;
-  color: #243b53;
-  background: #ffffff;
-  border-bottom: 1px solid #d9e2ec;
-}
-.toolbar-brand,
-.level-control,
-.status-bar {
-  display: flex;
-  align-items: center;
-}
-.toolbar-brand {
-  gap: 8px;
-  font-weight: 700;
-}
-.toolbar-divider {
-  width: 1px;
-  height: 24px;
-  background: #d9e2ec;
-}
-.level-control {
-  gap: 6px;
-}
-.level-label {
-  min-width: 130px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-.icon-button {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  border: 0;
-  color: #486581;
-  background: transparent;
-  cursor: pointer;
-}
-.icon-button:hover:not(:disabled) {
-  color: #102a43;
-  background: #eaf2f8;
-}
-.icon-button:disabled {
-  color: #bcccdc;
-  cursor: default;
-}
-.toolbar-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border: 0;
-  color: #486581;
-  background: transparent;
-  font: inherit;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-.toolbar-button:hover {
-  color: #102a43;
-  background: #eaf2f8;
-}
-.tooltip {
-  padding: 5px 8px;
-  border-radius: 4px;
-  color: #ffffff;
-  background: #243b53;
-  font-size: 0.75rem;
-}
 .load-warnings {
   max-height: 180px;
   overflow: auto;
@@ -105,6 +31,9 @@
   flex: 1;
   min-height: 0;
   grid-template-columns: 240px minmax(0, 1fr);
+}
+.workspace-full {
+  grid-template-columns: minmax(0, 1fr);
 }
 .view-host {
   display: flex;
@@ -143,8 +72,22 @@
   content: "";
 }
 .view-panel {
+  position: relative;
   min-height: 0;
   flex: 1;
+}
+.tool-hint {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 5;
+  padding: 5px 12px;
+  border-radius: 14px;
+  color: #ffffff;
+  background: #102a43;
+  font-size: 0.75rem;
+  pointer-events: none;
+  transform: translateX(-50%);
 }
 .view-panel[data-state="inactive"] {
   display: none;
@@ -193,6 +136,8 @@
   outline: none;
 }
 .status-bar {
+  display: flex;
+  align-items: center;
   min-height: 28px;
   gap: 16px;
   padding: 0 12px;
@@ -207,13 +152,6 @@
 @media (max-width: 700px) {
   .workspace {
     grid-template-columns: 176px minmax(0, 1fr);
-  }
-  .level-label {
-    min-width: 0;
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
   .status-bar span:nth-child(2),
   .status-bar span:nth-child(3) {

@@ -67,7 +67,6 @@ export const BaseMapControls = ({
   };
   return (
     <section className="basemap-controls" aria-label="Basemap">
-      <div className="panel-heading">Basemap</div>
       <label className="basemap-enabled">
         <input
           type="checkbox"

@@ -114,10 +114,6 @@
 .property-window-actions button:hover {
   background: #d9e2ec;
 }
-.create-window {
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
-}
 
 .property-window-embedded {
   position: static;

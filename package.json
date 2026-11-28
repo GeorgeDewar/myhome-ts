@@ -16,6 +16,7 @@
     "tauri:build": "tauri build"
   },
   "dependencies": {
+    "@radix-ui/react-menubar": "^1.2.1",
     "@radix-ui/react-tabs": "^1.1.21",
     "@radix-ui/react-tooltip": "^1.2.16",
     "@types/three": "^0.186.0",
