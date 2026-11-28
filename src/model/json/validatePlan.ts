@@ -6,6 +6,7 @@ import { Point2D } from "../geom/Point2D";
 import { DEFAULT_OPENING_HEIGHT_METRES, sashFields } from "../Opening";
 import type {
   JsonBuilding,
+  JsonColour,
   JsonFence,
   JsonGeoreference,
   JsonLevel,
@@ -16,8 +17,8 @@ import type {
   JsonWall,
 } from "./Document";
 
-type PlanShell = Omit<JsonPlan, "buildings" | "fences" | "georeference"> & {
-  buildings?: unknown[]; fences?: unknown[]; georeference?: unknown;
+type PlanShell = Omit<JsonPlan, "buildings" | "fences" | "georeference" | "colours"> & {
+  buildings?: unknown[]; fences?: unknown[]; colours?: unknown[]; georeference?: unknown;
 };
 type BuildingShell = Omit<JsonBuilding, "levels"> & { levels: unknown[] };
 type LevelShell = Omit<JsonLevel, "walls" | "rooms"> & { walls?: unknown[]; rooms?: unknown[] };
@@ -37,10 +38,11 @@ const shallowSchema = <T extends { properties: object }>(source: T, children: st
 };
 
 const validatePlan = ajv.compile<PlanShell>({
-  ...shallowSchema(schema, ["fences", "buildings"]),
-  properties: { ...schema.properties, fences: { type: "array" }, buildings: { type: "array" }, georeference: {} },
+  ...shallowSchema(schema, ["fences", "buildings", "colours"]),
+  properties: { ...schema.properties, fences: { type: "array" }, buildings: { type: "array" }, colours: { type: "array" }, georeference: {} },
 });
 const validateGeoreference = ajv.compile<JsonGeoreference>(schema.properties.georeference);
+const validateColour = ajv.compile<JsonColour>(schema.properties.colours.items);
 const validateFence = ajv.compile<JsonFence>({ ...schema.properties.fences.items, $defs: schema.$defs });
 const validateBuilding = ajv.compile<BuildingShell>(shallowSchema(buildingSchema, ["levels"]));
 const validateLevel = ajv.compile<LevelShell>(shallowSchema(levelSchema, ["walls", "rooms"]));
@@ -119,6 +121,16 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
   const georeference = input.georeference !== undefined &&
     isValid(validateGeoreference, input.georeference, "georeference", warnings)
     ? input.georeference : undefined;
+
+  const colours: JsonColour[] = [];
+  const colourIds = new Set<string>();
+  (input.colours ?? []).forEach((value, index) => {
+    const path = `colours[${index}]`;
+    if (!isValid(validateColour, value, path, warnings)) return;
+    if (duplicate(colourIds, value.id, "colour id", path, warnings)) return;
+    colours.push({ id: value.id, value: value.value,
+      ...(value.description === undefined ? {} : { description: value.description }) });
+  });
 
   const fences: JsonFence[] = [];
   const fenceIds = new Set<string>();
@@ -233,5 +245,5 @@ export const validatePlanJson = (input: unknown): { document: JsonPlan; warnings
     buildings.push({ ...buildingValue, levels });
   });
 
-  return { document: { ...input, georeference, fences, buildings }, warnings };
+  return { document: { ...input, georeference, colours, fences, buildings }, warnings };
 };

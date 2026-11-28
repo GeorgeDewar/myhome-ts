@@ -1,11 +1,12 @@
 import { Building } from "./Building";
 import { Fence } from "./Fence";
-import type { JsonGeoreference, JsonPlan } from "./json/Document";
+import type { JsonColour, JsonGeoreference, JsonPlan } from "./json/Document";
 import { validatePlanJson } from "./json/validatePlan";
 
 export class Plan {
   public buildings: Building[];
   public fences: Fence[];
+  public colours: JsonColour[];
   public georeference?: JsonGeoreference;
 
   constructor(
@@ -14,6 +15,7 @@ export class Plan {
   ) {
     this.buildings = [];
     this.fences = [];
+    this.colours = [];
   }
 
   static fromJson(input: unknown): Plan {
@@ -25,6 +27,7 @@ export class Plan {
     }
     plan.buildings = (document.buildings ?? []).map(Building.fromJson);
     plan.fences = (document.fences ?? []).map(Fence.fromJson);
+    plan.colours = (document.colours ?? []).map((colour) => ({ ...colour }));
     plan.buildings.forEach((building) => (building.plan = plan));
     return plan;
   }
@@ -33,6 +36,7 @@ export class Plan {
     return {
       ...(this.schema === undefined ? {} : { $schema: this.schema }),
       ...(this.georeference === undefined ? {} : { georeference: { ...this.georeference } }),
+      ...(this.colours.length > 0 ? { colours: this.colours.map((colour) => ({ ...colour })) } : {}),
       ...(this.fences.length > 0 ? { fences: this.fences.map((fence) => fence.toJson()) } : {}),
       ...(this.buildings.length > 0 ? { buildings: this.buildings.map((building) => building.toJson()) } : {}),
     };

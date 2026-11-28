@@ -1,0 +1,20 @@
+.colours-dialog {
+  width: min(36rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  padding: 0;
+  border: 1px solid #9fb3c8;
+  border-radius: 6px;
+}
+
+.colours-dialog::backdrop { background: rgb(0 0 0 / 35%); }
+.colours-dialog header { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 1rem; background: #e6edf3; }
+.colours-dialog h2, .colours-dialog h3 { margin: 0; font-size: 1rem; }
+.colours-dialog-body { padding: 1rem; }
+.colours-dialog ul { list-style: none; padding: 0; margin: 0 0 1rem; }
+.colours-dialog li { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.colour-swatch { width: 1.5rem; height: 1.5rem; flex: none; border: 1px solid #627d98; }
+.colour-details { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.colour-details small { display: block; }
+.colours-dialog form { display: grid; gap: 0.5rem; margin-top: 1rem; }
+.colours-dialog label { display: grid; gap: 0.2rem; }
+.colours-dialog-actions { display: flex; gap: 0.5rem; }

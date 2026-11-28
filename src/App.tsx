@@ -15,6 +15,7 @@ import { loadSettings, saveSettings } from "./gui/settingsStorage";
 import { CreateWindow, type CreateRequest } from "./gui/CreateWindow";
 import { PropertyWindow } from "./gui/PropertyWindow";
 import { OpeningEditor } from "./gui/OpeningEditor";
+import { ColoursDialog } from "./gui/ColoursDialog";
 import {
   isSelectionTarget,
   selectedTargets,
@@ -50,6 +51,7 @@ function App() {
   const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>(storedSettings.layerVisibility);
   const [editingTarget, setEditingTarget] = useState<SelectionTarget>();
   const [creating, setCreating] = useState<CreateRequest>();
+  const [managingColours, setManagingColours] = useState(false);
   const [drawingWall, setDrawingWall] = useState(false);
   const [baseMapSettings, setBaseMapSettings] = useState<BaseMapSettings>({
     enabled: storedSettings.basemapEnabled, key: storedSettings.apiKey, type: "street", outsideOpacity: 1, insideOpacity: 0.3,
@@ -206,7 +208,7 @@ function App() {
       ) return;
       if (
         event.target instanceof Element &&
-        event.target.closest(".property-window, .opening-editor, .object-context-menu, [contenteditable='true']")
+        event.target.closest(".property-window, .opening-editor, .colours-dialog, .object-context-menu, [contenteditable='true']")
       ) return;
       if (drawingWall || mapDraft) return;
       if (event.key === "Alt" && !event.repeat && selection.targets.length > 1) {
@@ -251,6 +253,7 @@ function App() {
               <Download size={16} aria-hidden="true" />
               Download JSON
             </button>
+            <button className="toolbar-button" type="button" onClick={() => setManagingColours(true)}>Manage Colours</button>
             <button
               className="toolbar-button"
               type="button"
@@ -567,6 +570,7 @@ function App() {
               onClose={() => setEditingTarget(undefined)}
             />
           )}
+          {managingColours && <ColoursDialog plan={plan} editor={editPlan} onClose={() => setManagingColours(false)} />}
           {creating && (
             <CreateWindow
               key={creating.kind}

@@ -1,5 +1,6 @@
 export type JsonGeoreference = { latitude: number; longitude: number; bearing: number };
-export type JsonPlan = { $schema?: string; georeference?: JsonGeoreference; fences?: JsonFence[]; buildings?: JsonBuilding[] };
+export type JsonColour = { id: string; description?: string; value: string };
+export type JsonPlan = { $schema?: string; georeference?: JsonGeoreference; colours?: JsonColour[]; fences?: JsonFence[]; buildings?: JsonBuilding[] };
 
 export type JsonFence = {
   id: string;

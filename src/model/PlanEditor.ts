@@ -2,7 +2,7 @@ import { Distance, isValidPositiveDistance, isValidPositionInMillimetres } from 
 import { Point2D } from "./geom/Point2D";
 import { mergeRoomWalls } from "./geom/mergeRoomWalls";
 import { Fence } from "./Fence";
-import type { JsonGeoreference, JsonPosition, JsonRoomLabel } from "./json/Document";
+import type { JsonColour, JsonGeoreference, JsonPosition, JsonRoomLabel } from "./json/Document";
 import type { Level } from "./Level";
 import { DEFAULT_OPENING_HEIGHT_METRES, Opening, Post, SlidingDoor, StandardDoor, Window, sashFields, type OpeningItem, type SashField } from "./Opening";
 import { itemRectangle, openingSize, type ItemRectangle } from "./geom/openingArrangement";
@@ -72,6 +72,32 @@ export class PlanEditor {
     private plan: Plan,
     private onChange: () => void,
   ) {}
+
+  saveColour(colour: JsonColour, existing?: JsonColour): EditResult {
+    if (existing && !this.plan.colours.includes(existing)) return { ok: false, error: "This colour is no longer in the plan." };
+    if (!colour.id.trim()) return { ok: false, error: "Enter a colour ID." };
+    if (!/^[0-9a-fA-F]{6}$/.test(colour.value)) return { ok: false, error: "Enter six hexadecimal digits without #." };
+    if (this.plan.colours.some((item) => item !== existing && item.id === colour.id)) {
+      return { ok: false, error: "A colour with this ID already exists." };
+    }
+    if (existing) {
+      if (existing.id === colour.id && existing.value === colour.value && existing.description === colour.description) return { ok: true };
+      Object.assign(existing, { id: colour.id, value: colour.value });
+      if (colour.description === undefined) delete existing.description;
+      else existing.description = colour.description;
+    } else {
+      this.plan.colours.push({ ...colour });
+    }
+    this.onChange();
+    return { ok: true };
+  }
+
+  deleteColour(colour: JsonColour): EditResult {
+    if (!this.plan.colours.includes(colour)) return { ok: false, error: "This colour is no longer in the plan." };
+    this.plan.colours = this.plan.colours.filter((item) => item !== colour);
+    this.onChange();
+    return { ok: true };
+  }
 
   updateGeoreference(reference: JsonGeoreference): EditResult {
     if (!Number.isFinite(reference.latitude) || Math.abs(reference.latitude) > 85.05112878 ||

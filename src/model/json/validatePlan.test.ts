@@ -10,6 +10,26 @@ const expectValidPlan = (document: unknown) => {
 };
 
 describe("plan loading validation", () => {
+  it("retains valid colours while warning about invalid, duplicate and unexpected properties", () => {
+    const plan = Plan.fromJson({ colours: [
+      { id: "white", value: "FFFFFF", description: "Trim", extra: true },
+      { id: "missing" },
+      { id: "white", value: "000000" },
+      { id: "blue", value: "0088ff" },
+    ], fences: [{ id: "f", start: [0, 0], end: [1000, 0] }] });
+    expect(plan.loadWarnings).toHaveLength(3);
+    expect(plan.loadWarnings[0]).toContain("unexpected property 'extra'");
+    expect(plan.loadWarnings[1]).toContain("missing required property 'value'");
+    expect(plan.loadWarnings[2]).toContain("duplicate colour id 'white'");
+    const saved = plan.toJson();
+    expect(saved.colours).toEqual([{ id: "white", value: "FFFFFF", description: "Trim" }, { id: "blue", value: "0088ff" }]);
+    expect(saved.fences).toHaveLength(1);
+    expectValidPlan(saved);
+    expect(Plan.fromJson(saved).toJson()).toEqual(saved);
+    saved.colours![0].id = "changed";
+    expect(plan.colours[0].id).toBe("white");
+  });
+
   it("loads direct glazing without a sash and rejects a direct window with a sash", () => {
     const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
       id: "wall", start: [0, 0], end: [3000, 0], openings: [{
