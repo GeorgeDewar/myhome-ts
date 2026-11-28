@@ -849,7 +849,19 @@
             },
             { "id": "wall55", "start": [12682, 12667], "end": [12682, 11187] },
             { "id": "wall56", "start": [10796, 11927], "end": [12682, 11927] },
-            { "id": "wall57", "start": [13995, 12947], "end": [15662, 12947] },
+            {
+              "id": "wall57",
+              "start": [13995, 12947],
+              "end": [15662, 12947],
+              "openings": [
+                {
+                  "id": "spareBedroomClosetDoorway",
+                  "distanceAlongWall": 850,
+                  "width": 1300,
+                  "contents": [{ "type": "SlidingDoor" }]
+                }
+              ]
+            },
             { "id": "wall58", "start": [15662, 12247], "end": [15662, 12947] },
             {
               "id": "wall59",

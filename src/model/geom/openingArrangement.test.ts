@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { Plan } from "../Plan";
 import { PlanEditor } from "../PlanEditor";
-import { arrangementWarnings, emptySpaceMarkers, itemRectangle, largestEmptyRectangle } from "./openingArrangement";
+import { arrangementWarnings, emptySpaceMarkers, itemGeometry, itemRectangle, largestEmptyRectangle } from "./openingArrangement";
 
 const setup = () => {
   const plan = Plan.fromJson({ buildings: [{ name: "House", levels: [{ number: 0, name: "Ground", walls: [{
@@ -62,6 +62,23 @@ describe("opening arrangements", () => {
     expect(loaded.toJson()).toEqual(plan.toJson());
     expect(editor.addOpeningItem(opening, "Post", { x: 1999, y: 0, width: 2, height: 100 }).ok).toBe(false);
     expect(notify).toHaveBeenCalledOnce();
+  });
+
+  it("leaves geometry blank when an item fills an empty opening, and clears fields on request", () => {
+    const { plan, opening, item, editor } = setup();
+    opening.contents = [];
+    const gap = largestEmptyRectangle(2000, 2000, [], { x: 1000, y: 1000 });
+    const added = editor.addOpeningItem(opening, "StandardDoor", gap);
+    if (!added.ok) throw new Error(added.error);
+    expect(itemGeometry(added.item)).toEqual({});
+    expect(plan.toJson().buildings![0].levels[0].walls![0].openings![0].contents).toEqual([
+      expect.not.objectContaining({ x: expect.anything() }),
+    ]);
+    opening.contents = [item];
+    expect(editor.updateOpeningItemGeometry(opening, item, { x: 500, width: 500 }).ok).toBe(true);
+    expect(itemGeometry(item)).toEqual({ x: 500, width: 500 });
+    expect(editor.updateOpeningItemGeometry(opening, item, {}).ok).toBe(true);
+    expect(itemRectangle(opening, item)).toEqual({ x: 0, y: 0, width: 2000, height: 2000 });
   });
 
   it("places new items in the remaining space after the rightmost item", () => {

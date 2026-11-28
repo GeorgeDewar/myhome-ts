@@ -1,7 +1,7 @@
 import { GripVertical } from "lucide-react";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { DEFAULT_SASH_DIMENSION_MM, type Opening, type OpeningItem } from "../model/Opening";
-import { arrangementWarnings, emptySpaceMarkers, itemRectangle, largestEmptyRectangle, openingSize, type ItemRectangle } from "../model/geom/openingArrangement";
+import { arrangementWarnings, defaultItemRectangle, emptySpaceMarkers, itemGeometry, itemRectangle, largestEmptyRectangle, openingSize, type ItemGeometry } from "../model/geom/openingArrangement";
 import type { PlanEditor } from "../model/PlanEditor";
 import { windowTypes } from "../model/windowTypes";
 import { PropertyWindow } from "./PropertyWindow";
@@ -249,37 +249,41 @@ export const OpeningEditor = ({
   );
 };
 
+const geometryFields = ["x", "y", "width", "height"] as const;
+const storedText = (item: OpeningItem) => {
+  const stored = itemGeometry(item);
+  return { x: String(stored.x ?? ""), y: String(stored.y ?? ""), width: String(stored.width ?? ""), height: String(stored.height ?? "") };
+};
+
 const GeometryFields = ({ opening, item, editPlan, onDirtyChange }: {
   opening: Opening; item: OpeningItem; editPlan: PlanEditor; onDirtyChange: (dirty: boolean) => void;
 }) => {
-  const initial = itemRectangle(opening, item);
-  const [values, setValues] = useState(() => ({
-    x: String(initial.x), y: String(initial.y), width: String(initial.width), height: String(initial.height),
-  }));
+  const defaults = defaultItemRectangle(opening);
+  const [values, setValues] = useState(() => storedText(item));
   const [error, setError] = useState("");
   return <form className="property-window-body" noValidate onSubmit={(event) => {
     event.preventDefault();
-    const fields = ["x", "y", "width", "height"] as const;
-    if (fields.some((field) => values[field].trim() === "" || !Number.isFinite(Number(values[field])))) {
-      setError("Enter finite numbers for all item dimensions.");
+    if (geometryFields.some((field) => values[field].trim() !== "" && !Number.isFinite(Number(values[field])))) {
+      setError("Enter finite numbers for item dimensions, or leave them blank for the default.");
       return;
     }
-    const geometry: ItemRectangle = {
-      x: Number(values.x), y: Number(values.y), width: Number(values.width), height: Number(values.height),
-    };
+    const geometry = Object.fromEntries(geometryFields.map((field) =>
+      [field, values[field].trim() === "" ? undefined : Number(values[field])])) as ItemGeometry;
     const result = editPlan.updateOpeningItemGeometry(opening, item, geometry);
     if (!result.ok) { setError(result.error); return; }
     setError("");
     onDirtyChange(false);
   }}>
     <strong>Item position and size</strong>
-    {(["x", "y", "width", "height"] as const).map((field) => <label key={field}>
+    {geometryFields.map((field) => <label key={field}>
       {field === "x" ? "X" : field === "y" ? "Y" : field === "width" ? "Width" : "Height"} (mm)
       <input type="number" step={field === "x" || field === "y" ? "1" : "any"} value={values[field]}
+        placeholder={String(defaults[field])}
         onChange={(event) => {
           const next = { ...values, [field]: event.target.value };
           setValues(next);
-          onDirtyChange((["x", "y", "width", "height"] as const).some((key) => next[key] !== String(itemRectangle(opening, item)[key])));
+          const stored = storedText(item);
+          onDirtyChange(geometryFields.some((key) => next[key] !== stored[key]));
         }} />
     </label>)}
     {error && <span className="property-error" role="alert">{error}</span>}

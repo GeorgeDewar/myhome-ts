@@ -5,7 +5,7 @@ import { Fence } from "./Fence";
 import type { JsonColour, JsonGeoreference, JsonPosition, JsonRoomLabel } from "./json/Document";
 import type { Level } from "./Level";
 import { DEFAULT_OPENING_HEIGHT_METRES, Opening, Post, SlidingDoor, StandardDoor, Window, sashFields, type OpeningItem, type SashField } from "./Opening";
-import { itemRectangle, openingSize, type ItemRectangle } from "./geom/openingArrangement";
+import { defaultItemRectangle, itemGeometry, itemRectangle, openingSize, type ItemGeometry, type ItemRectangle } from "./geom/openingArrangement";
 import type { Plan } from "./Plan";
 import type { Room } from "./Room";
 import { Wall } from "./Wall";
@@ -36,18 +36,25 @@ const positiveDistanceError = (value: number, label: string) => {
   if (!isValidPositiveDistance(value)) return `${label} is too small to save.`;
 };
 
-const openingItemGeometryError = (opening: Opening, geometry: ItemRectangle): EditResult<keyof ItemRectangle> => {
+const openingItemGeometryError = (opening: Opening, geometry: ItemGeometry): EditResult<keyof ItemRectangle> => {
+  const effective = { ...defaultItemRectangle(opening) };
   for (const field of ["x", "y"] as const) {
-    if (!isValidPositionInMillimetres(geometry[field]) || geometry[field] < 0) {
+    const value = geometry[field];
+    if (value === undefined) continue;
+    if (!isValidPositionInMillimetres(value) || value < 0) {
       return { ok: false, field, error: "Enter a non-negative integer number of millimetres." };
     }
+    effective[field] = value;
   }
   for (const field of ["width", "height"] as const) {
-    const error = positiveDistanceError(geometry[field], `Item ${field}`);
+    const value = geometry[field];
+    if (value === undefined) continue;
+    const error = positiveDistanceError(value, `Item ${field}`);
     if (error) return { ok: false, field, error };
+    effective[field] = value;
   }
   const size = openingSize(opening);
-  if (geometry.x + geometry.width > size.width || geometry.y + geometry.height > size.height) {
+  if (effective.x + effective.width > size.width || effective.y + effective.height > size.height) {
     return { ok: false, error: "The item must fit within the opening." };
   }
   return { ok: true };
@@ -256,19 +263,22 @@ export class PlanEditor {
     return { ok: true, item };
   }
 
-  updateOpeningItemGeometry(opening: Opening, item: OpeningItem, geometry: ItemRectangle): EditResult<keyof ItemRectangle> {
+  // Undefined fields are cleared so that the item fills the opening in that dimension.
+  updateOpeningItemGeometry(opening: Opening, item: OpeningItem, geometry: ItemGeometry): EditResult<keyof ItemRectangle> {
     if (!this.ownsOpening(opening) || !opening.contents.includes(item)) {
       return { ok: false, error: "This opening item is no longer in the plan." };
     }
     const result = openingItemGeometryError(opening, geometry);
     if (!result.ok) return result;
-    const current = itemRectangle(opening, item);
+    const current = itemGeometry(item);
+    let changed = false;
     for (const field of ["x", "y", "width", "height"] as const) {
-      if (geometry[field] !== current[field]) item[field] = Distance.fromJson(geometry[field]);
+      const value = geometry[field];
+      if (value === current[field]) continue;
+      item[field] = value === undefined ? undefined : Distance.fromJson(value);
+      changed = true;
     }
-    if (Object.keys(current).some((field) => current[field as keyof ItemRectangle] !== geometry[field as keyof ItemRectangle])) {
-      this.onChange();
-    }
+    if (changed) this.onChange();
     return { ok: true };
   }
 

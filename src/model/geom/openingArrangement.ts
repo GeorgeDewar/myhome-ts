@@ -8,6 +8,18 @@ export const openingSize = (opening: Opening) => ({
   height: opening.height?.toJson() ?? DEFAULT_OPENING_HEIGHT_METRES * 1000,
 });
 
+export type ItemGeometry = { [K in keyof ItemRectangle]?: number };
+
+export const defaultItemRectangle = (opening: Opening): ItemRectangle => ({ x: 0, y: 0, ...openingSize(opening) });
+
+// Stored values only; undefined means the item uses the default for that field.
+export const itemGeometry = (item: OpeningItem): ItemGeometry => ({
+  x: item.x?.toJson(),
+  y: item.y?.toJson(),
+  width: item.width?.toJson(),
+  height: item.height?.toJson(),
+});
+
 export const itemRectangle = (opening: Opening, item: OpeningItem): ItemRectangle => {
   const size = openingSize(opening);
   return {
